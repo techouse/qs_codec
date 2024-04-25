@@ -39,10 +39,12 @@ import qs_codec, typing as t
 
 
 def decode(
-        value: t.Optional[t.Union[str, t.Mapping]],
-        options: qs_codec.DecodeOptions = qs_codec.DecodeOptions(),
+    value: t.Optional[t.Union[str, t.Mapping]],
+    options: qs_codec.DecodeOptions = qs_codec.DecodeOptions(),
 ) -> dict:
-    """Decodes a str or Mapping into a Dict. Providing custom DecodeOptions will override the default behavior."""
+    """Decodes a str or Mapping into a Dict. 
+    
+    Providing custom DecodeOptions will override the default behavior."""
     pass
 ```
 
@@ -363,10 +365,12 @@ import qs_codec, typing as t
 
 
 def encode(
-        value: t.Any,
-        options: qs_codec.EncodeOptions = qs_codec.EncodeOptions()
+    value: t.Any,
+    options: qs_codec.EncodeOptions = qs_codec.EncodeOptions()
 ) -> str:
-    """Encodes an object into a query string. Providing custom EncodeOptions will override the default behavior."""
+    """Encodes an object into a query string.
+    
+    Providing custom EncodeOptions will override the default behavior."""
     pass
 ```
 
