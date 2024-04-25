@@ -7,8 +7,8 @@ A query string encoding and decoding library for Python.
 Ported from [qs](https://www.npmjs.com/package/qs) for JavaScript.
 
 [![Test](https://github.com/techouse/qs_codec/actions/workflows/test.yml/badge.svg)](https://github.com/techouse/qs_codec/actions/workflows/test.yml)
-[![codecov](https://codecov.io/gh/techouse/qs_codec/graph/badge.svg?token=LkdDSkJXDE)](https://codecov.io/gh/techouse/qs_codec)
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/d23cff4c16de40beb144fb9cc3a3ac1d)](https://app.codacy.com/gh/techouse/qs_codec/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+[![codecov](https://codecov.io/gh/techouse/qs_codec/graph/badge.svg?token=Vp0z05yj2l)](https://codecov.io/gh/techouse/qs_codec)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/7ead208221ae4f6785631043064647e4)](https://app.codacy.com/gh/techouse/qs_codec/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![GitHub](https://img.shields.io/github/license/techouse/qs_codec)](LICENSE)
 [![GitHub Sponsors](https://img.shields.io/github/sponsors/techouse)](https://github.com/sponsors/techouse)
 [![GitHub Repo stars](https://img.shields.io/github/stars/techouse/qs_codec)](https://github.com/techouse/qs_codec/stargazers)
