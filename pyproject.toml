@@ -1,0 +1,114 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "qs-codec"
+description = "A query string encoding and decoding library for Python. Ported from qs for JavaScript."
+readme = "README.md"
+license = { text = "BSD-3-Clause" }
+requires-python = ">=3.8"
+authors = [
+    { name = "Klemen Tusar", email = "techouse@gmail.com" },
+]
+keywords = [
+    "qs",
+    "codec",
+    "url",
+    "query",
+    "querystring",
+    "query-string",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries",
+]
+dynamic = ["version"]
+
+[project.urls]
+Source = "https://github.com/techouse/qs_codec"
+Changelog = "https://github.com/techouse/qs_codec/blob/master/CHANGELOG.md"
+Sponsor = "https://github.com/sponsors/techouse"
+PayPal = "https://paypal.me/ktusar"
+
+[tool.hatch.version]
+path = "src/qs_codec/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src",
+    "tests",
+    "README.md",
+    "CHANGELOG.md",
+    "CODE-OF-CONDUCT.md",
+    "LICENSE",
+    "requirements_dev.txt",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/qs_codec"]
+
+[tool.black]
+line-length = 120
+target-version = ["py38", "py39", "py310", "py311", "py312"]
+include = '\.pyi?$'
+exclude = '''
+(
+    /(
+        \.eggs
+        | \.git
+        | \.hg
+        | \.mypy_cache
+        | \.tox
+        | \.venv
+        | _build
+        | buck-out
+        | build
+        | dist
+    )/
+    | foo.py
+)
+'''
+
+[tool.isort]
+line_length = 120
+profile = "black"
+lines_after_imports = 2
+known_first_party = "qs"
+skip_gitignore = true
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+norecursedirs = [".*", "venv", "env", "*.egg", "dist", "build"]
+minversion = "8.1.1"
+addopts = "-rsxX -l --tb=short --strict-markers"
+markers = []
+
+[tool.mypy]
+mypy_path = "src"
+python_version = "3.8"
+exclude = [
+    "tests",
+    "build",
+    "dist",
+    "venv",
+    "env",
+]
+show_error_codes = true
+warn_return_any = true
+warn_unused_configs = true

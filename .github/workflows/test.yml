@@ -1,0 +1,77 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+defaults:
+  run:
+    shell: bash
+permissions: read-all
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install -r requirements_dev.txt
+      - name: Run static analysis
+        run: tox -e linters
+  test:
+    needs: analyze
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - toxenv: "python3.8"
+            py: "3.8"
+
+          - toxenv: "python3.9"
+            py: "3.9"
+
+          - toxenv: "python3.10"
+            py: "3.10"
+
+          - toxenv: "python3.11"
+            py: "3.11"
+
+          - toxenv: "python3.12"
+            py: "3.12"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.py }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.py }}
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-1
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -U codecov tox-gh-actions
+          pip install -r requirements_dev.txt
+      - name: Test with tox
+        run: tox
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        continue-on-error: true
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: techouse/qs_codec
+          files: ./coverage.xml
+          env_vars: OS,PYTHON
+          verbose: true
