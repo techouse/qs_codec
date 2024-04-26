@@ -52,7 +52,7 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
 
     side_channel: WeakKeyDictionary = WeakKeyDictionary()
 
-    for _, _key in enumerate(obj_keys):
+    for _key in obj_keys:
         if not isinstance(_key, str):
             continue
         if _key in obj and obj.get(_key) is None and options.skip_nulls:
@@ -219,7 +219,7 @@ def _encode(
     if allow_empty_lists and isinstance(obj, (list, tuple)) and not obj:
         return [f"{adjusted_prefix}[]"]
 
-    for _, _key in enumerate(obj_keys):
+    for _key in obj_keys:
         _value: t.Any
         _value_undefined: bool
 

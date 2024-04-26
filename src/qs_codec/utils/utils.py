@@ -111,8 +111,8 @@ class Utils:
             obj: t.Mapping = item["obj"][item["prop"]]
 
             keys: t.List = list(obj.keys())
-            for _, key in enumerate(keys):
-                val = obj[key]
+            for key in keys:
+                val = obj.get(key)
 
                 if (
                     val is not None
