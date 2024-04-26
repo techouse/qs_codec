@@ -1,3 +1,7 @@
+# 0.1.2
+
+* [CHORE] minor improvements
+
 # 0.1.1
 
 * [CHORE] update README.md
