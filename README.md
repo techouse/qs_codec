@@ -5,7 +5,7 @@ A query string encoding and decoding library for Python.
 Ported from [qs](https://www.npmjs.com/package/qs) for JavaScript.
 
 [![PyPI - Version](https://img.shields.io/pypi/v/qs_codec)](https://pypi.org/project/qs-codec/)
-![PyPI - Downloads](https://img.shields.io/pypi/dm/qs_codec)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/qs_codec)](https://pypistats.org/packages/qs-codec)
 ![PyPI - Status](https://img.shields.io/pypi/status/qs_codec)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/qs_codec)
 ![PyPI - Format](https://img.shields.io/pypi/format/qs_codec)
