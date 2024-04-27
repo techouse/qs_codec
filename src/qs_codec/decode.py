@@ -4,6 +4,8 @@ import re
 import typing as t
 from math import isinf
 
+from regex import regex
+
 from .enums.charset import Charset
 from .enums.duplicates import Duplicates
 from .enums.sentinel import Sentinel
@@ -159,10 +161,10 @@ def _parse_keys(given_key: t.Optional[str], val: t.Any, options: DecodeOptions, 
     key: str = re.sub(r"\.([^.[]+)", r"[\1]", given_key) if options.allow_dots else given_key
 
     # The regex chunks
-    brackets: re.Pattern[str] = re.compile(r"(\[[^[\]]*])")
+    brackets: regex.Pattern[str] = regex.compile(r"\[(?:[^\[\]]|(?R))*\]")
 
     # Get the parent
-    segment: t.Optional[t.Match] = brackets.search(key) if options.depth > 0 else None
+    segment: t.Optional[regex.Match] = brackets.search(key) if options.depth > 0 else None
     parent: str = key[0 : segment.start()] if segment is not None else key
 
     # Stash the parent if it exists
@@ -173,7 +175,7 @@ def _parse_keys(given_key: t.Optional[str], val: t.Any, options: DecodeOptions, 
     while options.depth > 0 and (segment := brackets.search(key)) is not None and i < options.depth:
         i += 1
         if segment is not None:
-            keys.append(segment.group(1))
+            keys.append(segment.group())
             # Update the key to start searching from the next position
             key = key[segment.end() :]
 
