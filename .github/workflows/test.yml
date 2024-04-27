@@ -70,23 +70,17 @@ jobs:
         continue-on-error: true
         run: |
           set -e
-          
           pip install -e .
-          
           pushd tests/comparison || exit 1
-          
           npm install
-
           node_output=$(node qs.js)
           python_output=$(python3 qs.py)
-          
           if [ "$node_output" == "$python_output" ]; then
               echo "The outputs are identical."
           else
               echo "The outputs are different."
               exit 1
           fi
-          
           popd || exit 1
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
