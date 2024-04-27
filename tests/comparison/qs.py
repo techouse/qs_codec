@@ -2,7 +2,8 @@
 
 import json
 import os
-from qs_codec import encode, decode
+
+from qs_codec import decode, encode
 
 
 def main():
