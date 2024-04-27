@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
-from json import loads, dumps
+from json import dumps, loads
 from os.path import dirname, join, realpath
-from qs_codec import encode, decode
+
+from qs_codec import decode, encode
 
 
 def main():
