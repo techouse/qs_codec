@@ -29,7 +29,9 @@ class TestDecoding:
 
         # By default, when nesting `dict`s qs_codec will only decode up to 5 children deep. This means if you attempt to
         # decode a string like 'a[b][c][d][e][f][g][h][i]=j' your resulting `dict` will be:
-        assert qs_codec.decode("a[b][c][d][e][f][g][h][i]=j") == {"a": {"b": {"c": {"d": {"e": {"f": {"[g][h][i]": "j"}}}}}}}
+        assert qs_codec.decode("a[b][c][d][e][f][g][h][i]=j") == {
+            "a": {"b": {"c": {"d": {"e": {"f": {"[g][h][i]": "j"}}}}}}
+        }
 
         # This depth can be overridden by passing a depth option to `DecodeOptions.depth`:
         assert qs_codec.decode("a[b][c][d][e][f][g][h][i]=j", qs_codec.DecodeOptions(depth=1)) == {
@@ -61,15 +63,22 @@ class TestDecoding:
         ) == {"name.obj": {"first": "John", "last": "Doe"}}
 
         # Option `DecodeOptions.allow_empty_lists` can be used to allowing empty `list` values in `dict`
-        assert qs_codec.decode("foo[]&bar=baz", qs_codec.DecodeOptions(allow_empty_lists=True)) == {"foo": [], "bar": "baz"}
+        assert qs_codec.decode("foo[]&bar=baz", qs_codec.DecodeOptions(allow_empty_lists=True)) == {
+            "foo": [],
+            "bar": "baz",
+        }
 
         # Option `DecodeOptions.duplicates` can be used to change the behavior when duplicate keys are encountered
         assert qs_codec.decode("foo=bar&foo=baz") == {"foo": ["bar", "baz"]}
         assert qs_codec.decode("foo=bar&foo=baz", qs_codec.DecodeOptions(duplicates=qs_codec.Duplicates.COMBINE)) == {
             "foo": ["bar", "baz"]
         }
-        assert qs_codec.decode("foo=bar&foo=baz", qs_codec.DecodeOptions(duplicates=qs_codec.Duplicates.FIRST)) == {"foo": "bar"}
-        assert qs_codec.decode("foo=bar&foo=baz", qs_codec.DecodeOptions(duplicates=qs_codec.Duplicates.LAST)) == {"foo": "baz"}
+        assert qs_codec.decode("foo=bar&foo=baz", qs_codec.DecodeOptions(duplicates=qs_codec.Duplicates.FIRST)) == {
+            "foo": "bar"
+        }
+        assert qs_codec.decode("foo=bar&foo=baz", qs_codec.DecodeOptions(duplicates=qs_codec.Duplicates.LAST)) == {
+            "foo": "baz"
+        }
 
         # If you have to deal with legacy browsers or services, there's also support for decoding percent-encoded octets
         # as `Charset.LATIN1`:
@@ -152,8 +161,10 @@ class TestEncoding:
 
         # Encoding can be disabled for keys by setting the `EncodeOptions.encode_values_only` option to `True`:
         assert (
-                qs_codec.encode({"a": "b", "c": ["d", "e=f"], "f": [["g"], ["h"]]}, qs_codec.EncodeOptions(encode_values_only=True))
-                == "a=b&c[0]=d&c[1]=e%3Df&f[0][0]=g&f[1][0]=h"
+            qs_codec.encode(
+                {"a": "b", "c": ["d", "e=f"], "f": [["g"], ["h"]]}, qs_codec.EncodeOptions(encode_values_only=True)
+            )
+            == "a=b&c[0]=d&c[1]=e%3Df&f[0][0]=g&f[1][0]=h"
         )
 
         # This encoding can also be replaced by a custom `Encoder` set as `EncodeOptions.encoder` option:
@@ -181,39 +192,54 @@ class TestEncoding:
 
         # You may use the `EncodeOptions.list_format` option to specify the format of the output `list`:
         assert (
-                qs_codec.encode({"a": ["b", "c"]}, qs_codec.EncodeOptions(encode=False, list_format=qs_codec.ListFormat.INDICES))
-                == "a[0]=b&a[1]=c"
+            qs_codec.encode(
+                {"a": ["b", "c"]}, qs_codec.EncodeOptions(encode=False, list_format=qs_codec.ListFormat.INDICES)
+            )
+            == "a[0]=b&a[1]=c"
         )
         assert (
-                qs_codec.encode({"a": ["b", "c"]}, qs_codec.EncodeOptions(encode=False, list_format=qs_codec.ListFormat.BRACKETS))
-                == "a[]=b&a[]=c"
+            qs_codec.encode(
+                {"a": ["b", "c"]}, qs_codec.EncodeOptions(encode=False, list_format=qs_codec.ListFormat.BRACKETS)
+            )
+            == "a[]=b&a[]=c"
         )
         assert (
-                qs_codec.encode({"a": ["b", "c"]}, qs_codec.EncodeOptions(encode=False, list_format=qs_codec.ListFormat.REPEAT)) == "a=b&a=c"
+            qs_codec.encode(
+                {"a": ["b", "c"]}, qs_codec.EncodeOptions(encode=False, list_format=qs_codec.ListFormat.REPEAT)
+            )
+            == "a=b&a=c"
         )
-        assert qs_codec.encode({"a": ["b", "c"]}, qs_codec.EncodeOptions(encode=False, list_format=qs_codec.ListFormat.COMMA)) == "a=b,c"
+        assert (
+            qs_codec.encode(
+                {"a": ["b", "c"]}, qs_codec.EncodeOptions(encode=False, list_format=qs_codec.ListFormat.COMMA)
+            )
+            == "a=b,c"
+        )
 
         # **Note:** When using `EncodeOptions.list_format` set to `ListFormat.COMMA`, you can also pass the
         # `EncodeOptions.comma_round_trip` option set to `True` or `False`, to append `[]` on single-item `list`s, so
         # that they can round trip through a parse.
 
         # When `dict`s are encoded, by default they use bracket notation:
-        assert qs_codec.encode({"a": {"b": {"c": "d", "e": "f"}}}, qs_codec.EncodeOptions(encode=False)) == "a[b][c]=d&a[b][e]=f"
+        assert (
+            qs_codec.encode({"a": {"b": {"c": "d", "e": "f"}}}, qs_codec.EncodeOptions(encode=False))
+            == "a[b][c]=d&a[b][e]=f"
+        )
 
         # You may override this to use dot notation by setting the `EncodeOptions.allow_dots` option to `True`:
         assert (
-                qs_codec.encode({"a": {"b": {"c": "d", "e": "f"}}}, qs_codec.EncodeOptions(encode=False, allow_dots=True))
-                == "a.b.c=d&a.b.e=f"
+            qs_codec.encode({"a": {"b": {"c": "d", "e": "f"}}}, qs_codec.EncodeOptions(encode=False, allow_dots=True))
+            == "a.b.c=d&a.b.e=f"
         )
 
         # You may encode the dot notation in the keys of `dict` with option `EncodeOptions.encode_dot_in_keys` by
         # setting it to `True`:
         assert (
-                qs_codec.encode(
+            qs_codec.encode(
                 {"name.obj": {"first": "John", "last": "Doe"}},
                 qs_codec.EncodeOptions(allow_dots=True, encode_dot_in_keys=True),
             )
-                == "name%252Eobj.first=John&name%252Eobj.last=Doe"
+            == "name%252Eobj.first=John&name%252Eobj.last=Doe"
         )
 
         # **Caveat:** when `EncodeOptions.encode_values_only` is `True` as well as `EncodeOptions.encode_dot_in_keys`,
@@ -221,8 +247,8 @@ class TestEncoding:
 
         # You may allow empty `list` values by setting the `EncodeOptions.allow_empty_lists` option to `True`:
         assert (
-                qs_codec.encode({"foo": [], "bar": "baz"}, qs_codec.EncodeOptions(encode=False, allow_empty_lists=True))
-                == "foo[]&bar=baz"
+            qs_codec.encode({"foo": [], "bar": "baz"}, qs_codec.EncodeOptions(encode=False, allow_empty_lists=True))
+            == "foo[]&bar=baz"
         )
 
         # Empty strings and null values will omit the value, but the equals sign (`=`) remains in place:
@@ -262,7 +288,7 @@ class TestEncoding:
             else "a=1970-01-01T00:00:07"
         )
         assert (
-                qs_codec.encode(
+            qs_codec.encode(
                 {
                     "a": (
                         datetime.datetime.fromtimestamp(7, datetime.UTC)
@@ -272,26 +298,26 @@ class TestEncoding:
                 },
                 qs_codec.EncodeOptions(encode=False, serialize_date=lambda date: str(int(date.timestamp()))),
             )
-                == "a=7"
+            == "a=7"
         )
 
         # You may use the `EncodeOptions.sort` option to affect the order of parameter keys:
         assert (
-                qs_codec.encode(
+            qs_codec.encode(
                 {"a": "c", "z": "y", "b": "f"},
                 qs_codec.EncodeOptions(
                     encode=False,
                     sort=lambda a, b: (a > b) - (a < b),
                 ),
             )
-                == "a=c&b=f&z=y"
+            == "a=c&b=f&z=y"
         )
 
         # Finally, you can use the `EncodeOptions.filter` option to restrict which keys will be included in the encoded
         # output. If you pass a `Callable`, it will be called for each key to obtain the replacement value.
         # Otherwise, if you pass a `list`, it will be used to select properties and `list` indices to be encoded:
         assert (
-                qs_codec.encode(
+            qs_codec.encode(
                 {
                     "a": "b",
                     "c": "d",
@@ -313,12 +339,15 @@ class TestEncoding:
                     }.get(prefix, value),
                 ),
             )
-                == "a=b&c=d&e[f]=123&e[g][0]=4"
+            == "a=b&c=d&e[f]=123&e[g][0]=4"
         )
-        assert qs_codec.encode({"a": "b", "c": "d", "e": "f"}, qs_codec.EncodeOptions(encode=False, filter=["a", "e"])) == "a=b&e=f"
         assert (
-                qs_codec.encode({"a": ["b", "c", "d"], "e": "f"}, qs_codec.EncodeOptions(encode=False, filter=["a", 0, 2]))
-                == "a[0]=b&a[2]=d"
+            qs_codec.encode({"a": "b", "c": "d", "e": "f"}, qs_codec.EncodeOptions(encode=False, filter=["a", "e"]))
+            == "a=b&e=f"
+        )
+        assert (
+            qs_codec.encode({"a": ["b", "c", "d"], "e": "f"}, qs_codec.EncodeOptions(encode=False, filter=["a", 0, 2]))
+            == "a[0]=b&a[2]=d"
         )
 
     def test_none_values(self):
@@ -346,10 +375,12 @@ class TestEncoding:
         # You can use the `EncodeOptions.charset_sentinel` option to announce the character by including an `utf8=✓`
         # parameter with the proper encoding of the checkmark, similar to what Ruby on Rails and others do when
         # submitting forms.
-        assert qs_codec.encode({"a": "☺"}, qs_codec.EncodeOptions(charset_sentinel=True)) == "utf8=%E2%9C%93&a=%E2%98%BA"
         assert (
-                qs_codec.encode({"a": "æ"}, qs_codec.EncodeOptions(charset=qs_codec.Charset.LATIN1, charset_sentinel=True))
-                == "utf8=%26%2310003%3B&a=%E6"
+            qs_codec.encode({"a": "☺"}, qs_codec.EncodeOptions(charset_sentinel=True)) == "utf8=%E2%9C%93&a=%E2%98%BA"
+        )
+        assert (
+            qs_codec.encode({"a": "æ"}, qs_codec.EncodeOptions(charset=qs_codec.Charset.LATIN1, charset_sentinel=True))
+            == "utf8=%26%2310003%3B&a=%E6"
         )
 
         # By default, the encoding and decoding of characters is done in `Charset.UTF8`, and `Charset.LATIN1` support is
@@ -357,7 +388,9 @@ class TestEncoding:
         #
         # If you wish to encode query strings to a different character set (i.e.
         # [Shift JIS](https://en.wikipedia.org/wiki/Shift_JIS))
-        def custom_encoder(string: str, charset: t.Optional[qs_codec.Charset], format: t.Optional[qs_codec.Format]) -> str:
+        def custom_encoder(
+            string: str, charset: t.Optional[qs_codec.Charset], format: t.Optional[qs_codec.Format]
+        ) -> str:
             if string:
                 buf: bytes = codecs.encode(string, "shift_jis")
                 result: t.List[str] = ["{:02x}".format(b) for b in buf]
@@ -365,8 +398,8 @@ class TestEncoding:
             return ""
 
         assert (
-                qs_codec.encode({"a": "こんにちは！"}, qs_codec.EncodeOptions(encoder=custom_encoder))
-                == "%61=%82%b1%82%f1%82%c9%82%bf%82%cd%81%49"
+            qs_codec.encode({"a": "こんにちは！"}, qs_codec.EncodeOptions(encoder=custom_encoder))
+            == "%61=%82%b1%82%f1%82%c9%82%bf%82%cd%81%49"
         )
 
         # This also works for decoding of query strings:
@@ -384,9 +417,9 @@ class TestEncoding:
                 return codecs.decode(buf, "shift_jis")
             return None
 
-        assert qs_codec.decode("%61=%82%b1%82%f1%82%c9%82%bf%82%cd%81%49", qs_codec.DecodeOptions(decoder=custom_decoder)) == {
-            "a": "こんにちは！"
-        }
+        assert qs_codec.decode(
+            "%61=%82%b1%82%f1%82%c9%82%bf%82%cd%81%49", qs_codec.DecodeOptions(decoder=custom_decoder)
+        ) == {"a": "こんにちは！"}
 
     def test_rfc3986_and_rfc1738(self):
         # The default `EncodeOptions.format` is `Format.RFC3986` which encodes `' '` to `%20` which is backward
