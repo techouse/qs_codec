@@ -916,6 +916,6 @@ assert qs_codec.encode(
 
 ---
 
-Special thanks to the authors of [qs](https://github.com/ljharb/qs) for JavaScript:
+Special thanks to the authors of [qs](https://www.npmjs.com/package/qs) for JavaScript:
 - [Jordan Harband](https://github.com/ljharb)
 - [TJ Holowaychuk](https://github.com/visionmedia/node-querystring)
