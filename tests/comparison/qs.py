@@ -2,8 +2,13 @@
 
 import json
 import os
+import sys
+from pathlib import Path
 
-from qs_codec import decode, encode
+
+sys.path.append(str(Path(f"{__file__}").parent.parent))
+
+import qs_codec
 
 
 def main():
@@ -23,9 +28,9 @@ def main():
     # Iterate over the test cases
     for test_case in e2e_test_cases:
         # Encode the 'data' field
-        encoded = encode(test_case["data"])
+        encoded = qs_codec.encode(test_case["data"])
         # Decode the 'encoded' field
-        decoded = decode(test_case["encoded"])
+        decoded = qs_codec.decode(test_case["encoded"])
         # Print the results
         print("Encoded:", encoded)
         print("Decoded:", json.dumps(decoded, separators=(",", ":")))
