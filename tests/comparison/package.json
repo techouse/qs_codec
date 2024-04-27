@@ -1,0 +1,10 @@
+{
+  "name": "qs_comparison",
+  "version": "1.0.0",
+  "description": "A comparison of query string parsing libraries",
+  "author": "Klemen Tusar",
+  "license": "BSD-3-Clause",
+  "dependencies": {
+    "qs": "^6.12.1"
+  }
+}
