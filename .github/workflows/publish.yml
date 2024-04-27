@@ -35,7 +35,7 @@ jobs:
         id: check_changelog
         run: |
           set -e
-          if ! grep -q "# $VERSION" CHANGELOG.md; then
+          if ! grep -q "## $VERSION" CHANGELOG.md; then
             echo "CHANGELOG.md does not contain a section for $VERSION"
             exit 1
           fi
@@ -80,7 +80,7 @@ jobs:
         run: |
           set -e
           CHANGELOG_PATH=$RUNNER_TEMP/CHANGELOG.md
-          awk '/^#[[:space:]].*/ { if (count == 1) exit; count++; print } count == 1 && !/^#[[:space:]].*/ { print }' CHANGELOG.md | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' > $CHANGELOG_PATH
+          awk '/^##[[:space:]].*/ { if (count == 1) exit; count++; print } count == 1 && !/^##[[:space:]].*/ { print }' CHANGELOG.md | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' > $CHANGELOG_PATH
           echo -en "\n[https://pypi.org/project/$NAME/$VERSION/](https://pypi.org/project/$NAME/$VERSION/)" >> $CHANGELOG_PATH
           echo "CHANGELOG_PATH=$CHANGELOG_PATH" >> $GITHUB_ENV
       - name: Github Release
