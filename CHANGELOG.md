@@ -1,3 +1,7 @@
+## 0.1.4
+
+* [FIX] incorrect parsing of nested params with closing square bracket `]` in the property name ([#1](https://github.com/techouse/qs_codec/pull/1))
+
 ## 0.1.3
 
 * [CHORE] update README.md
