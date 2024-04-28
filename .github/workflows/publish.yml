@@ -96,5 +96,6 @@ jobs:
   documentation:
     uses: ./.github/workflows/docs.yml
     needs: publish
-    permissions: write
+    permissions:
+      contents: write
     secrets: inherit
