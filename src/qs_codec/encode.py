@@ -17,7 +17,11 @@ from .utils.utils import Utils
 
 
 def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
-    """Encodes an object into a query string. Providing custom EncodeOptions will override the default behavior."""
+    """
+    Encodes ``Any`` object into a query ``str`` ing.
+
+    Providing custom ``EncodeOptions`` will override the default behavior.
+    """
     if value is None:
         return ""
 

@@ -14,8 +14,8 @@ from .str_utils import code_unit_at
 class EncodeUtils:
     """A collection of encode utility methods used by the library."""
 
-    # Hex table of all 256 characters
     HEX_TABLE: t.Tuple[str, ...] = tuple(f"%{i.to_bytes(1, 'big').hex().upper().zfill(2)}" for i in range(256))
+    """Hex table of all 256 characters"""
 
     @classmethod
     def escape(

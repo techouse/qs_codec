@@ -97,7 +97,7 @@ The depth limit helps mitigate abuse when **qs** is used to parse user input, an
 reasonably small number.
 
 For similar reasons, by default **qs** will only parse up to 1000 parameters. This can be overridden by passing 
-a `qs.DecodeOptions.parameter_limit` option:
+a `DecodeOptions.parameter_limit` option:
 
 ```python
 import qs_codec

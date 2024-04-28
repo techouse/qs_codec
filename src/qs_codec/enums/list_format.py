@@ -30,24 +30,24 @@ class ListFormatGenerator:
 
 
 @dataclass(frozen=True)
-class ListFormatDataMixin:
+class _ListFormatDataMixin:
     """List format data mixin."""
 
     list_format_name: str
     generator: t.Callable[[str, t.Optional[str]], str]
 
 
-class ListFormat(ListFormatDataMixin, Enum):
+class ListFormat(_ListFormatDataMixin, Enum):
     """An enum of all available list format options."""
 
-    # Use brackets to represent list items, for example `foo[]=123&foo[]=456&foo[]=789`
     BRACKETS = "BRACKETS", ListFormatGenerator.brackets
+    """Use brackets to represent list items, for example ``foo[]=123&foo[]=456&foo[]=789``"""
 
-    # Use commas to represent list items, for example `foo=123,456,789`
     COMMA = "COMMA", ListFormatGenerator.comma
+    """Use commas to represent list items, for example ``foo=123,456,789``"""
 
-    # Use a repeat key to represent list items, for example `foo=123&foo=456&foo=789`
     REPEAT = "REPEAT", ListFormatGenerator.repeat
+    """Use a repeat key to represent list items, for example ``foo=123&foo=456&foo=789``"""
 
-    # Use indices to represent list items, for example `foo[0]=123&foo[1]=456&foo[2]=789`
     INDICES = "INDICES", ListFormatGenerator.indices
+    """Use indices to represent list items, for example ``foo[0]=123&foo[1]=456&foo[2]=789``"""

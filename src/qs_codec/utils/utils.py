@@ -192,12 +192,12 @@ class Utils:
             return d1 == d2
 
     @staticmethod
-    def combine(a: t.Union[t.Sequence, t.Any], b: t.Union[t.Sequence, t.Any]) -> t.List:
+    def combine(a: t.Union[list, tuple, t.Any], b: t.Union[list, tuple, t.Any]) -> t.List:
         """Combine two lists or values."""
         return [*(a if isinstance(a, (list, tuple)) else [a]), *(b if isinstance(b, (list, tuple)) else [b])]
 
     @staticmethod
-    def apply(val: t.Union[t.Sequence, t.Any], fn: t.Callable) -> t.Union[t.List, t.Any]:
+    def apply(val: t.Union[list, tuple, t.Any], fn: t.Callable) -> t.Union[t.List, t.Any]:
         """Apply a function to a value or a list of values."""
         return [fn(item) for item in val] if isinstance(val, (list, tuple)) else fn(val)
 
@@ -217,7 +217,7 @@ class Utils:
             return False
 
         if isinstance(val, object):
-            if isinstance(val, (t.Sequence, t.Mapping)):
+            if isinstance(val, (list, tuple, t.Mapping)):
                 return False
             return True
 
