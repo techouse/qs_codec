@@ -3,7 +3,7 @@ name: Documentation
 on:
   workflow_dispatch:
     branches:
-      - master
+      - main
   workflow_call:
 
 permissions:
@@ -28,6 +28,7 @@ jobs:
         run: sphinx-build . _build
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
+        if: ${{ (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_call' }}
         with:
           publish_branch: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
