@@ -15,7 +15,11 @@ from .utils.utils import Utils
 
 
 def decode(value: t.Optional[t.Union[str, t.Mapping]], options: DecodeOptions = DecodeOptions()) -> dict:
-    """Decodes a str or Mapping into a Dict. Providing custom DecodeOptions will override the default behavior."""
+    """
+    Decodes a ``str`` or ``Mapping`` into a ``dict``.
+
+    Providing custom ``DecodeOptions`` will override the default behavior.
+    """
     if not value:
         return dict()
 
@@ -107,7 +111,9 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict:
     return obj
 
 
-def _parse_object(chain: t.Sequence[str], val: t.Any, options: DecodeOptions, values_parsed: bool) -> t.Any:
+def _parse_object(
+    chain: t.Union[t.List[str], t.Tuple[str, ...]], val: t.Any, options: DecodeOptions, values_parsed: bool
+) -> t.Any:
     leaf: t.Any = val if values_parsed else _parse_array_value(val, options)
 
     i: int
