@@ -10,7 +10,12 @@ defaults:
 permissions: read-all
 
 jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+    secrets: inherit
   build-and-publish:
+    needs: test
+    name: "Build & Publish"
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -44,17 +49,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
+          cache: "pip"
       - name: Install build dependencies
         id: install_build_dependencies
-        run: |
-          set -e
-          python3 -m pip install --upgrade pip
-          pip install build setuptools wheel
+        run: pip install build setuptools wheel
       - name: Build a binary wheel and a source tarball
         id: build
-        run: |
-          set -e
-          python3 -m build --sdist --wheel --outdir dist/ .
+        run: python -m build --sdist --wheel --outdir dist/ .
       - name: Publish distribution package to PyPI
         id: publish
         if: startsWith(github.ref, 'refs/tags')
@@ -62,7 +63,6 @@ jobs:
       - name: Install pyproject-parser
         id: install_pyproject_parser
         run: |
-          set -e
           pip install pyproject-parser[cli]
       - name: Read project name from pyproject.toml
         id: read_project_name
