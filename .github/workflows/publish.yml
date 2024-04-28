@@ -93,7 +93,7 @@ jobs:
         run: |
           rm -rf dist
           rm -rf $CHANGELOG_PATH
-  documentation:
+  docs:
     uses: ./.github/workflows/docs.yml
     needs: publish
     permissions:
