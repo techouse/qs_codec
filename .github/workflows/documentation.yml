@@ -21,7 +21,9 @@ jobs:
         working-directory: docs
         run: pip install -r requirements.txt
       - name: Convert README.md to reStructuredText
-        run: pandoc --from=markdown --to=rst --output=docs/README.rst README.md
+        uses: docker://pandoc/core:3.1-alpine
+        with:
+          args: --from=markdown --to=rst --output=docs/README.rst README.md
       - name: Sphinx build
         working-directory: docs
         run: sphinx-build . _build
