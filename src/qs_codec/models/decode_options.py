@@ -21,7 +21,7 @@ class DecodeOptions:
     ``allow_dots`` to ``False``."""
 
     allow_empty_lists: bool = False
-    """Set to ``True`` to allow empty ``list`` values inside ``dict`` s in the encoded input."""
+    """Set to ``True`` to allow empty ``list`` values inside ``dict``\\s in the encoded input."""
 
     list_limit: int = 20
     """``qs_codec`` will limit specifying indices in a ``list`` to a maximum index of ``20``.
@@ -41,7 +41,7 @@ class DecodeOptions:
 
     ``qs_codec`` supports this mechanism via the ``charset_sentinel`` option.
     If specified, the ``utf-8`` parameter will be omitted from the returned ``dict``.
-    It will be used to switch to ``latin-1``/``utf-8`` mode depending on how the checkmark is encoded.
+    It will be used to switch to ``LATIN1`` or ``UTF8`` mode depending on how the checkmark is encoded.
 
     Important: When you specify both the ``charset`` option and the ``charset_sentinel`` option,
     the ``charset`` will be overridden when the request contains a ``utf-8`` parameter from which the actual charset
@@ -56,7 +56,7 @@ class DecodeOptions:
     """The delimiter to use when splitting key-value pairs in the encoded input. Can be a ``str`` or a ``Pattern``."""
 
     depth: int = 5
-    """By default, when nesting ``dict`` s ``qs_codec`` will only decode up to 5 children deep.
+    """By default, when nesting ``dict``\\s ``qs_codec`` will only decode up to 5 children deep.
     This depth can be overridden by setting the ``depth``.
     The depth limit helps mitigate abuse when ``qs_codec`` is used to parse user input,
     and it is recommended to keep it a reasonably small number."""

@@ -61,7 +61,7 @@ class EncodeOptions:
     If you pass a ``list``, it will be used to select properties and ``list`` indices to be encoded."""
 
     skip_nulls: bool = False
-    """Set to ``True`` to completely skip encoding keys with ``null`` values."""
+    """Set to ``True`` to completely skip encoding keys with ``None`` values."""
 
     serialize_date: t.Callable[[datetime], str] = EncodeUtils.serialize_date
     """If you only want to override the serialization of ``datetime`` objects, you can provide a ``Callable``."""
@@ -84,12 +84,12 @@ class EncodeOptions:
         self._encoder = value if callable(value) else EncodeUtils.encode  # type: ignore [assignment]
 
     strict_null_handling: bool = False
-    """Set to ``True`` to distinguish between ``null`` values and empty ``str`` ings. This way the encoded string
+    """Set to ``True`` to distinguish between ``null`` values and empty ``str``\\ings. This way the encoded string
     ``None`` values will have no ``=`` sign."""
 
     comma_round_trip: t.Optional[bool] = None
     """When ``list_format`` is set to ``ListFormat.COMMA``, you can also set ``comma_round_trip`` option to ``True`` or
-    ``False``, to append ``[]`` on single-item ``list`` s, so that they can round trip through a parse."""
+    ``False``, to append ``[]`` on single-item ``list``\\s, so that they can round trip through a parse."""
 
     sort: t.Optional[t.Callable[[t.Any, t.Any], int]] = field(default=None)
     """Set a ``Callable`` to affect the order of parameter keys."""

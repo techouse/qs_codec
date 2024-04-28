@@ -46,7 +46,7 @@ def decode(
     pass
 ```
 
-**qs** allows you to create nested `dict`s within your query strings, by surrounding the name of sub-keys with 
+**qs_codec** allows you to create nested `dict`s within your query strings, by surrounding the name of sub-keys with 
 square brackets `[]`. For example, the string `'foo[bar]=baz'` converts to:
 
 ```python
@@ -72,7 +72,7 @@ assert qs_codec.decode('foo[bar][baz]=foobarbaz') == {'foo': {'bar': {'baz': 'fo
 ```
 
 By default, when nesting `dict`s qs will only decode up to 5 children deep. This means if you attempt to decode a string 
-like 'a[b][c][d][e][f][g][h][i]=j' your resulting `dict` will be:
+like `'a[b][c][d][e][f][g][h][i]=j'` your resulting `dict` will be:
 
 ```python
 import qs_codec
@@ -93,10 +93,10 @@ assert qs_codec.decode(
 ) == {'a': {'b': {'[c][d][e][f][g][h][i]': 'j'}}}
 ```
 
-The depth limit helps mitigate abuse when **qs** is used to parse user input, and it is recommended to keep it a
+The depth limit helps mitigate abuse when **qs_codec** is used to parse user input, and it is recommended to keep it a
 reasonably small number.
 
-For similar reasons, by default **qs** will only parse up to 1000 parameters. This can be overridden by passing 
+For similar reasons, by default **qs_codec** will only parse up to 1000 parameters. This can be overridden by passing 
 a `DecodeOptions.parameter_limit` option:
 
 ```python
@@ -217,7 +217,7 @@ form as utf-8. Additionally, the server can check the value against wrong encodi
 that a query string or `application/x-www-form-urlencoded` body was *not* sent as utf-8, eg. if the form had an 
 `accept-charset` parameter or the containing page had a different character set.
 
-**qs** supports this mechanism via the `DecodeOptions.charset_sentinel` option.
+**qs_codec** supports this mechanism via the `DecodeOptions.charset_sentinel` option.
 If specified, the `utf8` parameter will be omitted from the returned `dict`.
 It will be used to switch to `Charset.LATIN1`/`Charset.UTF8` mode depending on how the checkmark is encoded.
 
@@ -265,7 +265,7 @@ It also works when the charset has been detected in `DecodeOptions.charset_senti
 
 ### Decoding `list`s
 
-**qs** can also decode `list`s using a similar `[]` notation:
+**qs_codec** can also decode `list`s using a similar `[]` notation:
 
 ```python
 import qs_codec
@@ -282,7 +282,7 @@ assert qs_codec.decode('a[1]=c&a[0]=b') == {'a': ['b', 'c']}
 ```
 
 Note that the only difference between an index in a `list` and a key in a `dict` is that the value between the brackets
-must be a number to create a `list`. When creating `list`s with specific indices, **qs** will compact a sparse 
+must be a number to create a `list`. When creating `list`s with specific indices, **qs_codec** will compact a sparse 
 `list` to only the existing values preserving their order:
 
 ```python
@@ -301,7 +301,7 @@ assert qs_codec.decode('a[]=&a[]=b') == {'a': ['', 'b']}
 assert qs_codec.decode('a[0]=b&a[1]=&a[2]=c') == {'a': ['b', '', 'c']}
 ```
 
-**qs** will also limit specifying indices in a `list` to a maximum index of `20`.
+**qs_codec** will also limit specifying indices in a `list` to a maximum index of `20`.
 Any `list` members with an index of greater than `20` will instead be converted to a `dict` with the index as the key.
 This is needed to handle cases when someone sent, for example, `a[999999999]` and it will take significant time to iterate 
 over this huge `list`.
@@ -328,7 +328,7 @@ import qs_codec
 assert qs_codec.decode('a[]=b', qs_codec.DecodeOptions(parse_lists=False)) == {'a': {0: 'b'}}
 ```
 
-If you mix notations, **qs** will merge the two items into a `dict`:
+If you mix notations, **qs_codec** will merge the two items into a `dict`:
 
 ```python
 import qs_codec
@@ -344,11 +344,11 @@ import qs_codec
 assert qs_codec.decode('a[][b]=c') == {'a': [{'b': 'c'}]}
 ```
 
-(_**qs** cannot convert nested `dict`s, such as `'a={b:1},{c:d}'`_)
+(_**qs_codec** cannot convert nested `dict`s, such as `'a={b:1},{c:d}'`_)
 
 ### Decoding primitive/scalar values (`int`, `float`, `bool`, `None`, etc.)
 
-By default, all values are parsed as `str`s.
+By default, all values are parsed as `str`ings.
 
 ```python
 import qs_codec
@@ -372,7 +372,7 @@ def encode(
     pass
 ```
 
-When encoding, **qs** by default URI encodes output. `dict`s are encoded as you would expect:
+When encoding, **qs_codec** by default URI encodes output. `dict`s are encoded as you would expect:
 
 ```python
 import qs_codec
@@ -410,17 +410,17 @@ assert qs_codec.encode(
 ) == 'a=b&c[0]=d&c[1]=e%3Df&f[0][0]=g&f[1][0]=h'
 ```
 
-This encoding can also be replaced by a custom `Encoder` set as `EncodeOptions.encoder` option:
+This encoding can also be replaced by a custom `Callable` set in the `EncodeOptions.encoder` option:
 
 ```python
 import qs_codec, typing as t
 
 
 def custom_encoder(
-        value: str,
-        charset: t.Optional[qs_codec.Charset],
-        format: t.Optional[qs_codec.Format],
-):
+    value: str,
+    charset: t.Optional[qs_codec.Charset],
+    format: t.Optional[qs_codec.Format],
+) -> str:
     if value == 'č':
         return 'c'
     return value
@@ -440,16 +440,14 @@ properties and values:
 ```python
 import qs_codec, typing as t
 
-
 def custom_decoder(
-        value: t.Any,
-        charset: t.Optional[qs_codec.Charset],
-):
+    value: t.Any,
+    charset: t.Optional[qs_codec.Charset],
+) -> t.Union[int, str]:
     try:
         return int(value)
     except ValueError:
         return value
-
 
 assert qs_codec.decode(
     'foo=123',
@@ -472,7 +470,7 @@ assert qs_codec.encode(
 ```
 
 You may override this by setting the `EncodeOptions.indices` option to `False`, or to be more explicit, the
-`EncodeOptions.list_lormat` option to `ListFormat.REPEAT`:
+`EncodeOptions.list_format` option to `ListFormat.REPEAT`:
 
 ```python
 import qs_codec
@@ -491,7 +489,7 @@ You may use the `EncodeOptions.list_format` option to specify the format of the 
 ```python
 import qs_codec
 
-# For ListFormat.indices
+# ListFormat.INDICES
 assert qs_codec.encode(
     {'a': ['b', 'c']},
     qs_codec.EncodeOptions(
@@ -500,7 +498,7 @@ assert qs_codec.encode(
     ),
 ) == 'a[0]=b&a[1]=c'
 
-# For ListFormat.brackets
+# ListFormat.BRACKETS
 assert qs_codec.encode(
     {'a': ['b', 'c']},
     qs_codec.EncodeOptions(
@@ -509,7 +507,7 @@ assert qs_codec.encode(
     ),
 ) == 'a[]=b&a[]=c'
 
-# For ListFormat.repeat
+# ListFormat.REPEAT
 assert qs_codec.encode(
     {'a': ['b', 'c']},
     qs_codec.EncodeOptions(
@@ -518,7 +516,7 @@ assert qs_codec.encode(
     ),
 ) == 'a=b&a=c'
 
-# For ListFormat.comma
+# ListFormat.COMMA
 assert qs_codec.encode(
     {'a': ['b', 'c']},
     qs_codec.EncodeOptions(
@@ -531,7 +529,7 @@ assert qs_codec.encode(
 **Note:** When using `EncodeOptions.list_format` set to `ListFormat.COMMA`, you can also pass the `EncodeOptions.comma_round_trip`
 option set to `True` or `False`, to append `[]` on single-item `list`s, so that they can round trip through a parse.
 
-When `dict`s are encoded, by default they use bracket notation:
+`ListFormat.BRACKETS` notation is used for encoding `dict`s by default:
 
 ```python
 import qs_codec
@@ -553,7 +551,7 @@ assert qs_codec.encode(
 ) == 'a.b.c=d&a.b.e=f'
 ```
 
-You may encode the dot notation in the keys of `dict` with option `EncodeOptions.encode_dot_in_keys` by setting it to `True`:
+You may encode dots in keys of `dict`s by setting `EncodeOptions.encode_dot_in_keys` to `True`:
 
 ```python
 import qs_codec
@@ -567,8 +565,8 @@ assert qs_codec.encode(
 ) == 'name%252Eobj.first=John&name%252Eobj.last=Doe'
 ```
 
-**Caveat:** when `EncodeOptions.encode_values_only` is `True` as well as `EncodeOptions.encode_dot_in_keys`, only dots in 
-keys and nothing else will be encoded.
+**Caveat:** When both `EncodeOptions.encode_values_only` and `EncodeOptions.encode_dot_in_keys` are set to `True`, only
+dots in keys and nothing else will be encoded!
 
 You may allow empty `list` values by setting the `EncodeOptions.allow_empty_lists` option to `True`:
 
@@ -584,7 +582,7 @@ assert qs_codec.encode(
 ) == 'foo[]&bar=baz'
 ```
 
-Empty strings and null values will omit the value, but the equals sign (`=`) remains in place:
+Empty `str`ings and `None` values will be omitted, but the equals sign (`=`) remains in place:
 
 ```python
 import qs_codec
@@ -592,7 +590,7 @@ import qs_codec
 assert qs_codec.encode({'a': ''}) == 'a='
 ```
 
-Key with no values (such as an empty `dict` or `list`) will return nothing:
+Keys with no values (such as an empty `dict` or `list`) will return nothing:
 
 ```python
 import qs_codec
@@ -608,7 +606,7 @@ assert qs_codec.encode({'a': {'b': []}}) == ''
 assert qs_codec.encode({'a': {'b': {}}}) == ''
 ```
 
-Properties that are `Undefined` will be omitted entirely:
+`Undefined` properties will be omitted entirely:
 
 ```python
 import qs_codec
@@ -616,7 +614,7 @@ import qs_codec
 assert qs_codec.encode({'a': None, 'b': qs_codec.Undefined()}) == 'a='
 ```
 
-The query string may optionally be prepended with a question mark:
+The query string may optionally be prepended with a question mark (`?`):
 
 ```python
 import qs_codec
@@ -638,7 +636,7 @@ assert qs_codec.encode(
 ) == 'a=b;c=d'
 ```
 
-If you only want to override the serialization of `datetime.datetime` objects, you can provide a custom `DateSerializer`
+If you only want to override the serialization of `datetime` objects, you can provide a custom `DateSerializer`
 in the `EncodeOptions.serialize_date` option:
 
 ```python
@@ -663,21 +661,21 @@ assert (
 
 # Second case: encoding a datetime object to a timestamp string
 assert (
-        qs_codec.encode(
-            {
-                "a": (
-                    datetime.datetime.fromtimestamp(7, datetime.UTC)
-                    if sys.version_info.major == 3 and sys.version_info.minor >= 11
-                    else datetime.datetime.utcfromtimestamp(7)
-                )
-            },
-            qs_codec.EncodeOptions(encode=False, serialize_date=lambda date: str(int(date.timestamp()))),
-        )
-        == "a=7"
+    qs_codec.encode(
+        {
+            "a": (
+                datetime.datetime.fromtimestamp(7, datetime.UTC)
+                if sys.version_info.major == 3 and sys.version_info.minor >= 11
+                else datetime.datetime.utcfromtimestamp(7)
+            )
+        },
+        qs_codec.EncodeOptions(encode=False, serialize_date=lambda date: str(int(date.timestamp()))),
+    )
+    == "a=7"
 )
 ```
 
-You may use the `EncodeOptions.sort` option to affect the order of parameter keys:
+To affect the order of parameter keys, you can set a `Callable` in the `EncodeOptions.sort` option:
 
 ```python
 import qs_codec
@@ -698,31 +696,31 @@ Otherwise, if you pass a `list`, it will be used to select properties and `list`
 ```python
 import qs_codec, datetime, sys
 
-# First case: using a function as filter
+# First case: using a Callable as filter
 assert (
-        qs_codec.encode(
-            {
-                "a": "b",
-                "c": "d",
-                "e": {
-                    "f": (
-                        datetime.datetime.fromtimestamp(123, datetime.UTC)
-                        if sys.version_info.major == 3 and sys.version_info.minor >= 11
-                        else datetime.datetime.utcfromtimestamp(123)
-                    ),
-                    "g": [2],
-                },
+    qs_codec.encode(
+        {
+            "a": "b",
+            "c": "d",
+            "e": {
+                "f": (
+                    datetime.datetime.fromtimestamp(123, datetime.UTC)
+                    if sys.version_info.major == 3 and sys.version_info.minor >= 11
+                    else datetime.datetime.utcfromtimestamp(123)
+                ),
+                "g": [2],
             },
-            qs_codec.EncodeOptions(
-                encode=False,
-                filter=lambda prefix, value: {
-                    "b": None,
-                    "e[f]": int(value.timestamp()) if isinstance(value, datetime.datetime) else value,
-                    "e[g][0]": value * 2 if isinstance(value, int) else value,
-                }.get(prefix, value),
-            ),
-        )
-        == "a=b&c=d&e[f]=123&e[g][0]=4"
+        },
+        qs_codec.EncodeOptions(
+            encode=False,
+            filter=lambda prefix, value: {
+                "b": None,
+                "e[f]": int(value.timestamp()) if isinstance(value, datetime.datetime) else value,
+                "e[g][0]": value * 2 if isinstance(value, int) else value,
+            }.get(prefix, value),
+        ),
+    )
+    == "a=b&c=d&e[f]=123&e[g][0]=4"
 )
 
 # Second case: using a list as filter
@@ -747,9 +745,9 @@ assert qs_codec.encode(
 ) == 'a[0]=b&a[2]=d'
 ```
 
-### Handling of `None` values
+### Handling `None` values
 
-By default, `None` values are treated like empty strings:
+By default, `None` values are treated like empty `str`ings:
 
 ```python
 import qs_codec
@@ -843,16 +841,15 @@ import qs_codec, codecs, typing as t
 
 
 def custom_encoder(
-        string: str,
-        charset: t.Optional[qs_codec.Charset],
-        format: t.Optional[qs_codec.Format],
+    string: str,
+    charset: t.Optional[qs_codec.Charset],
+    format: t.Optional[qs_codec.Format],
 ) -> str:
     if string:
         buf: bytes = codecs.encode(string, 'shift_jis')
         result: t.List[str] = ['{:02x}'.format(b) for b in buf]
         return '%' + '%'.join(result)
     return ''
-
 
 assert qs_codec.encode(
     {'a': 'こんにちは！'},
@@ -867,8 +864,8 @@ import qs_codec, re, codecs, typing as t
 
 
 def custom_decoder(
-        string: str,
-        charset: t.Optional[qs_codec.Charset],
+    string: str,
+    charset: t.Optional[qs_codec.Charset],
 ) -> t.Optional[str]:
     if string:
         result: t.List[int] = []
@@ -882,7 +879,6 @@ def custom_decoder(
         buf: bytes = bytes(result)
         return codecs.decode(buf, 'shift_jis')
     return None
-
 
 assert qs_codec.decode(
     '%61=%82%b1%82%f1%82%c9%82%bf%82%cd%81%49',

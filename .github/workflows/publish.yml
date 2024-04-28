@@ -94,6 +94,6 @@ jobs:
           rm -rf dist
           rm -rf $CHANGELOG_PATH
   documentation:
-    uses: ./.github/workflows/documentation.yml
+    uses: ./.github/workflows/docs.yml
     needs: publish
     secrets: inherit
