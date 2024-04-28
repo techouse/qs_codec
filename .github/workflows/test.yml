@@ -15,7 +15,7 @@ permissions: read-all
 
 jobs:
   analyze:
-    name: "Test"
+    name: "Analyze"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,6 +29,7 @@ jobs:
       - name: Run static analysis
         run: tox -e linters
   test:
+    name: "Test"
     needs: analyze
     runs-on: ubuntu-latest
     strategy:
@@ -77,6 +78,7 @@ jobs:
           env_vars: OS,PYTHON
           verbose: true
   ensure_compatibility:
+    name: "Ensure compatibility with qs"
     needs: analyze
     runs-on: ubuntu-latest
     steps:
@@ -90,16 +92,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Install dependencies
-        run: |
-          pip install -e .
-          pip install -r requirements_dev.txt
+      - name: Install Python dependencies
+        run: pip install -e .
+      - name: Install Node dependencies
+        working-directory: tests/comparison
+        run: npm install
       - name: Run a comparison test between qs_codec and qs for JavaScript
         working-directory: tests/comparison
         continue-on-error: true
         run: |
           set -e
-          npm install
           node_output=$(node qs.js)
           python_output=$(python3 qs.py)
           if [ "$node_output" == "$python_output" ]; then
