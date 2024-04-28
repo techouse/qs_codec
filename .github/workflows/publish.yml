@@ -13,9 +13,9 @@ jobs:
   test:
     uses: ./.github/workflows/test.yml
     secrets: inherit
-  build-and-publish:
+  publish:
     needs: test
-    name: "Build & Publish"
+    name: "Publish"
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -93,3 +93,7 @@ jobs:
         run: |
           rm -rf dist
           rm -rf $CHANGELOG_PATH
+  documentation:
+    uses: ./.github/workflows/documentation.yml
+    needs: publish
+    secrets: inherit
