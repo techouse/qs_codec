@@ -5,13 +5,12 @@ build-backend = "hatchling.build"
 [project]
 name = "qs-codec"
 description = "A query string encoding and decoding library for Python. Ported from qs for JavaScript."
-readme = "README.md"
+readme = "README.rst"
 license = { text = "BSD-3-Clause" }
 requires-python = ">=3.8"
 authors = [
     { name = "Klemen Tusar", email = "techouse@gmail.com" },
 ]
-documentation = "https://techouse.github.io/qs_codec/"
 keywords = [
     "qs",
     "codec",
@@ -45,6 +44,8 @@ dependencies = [
 dynamic = ["version"]
 
 [project.urls]
+Homepage = "https://techouse.github.io/qs_codec/"
+Documentation = "https://techouse.github.io/qs_codec/"
 Source = "https://github.com/techouse/qs_codec"
 Changelog = "https://github.com/techouse/qs_codec/blob/master/CHANGELOG.md"
 Sponsor = "https://github.com/sponsors/techouse"
@@ -57,7 +58,7 @@ path = "src/qs_codec/__init__.py"
 include = [
     "src",
     "tests",
-    "README.md",
+    "README.rst",
     "CHANGELOG.md",
     "CODE-OF-CONDUCT.md",
     "LICENSE",

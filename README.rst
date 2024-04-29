@@ -1,3 +1,29 @@
+qs-codec
+========
+
+A query string encoding and decoding library for Python.
+
+Ported from `qs <https://www.npmjs.com/package/qs>`__ for JavaScript.
+
+|PyPI - Version| |PyPI - Downloads| |PyPI - Status| |PyPI - Python
+Version| |PyPI - Format| |Test| |codecov| |Codacy Badge| |GitHub|
+|GitHub Sponsors| |GitHub Repo stars|
+
+Usage
+-----
+
+A simple usage example:
+
+.. code:: python
+
+   import qs_codec
+
+   # Encoding
+   assert qs_codec.encode({'a': 'b'}) == 'a=b'
+
+   # Decoding
+   assert qs_codec.decode('a=b') == {'a': 'b'}
+
 Decoding
 ~~~~~~~~
 
@@ -17,7 +43,7 @@ dictionaries
        Providing custom DecodeOptions will override the default behavior."""
        pass
 
-:py:attr:`decode <qs_codec.decode>` allows you to create nested ``dict``\ s within your query
+`decode <https://techouse.github.io/qs_codec/qs_codec.html#module-qs_codec.decode>`__ allows you to create nested ``dict``\ s within your query
 strings, by surrounding the name of sub-keys with square brackets
 ``[]``. For example, the string ``'foo[bar]=baz'`` converts to:
 
@@ -55,7 +81,7 @@ children deep. This means if you attempt to decode a string like
        "a": {"b": {"c": {"d": {"e": {"f": {"[g][h][i]": "j"}}}}}}
    }
 
-This depth can be overridden by setting the :py:attr:`depth <qs_codec.models.decode_options.DecodeOptions.depth>`:
+This depth can be overridden by setting the `depth <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.depth>`_:
 
 .. code:: python
 
@@ -66,11 +92,11 @@ This depth can be overridden by setting the :py:attr:`depth <qs_codec.models.dec
        qs_codec.DecodeOptions(depth=1),
    ) == {'a': {'b': {'[c][d][e][f][g][h][i]': 'j'}}}
 
-The depth limit helps mitigate abuse when :py:attr:`decode <qs_codec.decode>` is used to parse user
+The depth limit helps mitigate abuse when `decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__ is used to parse user
 input, and it is recommended to keep it a reasonably small number.
 
-For similar reasons, by default :py:attr:`decode <qs_codec.decode>` will only parse up to 1000 parameters. This can be overridden by passing a
-:py:attr:`parameter_limit <qs_codec.models.decode_options.DecodeOptions.parameter_limit>` option:
+For similar reasons, by default `decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__ will only parse up to 1000 parameters. This can be overridden by passing a
+`parameter_limit <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.parameter_limit>`__ option:
 
 .. code:: python
 
@@ -82,7 +108,7 @@ For similar reasons, by default :py:attr:`decode <qs_codec.decode>` will only pa
    ) == {'a': 'b'}
 
 To bypass the leading question mark, use
-:py:attr:`DecodeOptions.ignore_query_prefix <qs_codec.models.decode_options.DecodeOptions.ignore_query_prefix>`:
+`DecodeOptions.ignore_query_prefix <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.ignore_query_prefix>`__:
 
 .. code:: python
 
@@ -93,7 +119,7 @@ To bypass the leading question mark, use
        qs_codec.DecodeOptions(ignore_query_prefix=True),
    ) == {'a': 'b', 'c': 'd'}
 
-An optional :py:attr:`delimiter <qs_codec.models.decode_options.DecodeOptions.delimiter>` can also be passed:
+An optional `delimiter <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.delimiter>`__ can also be passed:
 
 .. code:: python
 
@@ -104,7 +130,7 @@ An optional :py:attr:`delimiter <qs_codec.models.decode_options.DecodeOptions.de
        qs_codec.DecodeOptions(delimiter=';'),
    ) == {'a': 'b', 'c': 'd'}
 
-:py:attr:`delimiter <qs_codec.models.decode_options.DecodeOptions.delimiter>` can be a regular expression too:
+`delimiter <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.delimiter>`__ can be a regular expression too:
 
 .. code:: python
 
@@ -115,7 +141,7 @@ An optional :py:attr:`delimiter <qs_codec.models.decode_options.DecodeOptions.de
        qs_codec.DecodeOptions(delimiter=re.compile(r'[;,]')),
    ) == {'a': 'b', 'c': 'd'}
 
-Option :py:attr:`allow_dots <qs_codec.models.decode_options.DecodeOptions.allow_dots>`
+Option `allow_dots <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.allow_dots>`__
 can be used to enable dot notation:
 
 .. code:: python
@@ -127,12 +153,12 @@ can be used to enable dot notation:
        qs_codec.DecodeOptions(allow_dots=True),
    ) == {'a': {'b': 'c'}}
 
-Option :py:attr:`decode_dot_in_keys <qs_codec.models.decode_options.DecodeOptions.decode_dot_in_keys>`
+Option `decode_dot_in_keys <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.decode_dot_in_keys>`__
 can be used to decode dots in keys.
 
-**Note:** it implies :py:attr:`allow_dots <qs_codec.models.decode_options.DecodeOptions.allow_dots>`, so
-:py:attr:`decode <qs_codec.decode>` will error if you set :py:attr:`decode_dot_in_keys <qs_codec.models.decode_options.DecodeOptions.decode_dot_in_keys>`
-to ``True``, and :py:attr:`allow_dots <qs_codec.models.decode_options.DecodeOptions.allow_dots>` to ``False``.
+**Note:** it implies `allow_dots <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.allow_dots>`__, so
+`decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__ will error if you set `decode_dot_in_keys <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.decode_dot_in_keys>`__
+to ``True``, and `allow_dots <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.allow_dots>`__ to ``False``.
 
 .. code:: python
 
@@ -143,7 +169,7 @@ to ``True``, and :py:attr:`allow_dots <qs_codec.models.decode_options.DecodeOpti
        qs_codec.DecodeOptions(decode_dot_in_keys=True),
    ) == {'name.obj': {'first': 'John', 'last': 'Doe'}}
 
-Option :py:attr:`allow_empty_lists <qs_codec.models.decode_options.DecodeOptions.allow_empty_lists>` can
+Option `allow_empty_lists <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.allow_empty_lists>`__ can
 be used to allowing empty ``list`` values in a ``dict``
 
 .. code:: python
@@ -155,7 +181,7 @@ be used to allowing empty ``list`` values in a ``dict``
        qs_codec.DecodeOptions(allow_empty_lists=True),
    ) == {'foo': [], 'bar': 'baz'}
 
-Option :py:attr:`duplicates <qs_codec.models.decode_options.DecodeOptions.duplicates>` can be used to
+Option `duplicates <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.duplicates>`__ can be used to
 change the behavior when duplicate keys are encountered
 
 .. code:: python
@@ -180,7 +206,7 @@ change the behavior when duplicate keys are encountered
    ) == {'foo': 'baz'}
 
 If you have to deal with legacy browsers or services, there’s also
-support for decoding percent-encoded octets as :py:attr:`LATIN1 <qs_codec.enums.charset.Charset.LATIN1>`:
+support for decoding percent-encoded octets as `LATIN1 <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.enums.charset.Charset.LATIN1>`__:
 
 .. code:: python
 
@@ -199,17 +225,17 @@ the checkmark character and detect that a query string or
 e.g. if the form had an ``accept-charset`` parameter or the containing
 page had a different character set.
 
-:py:attr:`decode <qs_codec.decode>` supports this mechanism via the
-:py:attr:`charset_sentinel <qs_codec.models.decode_options.DecodeOptions.charset_sentinel>` option.
+`decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__ supports this mechanism via the
+`charset_sentinel <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.charset_sentinel>`__ option.
 If specified, the ``utf8`` parameter will be omitted from the returned
-``dict``. It will be used to switch to :py:attr:`LATIN1 <qs_codec.enums.charset.Charset.LATIN1>` or
-:py:attr:`UTF8 <qs_codec.enums.charset.Charset.UTF8>` mode depending on how the checkmark is encoded.
+``dict``. It will be used to switch to `LATIN1 <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.enums.charset.Charset.LATIN1>`__ or
+`UTF8 <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.enums.charset.Charset.UTF8>`__ mode depending on how the checkmark is encoded.
 
-**Important**: When you specify both the :py:attr:`charset <qs_codec.models.decode_options.DecodeOptions.charset>`
-option and the :py:attr:`charset_sentinel <qs_codec.models.decode_options.DecodeOptions.charset_sentinel>` option, the
-:py:attr:`charset <qs_codec.models.decode_options.DecodeOptions.charset>` will be overridden when the request contains a
+**Important**: When you specify both the `charset <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.charset>`__
+option and the `charset_sentinel <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.charset_sentinel>`__ option, the
+`charset <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.charset>`__ will be overridden when the request contains a
 ``utf8`` parameter from which the actual charset can be deduced. In that
-sense the :py:attr:`charset <qs_codec.models.decode_options.DecodeOptions.charset>` will behave as the default charset
+sense the `charset <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.charset>`__ will behave as the default charset
 rather than the authoritative charset.
 
 .. code:: python
@@ -232,8 +258,8 @@ rather than the authoritative charset.
        ),
    ) == {'a': 'ø'}
 
-If you want to decode the `&#...; <https://www.w3schools.com/html/html_entities.asp>`_ syntax to the actual character, you can specify the
-:py:attr:`interpret_numeric_entities <qs_codec.models.decode_options.DecodeOptions.interpret_numeric_entities>`
+If you want to decode the `&#...; <https://www.w3schools.com/html/html_entities.asp>`__ syntax to the actual character, you can specify the
+`interpret_numeric_entities <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.interpret_numeric_entities>`__
 option as well:
 
 .. code:: python
@@ -249,12 +275,12 @@ option as well:
    ) == {'a': '☺'}
 
 It also works when the charset has been detected in
-:py:attr:`charset_sentinel <qs_codec.models.decode_options.DecodeOptions.charset_sentinel>` mode.
+`charset_sentinel <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.charset_sentinel>`__ mode.
 
 lists
 ^^^^^
 
-:py:attr:`decode <qs_codec.decode>` can also decode ``list``\ s using a similar ``[]`` notation:
+`decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__ can also decode ``list``\ s using a similar ``[]`` notation:
 
 .. code:: python
 
@@ -273,7 +299,7 @@ You may specify an index as well:
 Note that the only difference between an index in a ``list`` and a key
 in a ``dict`` is that the value between the brackets must be a number to
 create a ``list``. When creating ``list``\ s with specific indices,
-:py:attr:`decode <qs_codec.decode>` will compact a sparse ``list`` to
+`decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__ will compact a sparse ``list`` to
 only the existing values preserving their order:
 
 .. code:: python
@@ -292,7 +318,7 @@ Note that an empty ``str``\ing is also a value, and will be preserved:
 
    assert qs_codec.decode('a[0]=b&a[1]=&a[2]=c') == {'a': ['b', '', 'c']}
 
-:py:attr:`decode <qs_codec.decode>` will also limit specifying indices
+`decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__ will also limit specifying indices
 in a ``list`` to a maximum index of ``20``. Any ``list`` members with an
 index of greater than ``20`` will instead be converted to a ``dict`` with
 the index as the key. This is needed to handle cases when someone sent,
@@ -305,7 +331,7 @@ over this huge ``list``.
 
    assert qs_codec.decode('a[100]=b') == {'a': {100: 'b'}}
 
-This limit can be overridden by passing an :py:attr:`list_limit <qs_codec.models.decode_options.DecodeOptions.list_limit>`
+This limit can be overridden by passing an `list_limit <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.list_limit>`__
 option:
 
 .. code:: python
@@ -317,7 +343,7 @@ option:
        qs_codec.DecodeOptions(list_limit=0),
    ) == {'a': {1: 'b'}}
 
-To disable ``list`` parsing entirely, set :py:attr:`parse_lists <qs_codec.models.decode_options.DecodeOptions.parse_lists>`
+To disable ``list`` parsing entirely, set `parse_lists <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.parse_lists>`__
 to ``False``.
 
 .. code:: python
@@ -329,7 +355,7 @@ to ``False``.
        qs_codec.DecodeOptions(parse_lists=False),
    ) == {'a': {0: 'b'}}
 
-If you mix notations, :py:attr:`decode <qs_codec.decode>` will merge the two items into a ``dict``:
+If you mix notations, `decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__ will merge the two items into a ``dict``:
 
 .. code:: python
 
@@ -345,7 +371,7 @@ You can also create ``list``\ s of ``dict``\ s:
 
    assert qs_codec.decode('a[][b]=c') == {'a': [{'b': 'c'}]}
 
-(:py:attr:`decode <qs_codec.decode>` *cannot convert nested ``dict``\ s, such as ``'a={b:1},{c:d}'``*)
+(`decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__ *cannot convert nested ``dict``\ s, such as ``'a={b:1},{c:d}'``*)
 
 primitive values (``int``, ``bool``, ``None``, etc.)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -376,7 +402,7 @@ Encoding
        Providing custom EncodeOptions will override the default behavior."""
        pass
 
-When encoding, :py:attr:`encode <qs_codec.encode>` by default URI encodes output. ``dict``\ s are
+When encoding, `encode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.encode>`__ by default URI encodes output. ``dict``\ s are
 encoded as you would expect:
 
 .. code:: python
@@ -386,7 +412,7 @@ encoded as you would expect:
    assert qs_codec.encode({'a': 'b'}) == 'a=b'
    assert qs_codec.encode({'a': {'b': 'c'}}) == 'a%5Bb%5D=c'
 
-This encoding can be disabled by setting the :py:attr:`encode <qs_codec.models.encode_options.EncodeOptions.encode>`
+This encoding can be disabled by setting the `encode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encode>`__
 option to ``False``:
 
 .. code:: python
@@ -399,7 +425,7 @@ option to ``False``:
    ) == 'a[b]=c'
 
 Encoding can be disabled for keys by setting the
-:py:attr:`encode_values_only <qs_codec.models.encode_options.EncodeOptions.encode_values_only>` option to ``True``:
+`encode_values_only <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encode_values_only>`__ option to ``True``:
 
 .. code:: python
 
@@ -418,7 +444,7 @@ Encoding can be disabled for keys by setting the
    ) == 'a=b&c[0]=d&c[1]=e%3Df&f[0][0]=g&f[1][0]=h'
 
 This encoding can also be replaced by a custom ``Callable`` in the
-:py:attr:`encoder <qs_codec.models.encode_options.EncodeOptions.encoder>` option:
+`encoder <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encoder>`__ option:
 
 .. code:: python
 
@@ -440,11 +466,11 @@ This encoding can also be replaced by a custom ``Callable`` in the
        qs_codec.EncodeOptions(encoder=custom_encoder),
    ) == 'a[b]=c'
 
-(Note: the :py:attr:`encoder <qs_codec.models.encode_options.EncodeOptions.encoder>` option does not apply if
-:py:attr:`encode <qs_codec.models.encode_options.EncodeOptions.encode>` is ``False``).
+(Note: the `encoder <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encoder>`__ option does not apply if
+`encode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encode>`__ is ``False``).
 
-Similar to :py:attr:`encoder <qs_codec.models.encode_options.EncodeOptions.encoder>` there is a
-:py:attr:`decoder <qs_codec.models.decode_options.DecodeOptions.decoder>` option for :py:attr:`decode <qs_codec.decode>`
+Similar to `encoder <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encoder>`__ there is a
+`decoder <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.decoder>`__ option for `decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__
 to override decoding of properties and values:
 
 .. code:: python
@@ -470,8 +496,8 @@ encoded for clarity. Please note that the return values in these cases
 *will* be URI encoded during real usage.
 
 When ``list``\s are encoded, they follow the
-:py:attr:`list_format <qs_codec.models.encode_options.EncodeOptions.list_format>` option, which defaults to
-:py:attr:`INDICES <qs_codec.enums.list_format.ListFormat.INDICES>`:
+`list_format <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.list_format>`__ option, which defaults to
+`INDICES <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.enums.list_format.ListFormat.INDICES>`__:
 
 .. code:: python
 
@@ -482,9 +508,9 @@ When ``list``\s are encoded, they follow the
        qs_codec.EncodeOptions(encode=False)
    ) == 'a[0]=b&a[1]=c&a[2]=d'
 
-You may override this by setting the :py:attr:`indices <qs_codec.models.encode_options.EncodeOptions.indices>` option to
-``False``, or to be more explicit, the :py:attr:`list_format <qs_codec.models.encode_options.EncodeOptions.list_format>`
-option to :py:attr:`REPEAT <qs_codec.enums.list_format.ListFormat.REPEAT>`:
+You may override this by setting the `indices <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.indices>`__ option to
+``False``, or to be more explicit, the `list_format <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.list_format>`__
+option to `REPEAT <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.enums.list_format.ListFormat.REPEAT>`__:
 
 .. code:: python
 
@@ -498,7 +524,7 @@ option to :py:attr:`REPEAT <qs_codec.enums.list_format.ListFormat.REPEAT>`:
        ),
    ) == 'a=b&a=c&a=d'
 
-You may use the :py:attr:`list_format <qs_codec.models.encode_options.EncodeOptions.list_format>` option to specify the
+You may use the `list_format <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.list_format>`__ option to specify the
 format of the output ``list``:
 
 .. code:: python
@@ -541,12 +567,12 @@ format of the output ``list``:
        ),
    ) == 'a=b,c'
 
-**Note:** When using :py:attr:`list_format <qs_codec.models.encode_options.EncodeOptions.list_format>` set to
-:py:attr:`COMMA <qs_codec.enums.list_format.ListFormat.COMMA>`, you can also pass the
-:py:attr:`comma_round_trip <qs_codec.models.encode_options.EncodeOptions.comma_round_trip>` option set to ``True`` or
+**Note:** When using `list_format <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.list_format>`__ set to
+`COMMA <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.enums.list_format.ListFormat.COMMA>`_, you can also pass the
+`comma_round_trip <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.comma_round_trip>`__ option set to ``True`` or
 ``False``, to append ``[]`` on single-item ``list``\ s, so that they can round trip through a decoding.
 
-:py:attr:`BRACKETS <qs_codec.enums.list_format.ListFormat.BRACKETS>` notation is used for encoding ``dict``\s by default:
+`BRACKETS <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.enums.list_format.ListFormat.BRACKETS>`__ notation is used for encoding ``dict``\s by default:
 
 .. code:: python
 
@@ -558,7 +584,7 @@ format of the output ``list``:
    ) == 'a[b][c]=d&a[b][e]=f'
 
 You may override this to use dot notation by setting the
-:py:attr:`allow_dots <qs_codec.models.encode_options.EncodeOptions.allow_dots>` option to ``True``:
+`allow_dots <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.allow_dots>`__ option to ``True``:
 
 .. code:: python
 
@@ -570,7 +596,7 @@ You may override this to use dot notation by setting the
    ) == 'a.b.c=d&a.b.e=f'
 
 You may encode dots in keys of ``dict``\s by setting
-:py:attr:`encode_dot_in_keys <qs_codec.models.encode_options.EncodeOptions.encode_dot_in_keys>` to ``True``:
+`encode_dot_in_keys <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encode_dot_in_keys>`__ to ``True``:
 
 .. code:: python
 
@@ -584,12 +610,12 @@ You may encode dots in keys of ``dict``\s by setting
        ),
    ) == 'name%252Eobj.first=John&name%252Eobj.last=Doe'
 
-**Caveat:** When both :py:attr:`encode_values_only <qs_codec.models.encode_options.EncodeOptions.encode_values_only>`
-and :py:attr:`encode_dot_in_keys <qs_codec.models.encode_options.EncodeOptions.encode_dot_in_keys>` are set to
+**Caveat:** When both `encode_values_only <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encode_values_only>`__
+and `encode_dot_in_keys <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encode_dot_in_keys>`__ are set to
 ``True``, only dots in keys and nothing else will be encoded!
 
 You may allow empty ``list`` values by setting the
-:py:attr:`allow_empty_lists <qs_codec.models.encode_options.EncodeOptions.allow_empty_lists>` option to ``True``:
+`allow_empty_lists <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.allow_empty_lists>`__ option to ``True``:
 
 .. code:: python
 
@@ -627,7 +653,7 @@ Keys with no values (such as an empty ``dict`` or ``list``) will return nothing:
 
    assert qs_codec.encode({'a': {'b': {}}}) == ''
 
-:py:attr:`Undefined <qs_codec.models.undefined.Undefined>` properties will be omitted entirely:
+`Undefined <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.undefined.Undefined>`__ properties will be omitted entirely:
 
 .. code:: python
 
@@ -636,7 +662,7 @@ Keys with no values (such as an empty ``dict`` or ``list``) will return nothing:
    assert qs_codec.encode({'a': None, 'b': qs_codec.Undefined()}) == 'a='
 
 The query string may optionally be prepended with a question mark (``?``) by setting
-:py:attr:`add_query_prefix <qs_codec.models.encode_options.EncodeOptions.add_query_prefix>` to ``True``:
+`add_query_prefix <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.add_query_prefix>`__ to ``True``:
 
 .. code:: python
 
@@ -647,7 +673,7 @@ The query string may optionally be prepended with a question mark (``?``) by set
        qs_codec.EncodeOptions(add_query_prefix=True),
    ) == '?a=b&c=d'
 
-The :py:attr:`delimiter <qs_codec.models.encode_options.EncodeOptions.delimiter>` may be overridden as well:
+The `delimiter <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.delimiter>`__ may be overridden as well:
 
 .. code:: python
 
@@ -658,9 +684,9 @@ The :py:attr:`delimiter <qs_codec.models.encode_options.EncodeOptions.delimiter>
        qs_codec.EncodeOptions(delimiter=';')
    ) == 'a=b;c=d'
 
-If you only want to override the serialization of `datetime <https://docs.python.org/3/library/datetime.html#datetime-objects>`_
+If you only want to override the serialization of `datetime <https://docs.python.org/3/library/datetime.html#datetime-objects>`__
 objects, you can provide a ``Callable`` in the
-:py:attr:`serialize_date <qs_codec.models.encode_options.EncodeOptions.serialize_date>` option:
+`serialize_date <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.serialize_date>`__ option:
 
 .. code:: python
 
@@ -699,7 +725,7 @@ objects, you can provide a ``Callable`` in the
    )
 
 To affect the order of parameter keys, you can set a ``Callable`` in the
-:py:attr:`sort <qs_codec.models.encode_options.EncodeOptions.sort>` option:
+`sort <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.sort>`__ option:
 
 .. code:: python
 
@@ -713,7 +739,7 @@ To affect the order of parameter keys, you can set a ``Callable`` in the
        )
    ) == 'a=c&b=f&z=y'
 
-Finally, you can use the :py:attr:`filter <qs_codec.models.encode_options.EncodeOptions.filter>` option to restrict
+Finally, you can use the `filter <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.filter>`__ option to restrict
 which keys will be included in the encoded output. If you pass a ``Callable``, it will be called for each key to obtain
 the replacement value. Otherwise, if you pass a ``list``, it will be used to select properties and ``list`` indices to
 be encoded:
@@ -782,7 +808,7 @@ By default, ``None`` values are treated like empty ``str``\ings:
    assert qs_codec.encode({'a': None, 'b': ''}) == 'a=&b='
 
 To distinguish between ``None`` values and empty ``str``\s use the
-:py:attr:`strict_null_handling <qs_codec.models.encode_options.EncodeOptions.strict_null_handling>` flag.
+`strict_null_handling <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.strict_null_handling>`__ flag.
 In the result string the ``None`` values have no ``=`` sign:
 
 .. code:: python
@@ -795,7 +821,7 @@ In the result string the ``None`` values have no ``=`` sign:
    ) == 'a&b='
 
 To decode values without ``=`` back to ``None`` use the
-:py:attr:`strict_null_handling <qs_codec.models.decode_options.DecodeOptions.strict_null_handling>` flag:
+`strict_null_handling <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.strict_null_handling>`__ flag:
 
 .. code:: python
 
@@ -807,7 +833,7 @@ To decode values without ``=`` back to ``None`` use the
    ) == {'a': None, 'b': ''}
 
 To completely skip rendering keys with ``None`` values, use the
-:py:attr:`skip_nulls <qs_codec.models.encode_options.EncodeOptions.skip_nulls>` flag:
+`skip_nulls <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.skip_nulls>`__ flag:
 
 .. code:: python
 
@@ -819,8 +845,8 @@ To completely skip rendering keys with ``None`` values, use the
    ) == 'a=b'
 
 If you’re communicating with legacy systems, you can switch to
-:py:attr:`LATIN1 <qs_codec.enums.charset.Charset.LATIN1>` using the
-:py:attr:`charset <qs_codec.models.encode_options.EncodeOptions.charset>` option:
+`LATIN1 <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.enums.charset.Charset.LATIN1>`__ using the
+`charset <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.charset>`__ option:
 
 .. code:: python
 
@@ -831,7 +857,7 @@ If you’re communicating with legacy systems, you can switch to
        qs_codec.EncodeOptions(charset=qs_codec.Charset.LATIN1)
    ) == '%E6=%E6'
 
-Characters that don’t exist in :py:attr:`LATIN1 <qs_codec.enums.charset.Charset.LATIN1>`
+Characters that don’t exist in `LATIN1 <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.enums.charset.Charset.LATIN1>`__
 will be converted to numeric entities, similar to what browsers do:
 
 .. code:: python
@@ -843,7 +869,7 @@ will be converted to numeric entities, similar to what browsers do:
        qs_codec.EncodeOptions(charset=qs_codec.Charset.LATIN1)
    ) == 'a=%26%239786%3B'
 
-You can use the :py:attr:`charset_sentinel <qs_codec.models.encode_options.EncodeOptions.charset_sentinel>`
+You can use the `charset_sentinel <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.charset_sentinel>`__
 option to announce the character by including an ``utf8=✓`` parameter with the proper
 encoding of the checkmark, similar to what Ruby on Rails and others do when submitting forms.
 
@@ -865,10 +891,10 @@ Dealing with special character sets
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By default, the encoding and decoding of characters is done in
-:py:attr:`UTF8 <qs_codec.enums.charset.Charset.UTF8>`, and
-:py:attr:`LATIN1 <qs_codec.enums.charset.Charset.LATIN1>` support is also built in via
-the :py:attr:`charset <qs_codec.models.encode_options.EncodeOptions.charset>`
-and :py:attr:`charset <qs_codec.models.decode_options.DecodeOptions.charset>` parameter,
+`UTF8 <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.enums.charset.Charset.UTF8>`__, and
+`LATIN1 <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.enums.charset.Charset.LATIN1>`__ support is also built in via
+the `charset <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.charset>`__
+and `charset <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.charset>`__ parameter,
 respectively.
 
 If you wish to encode query strings to a different character set (i.e.
@@ -925,11 +951,11 @@ This also works for decoding of query strings:
 RFC 3986 and RFC 1738 space encoding
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The default :py:attr:`format <qs_codec.models.encode_options.EncodeOptions.format>` is
-:py:attr:`RFC3986 <qs_codec.enums.format.Format.RFC3986>` which encodes
+The default `format <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.format>`__ is
+`RFC3986 <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.enums.format.Format.RFC3986>`__ which encodes
 ``' '`` to ``%20`` which is backward compatible. You can also set the
-:py:attr:`format <qs_codec.models.encode_options.EncodeOptions.format>` to
-:py:attr:`RFC1738 <qs_codec.enums.format.Format.RFC1738>` which encodes ``' '`` to ``+``.
+`format <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.format>`__ to
+`RFC1738 <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.enums.format.Format.RFC1738>`__ which encodes ``' '`` to ``+``.
 
 .. code:: python
 
@@ -949,3 +975,30 @@ The default :py:attr:`format <qs_codec.models.encode_options.EncodeOptions.forma
        {'a': 'b c'},
        qs_codec.EncodeOptions(format=qs_codec.Format.RFC1738)
    ) == 'a=b+c'
+
+--------------
+
+Special thanks to the authors of
+`qs <https://www.npmjs.com/package/qs>`__ for JavaScript: - `Jordan
+Harband <https://github.com/ljharb>`__ - `TJ
+Holowaychuk <https://github.com/visionmedia/node-querystring>`__
+
+.. |PyPI - Version| image:: https://img.shields.io/pypi/v/qs_codec
+   :target: https://pypi.org/project/qs-codec/
+.. |PyPI - Downloads| image:: https://img.shields.io/pypi/dm/qs_codec
+   :target: https://pypistats.org/packages/qs-codec
+.. |PyPI - Status| image:: https://img.shields.io/pypi/status/qs_codec
+.. |PyPI - Python Version| image:: https://img.shields.io/pypi/pyversions/qs_codec
+.. |PyPI - Format| image:: https://img.shields.io/pypi/format/qs_codec
+.. |Test| image:: https://github.com/techouse/qs_codec/actions/workflows/test.yml/badge.svg
+   :target: https://github.com/techouse/qs_codec/actions/workflows/test.yml
+.. |codecov| image:: https://codecov.io/gh/techouse/qs_codec/graph/badge.svg?token=Vp0z05yj2l
+   :target: https://codecov.io/gh/techouse/qs_codec
+.. |Codacy Badge| image:: https://app.codacy.com/project/badge/Grade/7ead208221ae4f6785631043064647e4
+   :target: https://app.codacy.com/gh/techouse/qs_codec/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade
+.. |GitHub| image:: https://img.shields.io/github/license/techouse/qs_codec
+   :target: LICENSE
+.. |GitHub Sponsors| image:: https://img.shields.io/github/sponsors/techouse
+   :target: https://github.com/sponsors/techouse
+.. |GitHub Repo stars| image:: https://img.shields.io/github/stars/techouse/qs_codec
+   :target: https://github.com/techouse/qs_codec/stargazers
