@@ -82,7 +82,7 @@ For similar reasons, by default :py:attr:`decode <qs_codec.decode>` will only pa
    ) == {'a': 'b'}
 
 To bypass the leading question mark, use
-:py:attr:`DecodeOptions.ignore_query_prefix <qs_codec.models.decode_options.DecodeOptions.ignore_query_prefix>`:
+:py:attr:`ignore_query_prefix <qs_codec.models.decode_options.DecodeOptions.ignore_query_prefix>`:
 
 .. code:: python
 

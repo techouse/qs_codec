@@ -107,8 +107,7 @@ For similar reasons, by default `decode <https://techouse.github.io/qs_codec/qs_
        qs_codec.DecodeOptions(parameter_limit=1),
    ) == {'a': 'b'}
 
-To bypass the leading question mark, use
-`DecodeOptions.ignore_query_prefix <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.ignore_query_prefix>`__:
+To bypass the leading question mark, use `ignore_query_prefix <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.ignore_query_prefix>`__:
 
 .. code:: python
 
