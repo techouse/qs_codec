@@ -1,3 +1,7 @@
+## 0.1.6
+
+* [CHORE] update README with links to [documentation](https://techouse.github.io/qs_codec/)
+
 ## 0.1.5
 
 * [CHORE] added Sphinx [documentation](https://techouse.github.io/qs_codec/)
