@@ -95,7 +95,7 @@ jobs:
           rm -rf $CHANGELOG_PATH
   docs:
     uses: ./.github/workflows/docs.yml
-    needs: publish
+    needs: [test, publish]
     permissions:
       contents: write
     secrets: inherit
