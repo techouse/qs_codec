@@ -1,3 +1,8 @@
+## 0.2.0
+
+* [CHORE] update dependencies
+* [CHORE] update README
+
 ## 0.1.6
 
 * [CHORE] update README with links to [documentation](https://techouse.github.io/qs_codec/)
