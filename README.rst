@@ -5,8 +5,8 @@ A query string encoding and decoding library for Python.
 
 Ported from `qs <https://www.npmjs.com/package/qs>`__ for JavaScript.
 
-|PyPI - Version| |PyPI - Downloads| |PyPI - Status| |PyPI - Python
-Version| |PyPI - Format| |Test| |codecov| |Codacy Badge| |GitHub|
+|PyPI - Version| |PyPI - Downloads| |PyPI - Status| |PyPI - Python Version|
+|PyPI - Format| |Test| |CodeQL| |Publish| |Docs| |codecov| |Codacy| |GitHub|
 |GitHub Sponsors| |GitHub Repo stars|
 
 Usage
@@ -991,9 +991,17 @@ Holowaychuk <https://github.com/visionmedia/node-querystring>`__
 .. |PyPI - Format| image:: https://img.shields.io/pypi/format/qs_codec
 .. |Test| image:: https://github.com/techouse/qs_codec/actions/workflows/test.yml/badge.svg
    :target: https://github.com/techouse/qs_codec/actions/workflows/test.yml
+.. |CodeQL| image:: https://github.com/techouse/qs_codec/actions/workflows/github-code-scanning/codeql/badge.svg
+   :target: https://github.com/techouse/qs_codec/actions/workflows/github-code-scanning/codeql
+.. |Publish| image:: https://github.com/techouse/qs_codec/actions/workflows/publish.yml/badge.svg
+   :target: https://github.com/techouse/qs_codec/actions/workflows/publish.yml
+.. |Docs| image:: https://github.com/techouse/qs_codec/actions/workflows/docs.yml/badge.svg
+   :target: https://github.com/techouse/qs_codec/actions/workflows/docs.yml
+.. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
+   :target: https://github.com/ambv/black
 .. |codecov| image:: https://codecov.io/gh/techouse/qs_codec/graph/badge.svg?token=Vp0z05yj2l
    :target: https://codecov.io/gh/techouse/qs_codec
-.. |Codacy Badge| image:: https://app.codacy.com/project/badge/Grade/7ead208221ae4f6785631043064647e4
+.. |Codacy| image:: https://app.codacy.com/project/badge/Grade/7ead208221ae4f6785631043064647e4
    :target: https://app.codacy.com/gh/techouse/qs_codec/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade
 .. |GitHub| image:: https://img.shields.io/github/license/techouse/qs_codec
    :target: LICENSE
