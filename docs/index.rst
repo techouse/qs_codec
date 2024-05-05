@@ -10,9 +10,9 @@ A query string encoding and decoding library for Python.
 
 Ported from `qs <https://www.npmjs.com/package/qs>`__ for JavaScript.
 
-|PyPI - Version| |PyPI - Downloads| |PyPI - Status| |PyPI - Python Version|
-|PyPI - Format| |Black| |Test| |CodeQL| |Publish| |Docs| |codecov| |Codacy| |License|
-|Contributor Covenant| |GitHub Sponsors| |GitHub Repo stars|
+|PyPI - Version| |PyPI - Downloads| |PyPI - Status| |PyPI - Python Version| |PyPI - Format| |Black|
+|Test| |CodeQL| |Publish| |Docs| |codecov| |Codacy| |Black| |flake8| |mypy| |pylint| |isort| |bandit|
+|License| |Contributor Covenant| |GitHub Sponsors| |GitHub Repo stars|
 
 Usage
 -----
@@ -79,3 +79,14 @@ Holowaychuk <https://github.com/visionmedia/node-querystring>`__
    :target: https://github.com/techouse/qs_codec/stargazers
 .. |Contributor Covenant| image:: https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg
    :target: CODE-OF-CONDUCT.md
+.. |flake8| image:: https://img.shields.io/badge/flake8-checked-blueviolet.svg
+   :target: https://flake8.pycqa.org/en/latest/
+.. |mypy| image:: https://img.shields.io/badge/mypy-checked-blue.svg
+   :target: https://mypy.readthedocs.io/en/stable/
+.. |pylint| image:: https://img.shields.io/badge/linting-pylint-yellowgreen.svg
+   :target: https://github.com/pylint-dev/pylint
+.. |isort| image:: https://img.shields.io/badge/imports-isort-blue.svg
+   :target: https://pycqa.github.io/isort/
+.. |bandit| image:: https://img.shields.io/badge/security-bandit-blue.svg
+   :target: https://github.com/PyCQA/bandit
+   :alt: Security Status
