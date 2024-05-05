@@ -66,7 +66,7 @@ Holowaychuk <https://github.com/visionmedia/node-querystring>`__
 .. |Docs| image:: https://github.com/techouse/qs_codec/actions/workflows/docs.yml/badge.svg
    :target: https://github.com/techouse/qs_codec/actions/workflows/docs.yml
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
-   :target: https://github.com/ambv/black
+   :target: https://github.com/psf/black
 .. |codecov| image:: https://codecov.io/gh/techouse/qs_codec/graph/badge.svg?token=Vp0z05yj2l
    :target: https://codecov.io/gh/techouse/qs_codec
 .. |Codacy| image:: https://app.codacy.com/project/badge/Grade/7ead208221ae4f6785631043064647e4
