@@ -11,8 +11,8 @@ A query string encoding and decoding library for Python.
 Ported from `qs <https://www.npmjs.com/package/qs>`__ for JavaScript.
 
 |PyPI - Version| |PyPI - Downloads| |PyPI - Status| |PyPI - Python Version|
-|PyPI - Format| |Black| |Test| |CodeQL| |Publish| |Docs| |codecov| |Codacy| |GitHub|
-|GitHub Sponsors| |GitHub Repo stars|
+|PyPI - Format| |Black| |Test| |CodeQL| |Publish| |Docs| |codecov| |Codacy| |License|
+|Contributor Covenant| |GitHub Sponsors| |GitHub Repo stars|
 
 Usage
 -----
@@ -71,9 +71,11 @@ Holowaychuk <https://github.com/visionmedia/node-querystring>`__
    :target: https://codecov.io/gh/techouse/qs_codec
 .. |Codacy| image:: https://app.codacy.com/project/badge/Grade/7ead208221ae4f6785631043064647e4
    :target: https://app.codacy.com/gh/techouse/qs_codec/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade
-.. |GitHub| image:: https://img.shields.io/github/license/techouse/qs_codec
+.. |License| image:: https://img.shields.io/github/license/techouse/qs_codec
    :target: LICENSE
 .. |GitHub Sponsors| image:: https://img.shields.io/github/sponsors/techouse
    :target: https://github.com/sponsors/techouse
 .. |GitHub Repo stars| image:: https://img.shields.io/github/stars/techouse/qs_codec
    :target: https://github.com/techouse/qs_codec/stargazers
+.. |Contributor Covenant| image:: https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg
+   :target: CODE-OF-CONDUCT.md
