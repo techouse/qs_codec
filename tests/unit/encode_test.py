@@ -821,6 +821,18 @@ class TestEncode:
             == "utf8=%26%2310003%3B&a=%E6"
         )
 
+    def test_strict_null_handling_works_with_null_serialize_date(self) -> None:
+        assert (
+            encode(
+                {"key": datetime.now()},
+                options=EncodeOptions(
+                    strict_null_handling=True,
+                    serialize_date=lambda _: None,
+                ),
+            )
+            == "key"
+        )
+
     def test_does_not_mutate_the_options_argument(self) -> None:
         options = EncodeOptions()
         encode({}, options)

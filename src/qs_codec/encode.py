@@ -114,7 +114,7 @@ def _encode(
     prefix: t.Optional[str],
     comma_round_trip: t.Optional[bool],
     encoder: t.Optional[t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str]],
-    serialize_date: t.Callable[[datetime], str],
+    serialize_date: t.Callable[[datetime], t.Optional[str]],
     sort: t.Optional[t.Callable[[t.Any, t.Any], int]],
     filter: t.Optional[t.Union[t.Callable, t.List[t.Union[str, int]]]],
     formatter: t.Optional[t.Callable[[str], str]],

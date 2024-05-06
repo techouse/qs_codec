@@ -63,7 +63,7 @@ class EncodeOptions:
     skip_nulls: bool = False
     """Set to ``True`` to completely skip encoding keys with ``None`` values."""
 
-    serialize_date: t.Callable[[datetime], str] = EncodeUtils.serialize_date
+    serialize_date: t.Callable[[datetime], t.Optional[str]] = EncodeUtils.serialize_date
     """If you only want to override the serialization of ``datetime`` objects, you can provide a ``Callable``."""
 
     encoder: t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str] = field(  # type: ignore [assignment]
