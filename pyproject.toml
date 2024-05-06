@@ -38,8 +38,8 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 dependencies = [
-    "regex==2024.4.28",
-    "types-regex==2024.4.28.20240430",
+    "regex>=2024.4.28",
+    "types-regex>=2024.4.28.20240506",
 ]
 dynamic = ["version"]
 

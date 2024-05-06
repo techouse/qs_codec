@@ -1,3 +1,7 @@
+## 0.2.1
+
+* [CHORE] update dependencies
+
 ## 0.2.0
 
 * [CHORE] update dependencies
