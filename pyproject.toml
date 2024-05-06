@@ -39,7 +39,7 @@ classifiers = [
 ]
 dependencies = [
     "regex==2024.4.28",
-    "types-regex==2024.4.28.20240430",
+    "types-regex==2024.4.28.20240506",
 ]
 dynamic = ["version"]
 
