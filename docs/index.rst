@@ -30,11 +30,11 @@ A simple usage example:
    assert qs_codec.decode('a=b') == {'a': 'b'}
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
    :caption: Contents:
 
    README
-   qs_codec
+   modules
 
 Indices and tables
 ==================
