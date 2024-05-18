@@ -53,6 +53,7 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict:
     obj: t.Dict = dict()
 
     clean_str: str = value.replace("?", "", 1) if options.ignore_query_prefix else value
+    clean_str = clean_str.replace("%5B", "[").replace("%5b", "[").replace("%5D", "]").replace("%5d", "]")
     limit: t.Optional[int] = None if isinf(options.parameter_limit) else options.parameter_limit  # type: ignore [assignment]
     parts: t.List[str]
     if isinstance(options.delimiter, re.Pattern):
