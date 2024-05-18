@@ -11,7 +11,7 @@ dictionaries
    def decode(
        value: t.Optional[t.Union[str, t.Mapping]],
        options: qs_codec.DecodeOptions = qs_codec.DecodeOptions(),
-   ) -> dict:
+   ) -> t.Dict[str, t.Any]:
        """Decodes a str or Mapping into a Dict. 
        
        Providing custom DecodeOptions will override the default behavior."""
