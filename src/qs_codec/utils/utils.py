@@ -15,10 +15,10 @@ class Utils:
 
     @staticmethod
     def merge(
-        target: t.Optional[t.Union[t.Mapping, t.List, t.Tuple]],
-        source: t.Optional[t.Union[t.Mapping, t.List, t.Tuple, t.Any]],
+        target: t.Optional[t.Union[t.Mapping[str, t.Any], t.List[t.Any], t.Tuple]],
+        source: t.Optional[t.Union[t.Mapping[str, t.Any], t.List[t.Any], t.Tuple, t.Any]],
         options: DecodeOptions = DecodeOptions(),
-    ) -> t.Union[t.Dict, t.List, t.Tuple, t.Any]:
+    ) -> t.Union[t.Dict[str, t.Any], t.List, t.Tuple, t.Any]:
         """Merge two objects together."""
         if source is None:
             return target
@@ -60,7 +60,7 @@ class Utils:
                 if isinstance(source, (list, tuple)):
                     target = {
                         **target,
-                        **{i: item for i, item in enumerate(source) if not isinstance(item, Undefined)},
+                        **{str(i): item for i, item in enumerate(source) if not isinstance(item, Undefined)},
                     }
             elif source is not None:
                 if not isinstance(target, (list, tuple)) and isinstance(source, (list, tuple)):
@@ -72,7 +72,7 @@ class Utils:
         if target is None or not isinstance(target, t.Mapping):
             if isinstance(target, (list, tuple)):
                 return {
-                    **{i: item for i, item in enumerate(target) if not isinstance(item, Undefined)},
+                    **{str(i): item for i, item in enumerate(target) if not isinstance(item, Undefined)},
                     **source,
                 }
 
@@ -86,8 +86,8 @@ class Utils:
                 if not isinstance(el, Undefined)
             ]
 
-        merge_target: t.Dict = (
-            dict(enumerate(el for el in source if not isinstance(el, Undefined)))
+        merge_target: t.Dict[str, t.Any] = (
+            {str(i): el for i, el in enumerate(source) if not isinstance(el, Undefined)}
             if isinstance(target, (list, tuple)) and not isinstance(source, (list, tuple))
             else copy.deepcopy(dict(target) if not isinstance(target, dict) else target)
         )
@@ -95,15 +95,15 @@ class Utils:
         return {
             **merge_target,
             **{
-                key: Utils.merge(merge_target[key], value, options) if key in merge_target else value
+                str(key): Utils.merge(merge_target[key], value, options) if key in merge_target else value
                 for key, value in source.items()
             },
         }
 
     @staticmethod
-    def compact(value: t.Dict) -> t.Dict:
+    def compact(value: t.Dict[str, t.Any]) -> t.Dict[str, t.Any]:
         """Remove all `Undefined` values from a dictionary."""
-        queue: t.List[t.Dict] = [{"obj": {"o": value}, "prop": "o"}]
+        queue: t.List[t.Dict[str, t.Any]] = [{"obj": {"o": value}, "prop": "o"}]
         refs: t.List = []
 
         for i in range(len(queue)):  # pylint: disable=C0200

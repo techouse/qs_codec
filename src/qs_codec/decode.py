@@ -14,20 +14,25 @@ from .models.undefined import Undefined
 from .utils.utils import Utils
 
 
-def decode(value: t.Optional[t.Union[str, t.Mapping]], options: DecodeOptions = DecodeOptions()) -> dict:
+def decode(
+    value: t.Optional[t.Union[str, t.Dict[str, t.Any]]], options: DecodeOptions = DecodeOptions()
+) -> t.Dict[str, t.Any]:
     """
     Decodes a ``str`` or ``Mapping`` into a ``dict``.
 
     Providing custom ``DecodeOptions`` will override the default behavior.
     """
-    if not value:
-        return dict()
+    obj: t.Dict[str, t.Any] = {}
 
-    if not isinstance(value, (str, t.Mapping)):
+    if not value:
+        return obj
+
+    if not isinstance(value, (str, dict)):
         raise ValueError("The input must be a String or a Dict")
 
-    temp_obj: t.Optional[t.Mapping] = _parse_query_string_values(value, options) if isinstance(value, str) else value
-    obj: t.Dict = dict()
+    temp_obj: t.Optional[t.Dict[str, t.Any]] = (
+        _parse_query_string_values(value, options) if isinstance(value, str) else value
+    )
 
     # Iterate over the keys and setup the new object
     if temp_obj:
@@ -49,8 +54,8 @@ def _parse_array_value(value: t.Any, options: DecodeOptions) -> t.Any:
     return value
 
 
-def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict:
-    obj: t.Dict = dict()
+def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str, t.Any]:
+    obj: t.Dict[str, t.Any] = {}
 
     clean_str: str = value.replace("?", "", 1) if options.ignore_query_prefix else value
     clean_str = clean_str.replace("%5B", "[").replace("%5b", "[").replace("%5D", "]").replace("%5d", "]")
@@ -119,7 +124,7 @@ def _parse_object(
 
     i: int
     for i in reversed(range(len(chain))):
-        obj: t.Optional[t.Any]
+        obj: t.Optional[t.Union[t.Dict[str, t.Any], t.List[t.Any]]]
         root: str = chain[i]
 
         if root == "[]" and options.parse_lists:
@@ -141,7 +146,7 @@ def _parse_object(
                 index = None
 
             if not options.parse_lists and decoded_root == "":
-                obj = {0: leaf}
+                obj = {"0": leaf}
             elif (
                 index is not None
                 and index >= 0
@@ -153,7 +158,7 @@ def _parse_object(
                 obj = [Undefined() for _ in range(index + 1)]
                 obj[index] = leaf
             else:
-                obj[index if index is not None else decoded_root] = leaf
+                obj[str(index) if index is not None else decoded_root] = leaf
 
         leaf = obj
 

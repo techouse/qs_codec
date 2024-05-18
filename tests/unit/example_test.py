@@ -130,16 +130,16 @@ class TestDecoding:
         # Any `list` members with an index of greater than `20` will instead be converted to a `dict` with the index as
         # the key. This is needed to handle cases when someone sent, for example, `a[999999999]` and it will take
         # significant time to iterate over this huge `list`.
-        assert qs_codec.decode("a[100]=b") == {"a": {100: "b"}}
+        assert qs_codec.decode("a[100]=b") == {"a": {"100": "b"}}
 
         # This limit can be overridden by passing an `DecodeOptions.list_limit` option:
-        assert qs_codec.decode("a[1]=b", qs_codec.DecodeOptions(list_limit=0)) == {"a": {1: "b"}}
+        assert qs_codec.decode("a[1]=b", qs_codec.DecodeOptions(list_limit=0)) == {"a": {"1": "b"}}
 
         # To disable List parsing entirely, set `DecodeOptions.parse_lists` to `False`.
-        assert qs_codec.decode("a[]=b", qs_codec.DecodeOptions(parse_lists=False)) == {"a": {0: "b"}}
+        assert qs_codec.decode("a[]=b", qs_codec.DecodeOptions(parse_lists=False)) == {"a": {"0": "b"}}
 
         # If you mix notations, **qs_codec** will merge the two items into a `dict`:
-        assert qs_codec.decode("a[0]=b&a[b]=c") == {"a": {0: "b", "b": "c"}}
+        assert qs_codec.decode("a[0]=b&a[b]=c") == {"a": {"0": "b", "b": "c"}}
 
         # You can also create `list`s of `dict`s:
         # (**qs_codec** cannot convert nested `dict`s, such as `'a={b:1},{c:d}'`)
