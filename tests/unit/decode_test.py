@@ -18,7 +18,7 @@ class TestDecode:
     @pytest.mark.parametrize(
         "encoded, decoded, options",
         [
-            ("0=foo", {0: "foo"}, None),
+            ("0=foo", {"0": "foo"}, None),
             ("foo=c++", {"foo": "c  "}, None),
             ("a[>=]=23", {"a": {">=": "23"}}, None),
             ("a[<=>]==23", {"a": {"<=>": "=23"}}, None),
@@ -189,14 +189,14 @@ class TestDecode:
         assert decode("a[1]=c&a[0]=b&a[2]=d") == {"a": ["b", "c", "d"]}
         assert decode("a[1]=c&a[0]=b") == {"a": ["b", "c"]}
         assert decode("a[1]=c", DecodeOptions(list_limit=20)) == {"a": ["c"]}
-        assert decode("a[1]=c", DecodeOptions(list_limit=0)) == {"a": {1: "c"}}
+        assert decode("a[1]=c", DecodeOptions(list_limit=0)) == {"a": {"1": "c"}}
         assert decode("a[1]=c") == {"a": ["c"]}
 
     def test_limits_specific_list_indices_to_list_limit(self) -> None:
         assert decode("a[20]=a", DecodeOptions(list_limit=20)) == {"a": ["a"]}
-        assert decode("a[21]=a", DecodeOptions(list_limit=20)) == {"a": {21: "a"}}
+        assert decode("a[21]=a", DecodeOptions(list_limit=20)) == {"a": {"21": "a"}}
         assert decode("a[20]=a") == {"a": ["a"]}
-        assert decode("a[21]=a") == {"a": {21: "a"}}
+        assert decode("a[21]=a") == {"a": {"21": "a"}}
 
     def test_supports_keys_that_begin_with_a_number(self) -> None:
         assert decode("a[12b]=c") == {"a": {"12b": "c"}}
@@ -217,11 +217,11 @@ class TestDecode:
         assert decode(None) == {}
 
     def test_transforms_lists_to_dicts(self) -> None:
-        assert decode("foo[0]=bar&foo[bad]=baz") == {"foo": {0: "bar", "bad": "baz"}}
-        assert decode("foo[bad]=baz&foo[0]=bar") == {"foo": {"bad": "baz", 0: "bar"}}
-        assert decode("foo[bad]=baz&foo[]=bar") == {"foo": {"bad": "baz", 0: "bar"}}
-        assert decode("foo[]=bar&foo[bad]=baz") == {"foo": {0: "bar", "bad": "baz"}}
-        assert decode("foo[bad]=baz&foo[]=bar&foo[]=foo") == {"foo": {"bad": "baz", 0: "bar", 1: "foo"}}
+        assert decode("foo[0]=bar&foo[bad]=baz") == {"foo": {"0": "bar", "bad": "baz"}}
+        assert decode("foo[bad]=baz&foo[0]=bar") == {"foo": {"bad": "baz", "0": "bar"}}
+        assert decode("foo[bad]=baz&foo[]=bar") == {"foo": {"bad": "baz", "0": "bar"}}
+        assert decode("foo[]=bar&foo[bad]=baz") == {"foo": {"0": "bar", "bad": "baz"}}
+        assert decode("foo[bad]=baz&foo[]=bar&foo[]=foo") == {"foo": {"bad": "baz", "0": "bar", "1": "foo"}}
         assert decode("foo[0][a]=a&foo[0][b]=b&foo[1][a]=aa&foo[1][b]=bb") == {
             "foo": [{"a": "a", "b": "b"}, {"a": "aa", "b": "bb"}]
         }
@@ -245,18 +245,18 @@ class TestDecode:
         assert decode("foo[0].baz[0]=15&foo[0].baz[1]=16&foo[0].bar=2", DecodeOptions(allow_dots=True)) == {
             "foo": [{"baz": ["15", "16"], "bar": "2"}]
         }
-        assert decode("foo.bad=baz&foo[0]=bar", DecodeOptions(allow_dots=True)) == {"foo": {"bad": "baz", 0: "bar"}}
-        assert decode("foo.bad=baz&foo[]=bar", DecodeOptions(allow_dots=True)) == {"foo": {"bad": "baz", 0: "bar"}}
-        assert decode("foo[]=bar&foo.bad=baz", DecodeOptions(allow_dots=True)) == {"foo": {0: "bar", "bad": "baz"}}
+        assert decode("foo.bad=baz&foo[0]=bar", DecodeOptions(allow_dots=True)) == {"foo": {"bad": "baz", "0": "bar"}}
+        assert decode("foo.bad=baz&foo[]=bar", DecodeOptions(allow_dots=True)) == {"foo": {"bad": "baz", "0": "bar"}}
+        assert decode("foo[]=bar&foo.bad=baz", DecodeOptions(allow_dots=True)) == {"foo": {"0": "bar", "bad": "baz"}}
         assert decode("foo.bad=baz&foo[]=bar&foo[]=foo", DecodeOptions(allow_dots=True)) == {
-            "foo": {"bad": "baz", 0: "bar", 1: "foo"}
+            "foo": {"bad": "baz", "0": "bar", "1": "foo"}
         }
         assert decode("foo[0].a=a&foo[0].b=b&foo[1].a=aa&foo[1].b=bb", DecodeOptions(allow_dots=True)) == {
             "foo": [{"a": "a", "b": "b"}, {"a": "aa", "b": "bb"}]
         }
 
     def test_correctly_prunes_undefined_values_when_converting_a_list_to_a_dict(self) -> None:
-        assert decode("a[2]=b&a[99999999]=c") == {"a": {2: "b", 99999999: "c"}}
+        assert decode("a[2]=b&a[99999999]=c") == {"a": {"2": "b", "99999999": "c"}}
 
     def test_supports_malformed_uri_characters(self) -> None:
         assert decode("{%:%}", DecodeOptions(strict_null_handling=True)) == {"{%:%}": None}
@@ -307,8 +307,8 @@ class TestDecode:
         ) == {"filter": [["int1", "=", "77"], "and", ["int2", "=", "8"]]}
 
     def test_continues_parsing_when_no_parent_is_found(self) -> None:
-        assert decode("[]=&a=b") == {0: "", "a": "b"}
-        assert decode("[]&a=b", DecodeOptions(strict_null_handling=True)) == {0: None, "a": "b"}
+        assert decode("[]=&a=b") == {"0": "", "a": "b"}
+        assert decode("[]&a=b", DecodeOptions(strict_null_handling=True)) == {"0": None, "a": "b"}
         assert decode("[foo]=bar") == {"foo": "bar"}
 
     def test_does_not_error_when_parsing_a_very_long_list(self) -> None:
@@ -333,16 +333,16 @@ class TestDecode:
         assert decode("a=b&c=d", DecodeOptions(parameter_limit=float("inf"))) == {"a": "b", "c": "d"}
 
     def test_allows_overriding_list_limit(self) -> None:
-        assert decode("a[0]=b", DecodeOptions(list_limit=-1)) == {"a": {0: "b"}}
+        assert decode("a[0]=b", DecodeOptions(list_limit=-1)) == {"a": {"0": "b"}}
         assert decode("a[0]=b", DecodeOptions(list_limit=0)) == {"a": ["b"]}
-        assert decode("a[-1]=b", DecodeOptions(list_limit=-1)) == {"a": {-1: "b"}}
-        assert decode("a[-1]=b", DecodeOptions(list_limit=0)) == {"a": {-1: "b"}}
-        assert decode("a[0]=b&a[1]=c", DecodeOptions(list_limit=-1)) == {"a": {0: "b", 1: "c"}}
-        assert decode("a[0]=b&a[1]=c", DecodeOptions(list_limit=0)) == {"a": {0: "b", 1: "c"}}
+        assert decode("a[-1]=b", DecodeOptions(list_limit=-1)) == {"a": {"-1": "b"}}
+        assert decode("a[-1]=b", DecodeOptions(list_limit=0)) == {"a": {"-1": "b"}}
+        assert decode("a[0]=b&a[1]=c", DecodeOptions(list_limit=-1)) == {"a": {"0": "b", "1": "c"}}
+        assert decode("a[0]=b&a[1]=c", DecodeOptions(list_limit=0)) == {"a": {"0": "b", "1": "c"}}
 
     def test_allows_disabling_list_parsing(self) -> None:
-        assert decode("a[0]=b&a[1]=c", DecodeOptions(parse_lists=False)) == {"a": {0: "b", 1: "c"}}
-        assert decode("a[]=b", DecodeOptions(parse_lists=False)) == {"a": {0: "b"}}
+        assert decode("a[0]=b&a[1]=c", DecodeOptions(parse_lists=False)) == {"a": {"0": "b", "1": "c"}}
+        assert decode("a[]=b", DecodeOptions(parse_lists=False)) == {"a": {"0": "b"}}
 
     def test_allows_for_query_string_prefix(self) -> None:
         assert decode("?foo=bar", DecodeOptions(ignore_query_prefix=True)) == {"foo": "bar"}
@@ -486,7 +486,7 @@ class TestDecode:
 
         expected_list: t.Dict[str, t.Any] = {}
         expected_list["a"] = {}
-        expected_list["a"][0] = "b"
+        expected_list["a"]["0"] = "b"
         expected_list["a"]["c"] = "d"
         assert decode("a[]=b&a[c]=d") == expected_list
 
@@ -533,10 +533,10 @@ class TestDecode:
             ("a[0]=b&a=c&=", {"a": ["b", "c"]}),
             ("a=b&a[]=c&=", {"a": ["b", "c"]}),
             ("a=b&a[0]=c&=", {"a": ["b", "c"]}),
-            ("[]=a&[]=b& []=1", {0: "a", 1: "b", " ": ["1"]}),
-            ("[0]=a&[1]=b&a[0]=1&a[1]=2", {0: "a", 1: "b", "a": ["1", "2"]}),
+            ("[]=a&[]=b& []=1", {"0": "a", "1": "b", " ": ["1"]}),
+            ("[0]=a&[1]=b&a[0]=1&a[1]=2", {"0": "a", "1": "b", "a": ["1", "2"]}),
             ("[deep]=a&[deep]=2", {"deep": ["a", "2"]}),
-            ("%5B0%5D=a&%5B1%5D=b", {0: "a", 1: "b"}),
+            ("%5B0%5D=a&%5B1%5D=b", {"0": "a", "1": "b"}),
         ],
     )
     def test_parses_empty_keys(self, encoded: str, decoded: t.Mapping) -> None:

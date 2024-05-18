@@ -421,7 +421,7 @@ class TestUtils:
         assert DecodeUtils.unescape(escaped) == unescaped
 
     def test_merges_dict_with_list(self) -> None:
-        assert Utils.merge({0: "a"}, [Undefined(), "b"]) == {0: "a", 1: "b"}
+        assert Utils.merge({"0": "a"}, [Undefined(), "b"]) == {"0": "a", "1": "b"}
 
     def test_merges_two_dicts_with_the_same_key_and_different_values(self) -> None:
         assert Utils.merge({"foo": [{"a": "a", "b": "b"}, {"a": "aa"}]}, {"foo": [Undefined(), {"b": "bb"}]}) == {
@@ -450,7 +450,7 @@ class TestUtils:
 
     def test_merges_standalone_and_two_objects_into_array(self) -> None:
         assert Utils.merge({"foo": ["bar", {"first": "123"}]}, {"foo": {"second": "456"}}) == {
-            "foo": {0: "bar", 1: {"first": "123"}, "second": "456"}
+            "foo": {"0": "bar", "1": {"first": "123"}, "second": "456"}
         }
 
     def test_merges_object_sandwiched_by_two_standalones_into_array(self) -> None:
@@ -462,13 +462,13 @@ class TestUtils:
         assert Utils.merge({"foo": ["baz"]}, {"foo": ["bar", "xyzzy"]}) == {"foo": ["baz", "bar", "xyzzy"]}
 
     def test_merges_object_into_array(self) -> None:
-        assert Utils.merge({"foo": ["bar"]}, {"foo": {"baz": "xyzzy"}}) == {"foo": {0: "bar", "baz": "xyzzy"}}
+        assert Utils.merge({"foo": ["bar"]}, {"foo": {"baz": "xyzzy"}}) == {"foo": {"0": "bar", "baz": "xyzzy"}}
 
     def test_merges_array_into_object(self) -> None:
         assert Utils.merge(
             {"foo": {"bar": "baz"}},
             {"foo": ["xyzzy"]},
-        ) == {"foo": {"bar": "baz", 0: "xyzzy"}}
+        ) == {"foo": {"bar": "baz", "0": "xyzzy"}}
 
     def test_combine_both_arrays(self) -> None:
         a = [1]

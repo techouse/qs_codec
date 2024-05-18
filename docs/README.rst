@@ -11,7 +11,7 @@ dictionaries
    def decode(
        value: t.Optional[t.Union[str, t.Mapping]],
        options: qs_codec.DecodeOptions = qs_codec.DecodeOptions(),
-   ) -> dict:
+   ) -> t.Dict[str, t.Any]:
        """Decodes a str or Mapping into a Dict. 
        
        Providing custom DecodeOptions will override the default behavior."""
@@ -303,7 +303,7 @@ over this huge ``list``.
 
    import qs_codec
 
-   assert qs_codec.decode('a[100]=b') == {'a': {100: 'b'}}
+   assert qs_codec.decode('a[100]=b') == {'a': {'100': 'b'}}
 
 This limit can be overridden by passing an :py:attr:`list_limit <qs_codec.models.decode_options.DecodeOptions.list_limit>`
 option:
@@ -315,7 +315,7 @@ option:
    assert qs_codec.decode(
        'a[1]=b',
        qs_codec.DecodeOptions(list_limit=0),
-   ) == {'a': {1: 'b'}}
+   ) == {'a': {'1': 'b'}}
 
 To disable ``list`` parsing entirely, set :py:attr:`parse_lists <qs_codec.models.decode_options.DecodeOptions.parse_lists>`
 to ``False``.
@@ -327,7 +327,7 @@ to ``False``.
    assert qs_codec.decode(
        'a[]=b',
        qs_codec.DecodeOptions(parse_lists=False),
-   ) == {'a': {0: 'b'}}
+   ) == {'a': {'0': 'b'}}
 
 If you mix notations, :py:attr:`decode <qs_codec.decode>` will merge the two items into a ``dict``:
 
@@ -335,7 +335,7 @@ If you mix notations, :py:attr:`decode <qs_codec.decode>` will merge the two ite
 
    import qs_codec
 
-   assert qs_codec.decode('a[0]=b&a[b]=c') == {'a': {0: 'b', 'b': 'c'}}
+   assert qs_codec.decode('a[0]=b&a[b]=c') == {'a': {'0': 'b', 'b': 'c'}}
 
 You can also create ``list``\ s of ``dict``\ s:
 
