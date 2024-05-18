@@ -1,3 +1,8 @@
+## 0.2.2
+
+* [FEAT] `decode` returns `dict[str, Any]` instead of `dict` ([#4](https://github.com/techouse/qs_codec/pull/4))
+* [FIX] fix decoding encoded square brackets in key names
+
 ## 0.2.1
 
 * [CHORE] update dependencies
