@@ -38,7 +38,7 @@ dictionaries
        value: t.Optional[t.Union[str, t.Dict[str, t.Any]]],
        options: DecodeOptions = DecodeOptions(),
    ) -> t.Dict[str, t.Any]:
-       """Decodes a str or Dict[str, Any] into a Dict.
+       """Decodes a query string into a Dict[str, Any].
        
        Providing custom DecodeOptions will override the default behavior."""
        pass

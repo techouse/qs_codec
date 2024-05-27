@@ -19,7 +19,7 @@ def decode(
     options: DecodeOptions = DecodeOptions(),
 ) -> t.Dict[str, t.Any]:
     """
-    Decodes a ``str`` or ``t.Dict[str, t.Any]`` into a ``dict``.
+    Decodes a query string into a ``Dict[str, Any]``.
 
     Providing custom ``DecodeOptions`` will override the default behavior.
     """
