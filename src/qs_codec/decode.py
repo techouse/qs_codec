@@ -15,10 +15,11 @@ from .utils.utils import Utils
 
 
 def decode(
-    value: t.Optional[t.Union[str, t.Dict[str, t.Any]]], options: DecodeOptions = DecodeOptions()
+    value: t.Optional[t.Union[str, t.Dict[str, t.Any]]],
+    options: DecodeOptions = DecodeOptions(),
 ) -> t.Dict[str, t.Any]:
     """
-    Decodes a ``str`` or ``Mapping`` into a ``dict``.
+    Decodes a ``str`` or ``t.Dict[str, t.Any]`` into a ``dict``.
 
     Providing custom ``DecodeOptions`` will override the default behavior.
     """

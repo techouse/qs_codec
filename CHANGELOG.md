@@ -1,3 +1,7 @@
+## 1.0.0
+
+* [CHORE] first stable release
+
 ## 0.2.2
 
 * [FEAT] `decode` returns `dict[str, Any]` instead of `dict` ([#4](https://github.com/techouse/qs_codec/pull/4))

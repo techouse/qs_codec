@@ -35,10 +35,10 @@ dictionaries
    import qs_codec, typing as t
 
    def decode(
-       value: t.Optional[t.Union[str, t.Mapping]],
-       options: qs_codec.DecodeOptions = qs_codec.DecodeOptions(),
+       value: t.Optional[t.Union[str, t.Dict[str, t.Any]]],
+       options: DecodeOptions = DecodeOptions(),
    ) -> t.Dict[str, t.Any]:
-       """Decodes a str or Mapping into a Dict. 
+       """Decodes a str or Dict[str, Any] into a Dict.
        
        Providing custom DecodeOptions will override the default behavior."""
        pass
