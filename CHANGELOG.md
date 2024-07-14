@@ -1,3 +1,7 @@
+## 1.0.1
+
+* [CHORE] update documentation
+
 ## 1.0.0
 
 * [CHORE] first stable release
