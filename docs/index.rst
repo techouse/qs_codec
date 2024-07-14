@@ -21,13 +21,13 @@ A simple usage example:
 
 .. code:: python
 
-   import qs_codec
+   import qs_codec as qs
 
    # Encoding
-   assert qs_codec.encode({'a': 'b'}) == 'a=b'
+   assert qs.encode({'a': 'b'}) == 'a=b'
 
    # Decoding
-   assert qs_codec.decode('a=b') == {'a': 'b'}
+   assert qs.decode('a=b') == {'a': 'b'}
 
 .. toctree::
    :maxdepth: 2
