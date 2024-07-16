@@ -1,3 +1,7 @@
+## 1.0.2
+
+* [FIX] fix `decode` output when both `strict_null_handling` and `allow_empty_lists` are set to `True` ([#5](https://github.com/techouse/qs_codec/pull/5))
+
 ## 1.0.1
 
 * [CHORE] update documentation
