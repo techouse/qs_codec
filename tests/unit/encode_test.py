@@ -236,6 +236,12 @@ class TestEncode:
         assert encode({"a": [], "b": "zz"}, options=EncodeOptions(allow_empty_lists=False)) == "b=zz"
         assert encode({"a": [], "b": "zz"}, options=EncodeOptions(allow_empty_lists=True)) == "a[]&b=zz"
 
+    def test_empty_list_with_strict_null_handling(self) -> None:
+        assert (
+            encode({"testEmptyList": []}, options=EncodeOptions(strict_null_handling=True, allow_empty_lists=True))
+            == "testEmptyList[]"
+        )
+
     def test_encodes_a_nested_list_value(self) -> None:
         assert (
             encode(
