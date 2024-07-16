@@ -129,7 +129,7 @@ def _parse_object(
         root: str = chain[i]
 
         if root == "[]" and options.parse_lists:
-            if options.allow_empty_lists and leaf == "":
+            if options.allow_empty_lists and (leaf == "" or (options.strict_null_handling and leaf is None)):
                 obj = []
             else:
                 obj = list(leaf) if isinstance(leaf, (list, tuple)) else [leaf]

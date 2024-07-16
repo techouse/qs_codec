@@ -137,6 +137,11 @@ class TestDecode:
         assert decode("foo[]&bar=baz", DecodeOptions(allow_empty_lists=True)) == {"foo": [], "bar": "baz"}
         assert decode("foo[]&bar=baz", DecodeOptions(allow_empty_lists=False)) == {"foo": [""], "bar": "baz"}
 
+    def test_allow_empty_lists_and_strict_null_handling(self) -> None:
+        assert decode("testEmptyList[]", DecodeOptions(strict_null_handling=True, allow_empty_lists=True)) == {
+            "testEmptyList": []
+        }
+
     def test_parses_a_single_nested_string(self) -> None:
         assert decode("a[b]=c") == {"a": {"b": "c"}}
 
