@@ -642,3 +642,39 @@ class TestDuplicatesOption:
 
     def test_last(self) -> None:
         assert decode("foo=bar&foo=baz", DecodeOptions(duplicates=Duplicates.LAST)) == {"foo": "baz"}
+
+
+class TestStrictDepthOption:
+    def test_raises_index_error_for_multiple_nested_objects_with_strict_depth(self) -> None:
+        with pytest.raises(IndexError):
+            decode("a[b][c][d][e][f][g][h][i]=j", DecodeOptions(depth=1, strict_depth=True))
+
+    def test_raises_index_error_for_multiple_nested_lists_with_strict_depth(self) -> None:
+        with pytest.raises(IndexError):
+            decode("a[0][1][2][3][4]=b", DecodeOptions(depth=3, strict_depth=True))
+
+    def test_raises_index_error_for_nested_dicts_and_lists_with_strict_depth(self) -> None:
+        with pytest.raises(IndexError):
+            decode("a[b][c][0][d][e]=f", DecodeOptions(depth=3, strict_depth=True))
+
+    def test_raises_index_error_for_different_types_of_values_with_strict_depth(self) -> None:
+        with pytest.raises(IndexError):
+            decode("a[b][c][d][e]=true&a[b][c][d][f]=42", DecodeOptions(depth=3, strict_depth=True))
+
+    def test_when_depth_is_0_and_strict_depth_true_do_not_throw(self) -> None:
+        with does_not_raise():
+            decode("a[b][c][d][e]=true&a[b][c][d][f]=42", DecodeOptions(depth=0, strict_depth=True))
+
+    def test_decodes_successfully_when_depth_is_within_the_limit_with_strict_depth(self) -> None:
+        assert decode("a[b]=c", DecodeOptions(depth=1, strict_depth=True)) == {"a": {"b": "c"}}
+
+    def test_does_not_throw_an_exception_when_depth_exceeds_the_limit_with_strict_depth_false(self) -> None:
+        assert decode("a[b][c][d][e][f][g][h][i]=j", DecodeOptions(depth=1)) == {
+            "a": {"b": {"[c][d][e][f][g][h][i]": "j"}}
+        }
+
+    def test_decodes_successfully_when_depth_is_within_the_limit_with_strict_depth_false(self) -> None:
+        assert decode("a[b]=c", DecodeOptions(depth=1)) == {"a": {"b": "c"}}
+
+    def test_does_not_throw_when_depth_is_exactly_at_the_limit_with_strict_depth_true(self) -> None:
+        assert decode("a[b][c]=d", DecodeOptions(depth=2, strict_depth=True)) == {"a": {"b": {"c": "d"}}}

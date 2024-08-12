@@ -194,6 +194,8 @@ def _parse_keys(given_key: t.Optional[str], val: t.Any, options: DecodeOptions, 
 
     # If there's a remainder, just add whatever is left
     if segment is not None:
+        if options.strict_depth:
+            raise IndexError(f"Input depth exceeded depth option of {options.depth} and strict_depth is True")
         keys.append(f"[{key[segment.start():]}]")
 
     return _parse_object(keys, val, options, values_parsed)

@@ -77,6 +77,9 @@ class DecodeOptions:
     parse_lists: bool = True
     """To disable ``list`` parsing entirely, set ``parse_lists`` to ``False``."""
 
+    strict_depth: bool = False
+    """Set to ``True`` to throw an error when the input exceeds the ``depth`` limit."""
+
     strict_null_handling: bool = False
     """Set to true to decode values without ``=`` to ``None``."""
 

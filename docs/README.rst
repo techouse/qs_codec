@@ -67,8 +67,25 @@ This depth can be overridden by setting the :py:attr:`depth <qs_codec.models.dec
        qs.DecodeOptions(depth=1),
    ) == {'a': {'b': {'[c][d][e][f][g][h][i]': 'j'}}}
 
-The depth limit helps mitigate abuse when :py:attr:`decode <qs_codec.decode>` is used to parse user
-input, and it is recommended to keep it a reasonably small number.
+
+You can configure :py:attr:`decode <qs_codec.decode>` to throw an error
+when parsing nested input beyond this depth using :py:attr:`strict_depth <qs_codec.models.decode_options.DecodeOptions.strict_depth>` (defaults to ``False``):
+
+.. code:: python
+
+   import qs_codec as qs
+
+   try:
+       qs.decode(
+           'a[b][c][d][e][f][g][h][i]=j',
+           qs.DecodeOptions(depth=1, strict_depth=True),
+       )
+   except IndexError as e:
+       assert str(e) == 'Input depth exceeded depth option of 1 and strict_depth is True'
+
+The depth limit helps mitigate abuse when :py:attr:`decode <qs_codec.decode>` is used to parse user input, and it is recommended
+to keep it a reasonably small number. :py:attr:`strict_depth <qs_codec.models.decode_options.DecodeOptions.strict_depth>`
+adds a layer of protection by throwing a ``IndexError`` when the limit is exceeded, allowing you to catch and handle such cases.
 
 For similar reasons, by default :py:attr:`decode <qs_codec.decode>` will only parse up to 1000 parameters. This can be overridden by passing a
 :py:attr:`parameter_limit <qs_codec.models.decode_options.DecodeOptions.parameter_limit>` option:
