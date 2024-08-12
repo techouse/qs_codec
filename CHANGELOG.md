@@ -1,3 +1,7 @@
+## 1.0.3
+
+* [FEAT] add `DecodeOptions.strict_depth` option to throw when input is beyond depth ([#8](https://github.com/techouse/qs_codec/pull/8))
+
 ## 1.0.2
 
 * [FIX] fix `decode` output when both `strict_null_handling` and `allow_empty_lists` are set to `True` ([#5](https://github.com/techouse/qs_codec/pull/5))
