@@ -93,8 +93,24 @@ This depth can be overridden by setting the `depth <https://techouse.github.io/q
        qs.DecodeOptions(depth=1),
    ) == {'a': {'b': {'[c][d][e][f][g][h][i]': 'j'}}}
 
+You can configure `decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__ to throw an error
+when parsing nested input beyond this depth using `strict_depth <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.strict_depth>`__ (defaults to ``False``):
+
+.. code:: python
+
+   import qs_codec as qs
+
+   try:
+       qs.decode(
+           'a[b][c][d][e][f][g][h][i]=j',
+           qs.DecodeOptions(depth=1, strict_depth=True),
+       )
+   except IndexError as e:
+       assert str(e) == 'Input depth exceeded depth option of 1 and strict_depth is True'
+
 The depth limit helps mitigate abuse when `decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__ is used to parse user
-input, and it is recommended to keep it a reasonably small number.
+input, and it is recommended to keep it a reasonably small number. `strict_depth <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.strict_depth>`__
+adds a layer of protection by throwing a ``IndexError`` when the limit is exceeded, allowing you to catch and handle such cases.
 
 For similar reasons, by default `decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__ will only parse up to 1000 parameters. This can be overridden by passing a
 `parameter_limit <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.parameter_limit>`__ option:
