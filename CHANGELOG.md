@@ -1,3 +1,8 @@
+## 1.0.4
+
+* [FIX] `decode`: avoid a crash with `comma=True`, `charset=Charset.LATIN1`, `interpret_numeric_entities=True`
+* [CHORE] add more tests
+
 ## 1.0.3
 
 * [FEAT] add `DecodeOptions.strict_depth` option to throw when input is beyond depth ([#8](https://github.com/techouse/qs_codec/pull/8))
