@@ -1263,3 +1263,12 @@ class TestEncodeNonStrings:
 
     def test_does_not_encode_undefined(self) -> None:
         assert encode({"a": Undefined()}) == ""
+
+    def test_encodes_non_string_keys(self) -> None:
+        assert (
+            encode(
+                {"a": "b", False: {}},
+                options=EncodeOptions(filter=["a", False, None], allow_dots=True, encode_dot_in_keys=True),
+            )
+            == "a=b"
+        )
