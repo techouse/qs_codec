@@ -618,6 +618,12 @@ class TestCharset:
             DecodeOptions(charset=Charset.LATIN1, interpret_numeric_entities=False),
         ) == {"foo": "&#9786;"}
 
+    def test_interpret_numeric_entities_with_comma_true_and_iso_8859_1_charset_does_not_crash(self) -> None:
+        assert decode(
+            f"b&a[]=1,{self.url_encoded_num_smiley}",
+            DecodeOptions(comma=True, charset=Charset.LATIN1, interpret_numeric_entities=True),
+        ) == {"b": "", "a": ["1,☺"]}
+
     def test_does_not_interpret_numeric_entities_when_the_charset_is_utf_8_even_when_interpret_numeric_entities(
         self,
     ) -> None:

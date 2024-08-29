@@ -103,7 +103,9 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
             )
 
         if val and options.interpret_numeric_entities and charset == Charset.LATIN1:
-            val = _interpret_numeric_entities(val)  # type: ignore [arg-type]
+            val = _interpret_numeric_entities(
+                val if isinstance(val, str) else ",".join(val) if isinstance(val, (list, tuple)) else str(val)
+            )  # type: ignore [arg-type]
 
         if "[]=" in part:
             val = [val] if isinstance(val, (list, tuple)) else val
