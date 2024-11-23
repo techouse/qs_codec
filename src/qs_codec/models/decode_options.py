@@ -78,10 +78,13 @@ class DecodeOptions:
     """To disable ``list`` parsing entirely, set ``parse_lists`` to ``False``."""
 
     strict_depth: bool = False
-    """Set to ``True`` to throw an error when the input exceeds the ``depth`` limit."""
+    """Set to ``True`` to raise an error when the input exceeds the ``depth`` limit."""
 
     strict_null_handling: bool = False
-    """Set to true to decode values without ``=`` to ``None``."""
+    """Set to ``True`` to decode values without ``=`` to ``None``."""
+
+    raise_on_limit_exceeded: bool = False
+    """Set to ``True`` to raise an error when the input contains more parameters than the ``list_limit``."""
 
     decoder: t.Callable[[t.Optional[str], t.Optional[Charset]], t.Any] = DecodeUtils.decode
     """Set a ``Callable`` to affect the decoding of the input."""

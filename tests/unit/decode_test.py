@@ -178,7 +178,7 @@ class TestDecode:
         assert decode("a[0]=b&a=c") == {"a": ["b", "c"]}
         assert decode("a=b&a[0]=c") == {"a": ["b", "c"]}
 
-        assert decode("a[1]=b&a=c", DecodeOptions(list_limit=20)) == {"a": ["b", "c"]}
+        assert decode("a[1]=b&a=c", DecodeOptions(list_limit=20)) == {"a": {"1": "b", "2": "c"}}
         assert decode("a[]=b&a=c", DecodeOptions(list_limit=0)) == {"a": ["b", "c"]}
         assert decode("a[]=b&a=c") == {"a": ["b", "c"]}
 
@@ -292,7 +292,9 @@ class TestDecode:
         assert decode("a[]=&a[]=b&a[]=c") == {"a": ["", "b", "c"]}
 
     def test_compacts_sparse_lists(self) -> None:
-        assert decode("a[10]=1&a[2]=2", DecodeOptions(list_limit=20)) == {"a": ["2", "1"]}
+        assert (
+            decode("a[10]=1&a[2]=2", DecodeOptions(list_limit=20)) == {"a": {"10": "1", "2": "2"}} != {"a": ["2", "1"]}
+        )
         assert decode("a[1][b][2][c]=1", DecodeOptions(list_limit=20)) == {"a": [{"b": [{"c": "1"}]}]}
         assert decode("a[1][2][3][c]=1", DecodeOptions(list_limit=20)) == {"a": [[[{"c": "1"}]]]}
         assert decode("a[1][2][3][c][1]=1", DecodeOptions(list_limit=20)) == {"a": [[[{"c": ["1"]}]]]}
@@ -684,3 +686,63 @@ class TestStrictDepthOption:
 
     def test_does_not_throw_when_depth_is_exactly_at_the_limit_with_strict_depth_true(self) -> None:
         assert decode("a[b][c]=d", DecodeOptions(depth=2, strict_depth=True)) == {"a": {"b": {"c": "d"}}}
+
+
+class TestParameterList:
+    def test_does_not_raise_error_when_within_parameter_limit(self) -> None:
+        assert decode("a=1&b=2&c=3", DecodeOptions(parameter_limit=5, raise_on_limit_exceeded=True)) == {
+            "a": "1",
+            "b": "2",
+            "c": "3",
+        }
+
+    def test_raises_error_when_parameter_limit_exceeded(self) -> None:
+        with pytest.raises(ValueError):
+            decode("a=1&b=2&c=3&d=4&e=5&f=6", DecodeOptions(parameter_limit=3, raise_on_limit_exceeded=True))
+
+    def test_silently_truncates_when_throw_on_limit_exceeded_is_not_given(self) -> None:
+        assert decode("a=1&b=2&c=3&d=4&e=5", DecodeOptions(parameter_limit=3)) == {"a": "1", "b": "2", "c": "3"}
+
+    def test_silently_truncates_when_parameter_limit_exceeded_without_error(self) -> None:
+        assert decode("a=1&b=2&c=3&d=4&e=5", DecodeOptions(parameter_limit=3, raise_on_limit_exceeded=False)) == {
+            "a": "1",
+            "b": "2",
+            "c": "3",
+        }
+
+    def test_allows_unlimited_parameters_when_parameter_limit_set_to_infinity(self) -> None:
+        assert decode("a=1&b=2&c=3&d=4&e=5&f=6", DecodeOptions(parameter_limit=float("inf"))) == {
+            "a": "1",
+            "b": "2",
+            "c": "3",
+            "d": "4",
+            "e": "5",
+            "f": "6",
+        }
+
+
+class TestListLimit:
+    def test_does_not_raise_error_when_within_list_limit(self) -> None:
+        assert decode("a[]=1&a[]=2&a[]=3", DecodeOptions(list_limit=5, raise_on_limit_exceeded=True)) == {
+            "a": ["1", "2", "3"],
+        }
+
+    def test_raises_error_when_list_limit_exceeded(self) -> None:
+        with pytest.raises(ValueError):
+            decode("a[]=1&a[]=2&a[]=3&a[]=4", DecodeOptions(list_limit=3, raise_on_limit_exceeded=True))
+
+    def test_converts_list_to_map_if_length_is_greater_than_limit(self) -> None:
+        assert decode("a[1]=1&a[2]=2&a[3]=3&a[4]=4&a[5]=5&a[6]=6", DecodeOptions(list_limit=5)) == {
+            "a": {"1": "1", "2": "2", "3": "3", "4": "4", "5": "5", "6": "6"}
+        }
+
+    def test_handles_list_limit_of_zero_correctly(self) -> None:
+        assert decode("a[]=1&a[]=2", DecodeOptions(list_limit=0)) == {"a": ["1", "2"]}
+
+    def test_handles_negative_list_limit_correctly(self) -> None:
+        with pytest.raises(ValueError):
+            decode("a[]=1&a[]=2", DecodeOptions(list_limit=-1, raise_on_limit_exceeded=True))
+
+    def test_applies_list_limit_to_nested_lists(self) -> None:
+        with pytest.raises(ValueError):
+            decode("a[0][]=1&a[0][]=2&a[0][]=3&a[0][]=4", DecodeOptions(list_limit=3, raise_on_limit_exceeded=True))

@@ -48,9 +48,19 @@ def _interpret_numeric_entities(value: str) -> str:
     return re.sub(r"&#(\d+);", lambda match: chr(int(match.group(1))), value)
 
 
-def _parse_array_value(value: t.Any, options: DecodeOptions) -> t.Any:
+def _parse_array_value(value: t.Any, options: DecodeOptions, current_list_length: int) -> t.Any:
     if isinstance(value, str) and value and options.comma and "," in value:
-        return value.split(",")
+        split_val: t.List[str] = value.split(",")
+        if options.raise_on_limit_exceeded and len(split_val) > options.list_limit:
+            raise ValueError(
+                f"List limit exceeded: Only {options.list_limit} element{'' if options.list_limit == 1 else 's'} allowed in a list."
+            )
+        return split_val
+
+    if options.raise_on_limit_exceeded and current_list_length >= options.list_limit:
+        raise ValueError(
+            f"List limit exceeded: Only {options.list_limit} element{'' if options.list_limit == 1 else 's'} allowed in a list."
+        )
 
     return value
 
@@ -61,11 +71,26 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
     clean_str: str = value.replace("?", "", 1) if options.ignore_query_prefix else value
     clean_str = clean_str.replace("%5B", "[").replace("%5b", "[").replace("%5D", "]").replace("%5d", "]")
     limit: t.Optional[int] = None if isinf(options.parameter_limit) else options.parameter_limit  # type: ignore [assignment]
+
+    if limit is not None and limit <= 0:
+        raise ValueError("Parameter limit must be a positive integer.")
+
     parts: t.List[str]
     if isinstance(options.delimiter, re.Pattern):
-        parts = re.split(options.delimiter, clean_str) if not limit else re.split(options.delimiter, clean_str)[:limit]
+        parts = (
+            re.split(options.delimiter, clean_str)
+            if (limit is None) or not limit
+            else re.split(options.delimiter, clean_str)[: (limit + 1 if options.raise_on_limit_exceeded else limit)]
+        )
     else:
-        parts = clean_str.split(options.delimiter) if not limit else clean_str.split(options.delimiter)[:limit]
+        parts = (
+            clean_str.split(options.delimiter)
+            if (limit is None) or not limit
+            else clean_str.split(options.delimiter)[: (limit + 1 if options.raise_on_limit_exceeded else limit)]
+        )
+
+    if options.raise_on_limit_exceeded and (limit is not None) and len(parts) > limit:
+        raise ValueError(f"Parameter limit exceeded: Only {limit} parameter{'' if limit == 1 else 's'} allowed.")
 
     skip_index: int = -1  # Keep track of where the utf8 sentinel was found
     i: int
@@ -98,7 +123,11 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
         else:
             key = options.decoder(part[:pos], charset)
             val = Utils.apply(
-                _parse_array_value(part[pos + 1 :], options),
+                _parse_array_value(
+                    part[pos + 1 :],
+                    options,
+                    len(obj[key]) if key in obj and isinstance(obj[key], (list, tuple)) else 0,
+                ),
                 lambda v: options.decoder(v, charset),
             )
 
@@ -123,7 +152,20 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
 def _parse_object(
     chain: t.Union[t.List[str], t.Tuple[str, ...]], val: t.Any, options: DecodeOptions, values_parsed: bool
 ) -> t.Any:
-    leaf: t.Any = val if values_parsed else _parse_array_value(val, options)
+    current_list_length: int = 0
+
+    if bool(chain) and chain[-1] == "[]":
+        parent_key: t.Optional[int]
+
+        try:
+            parent_key = int("".join(chain[0:-1]))
+        except ValueError:
+            parent_key = None
+
+        if parent_key is not None and isinstance(val, (list, tuple)) and parent_key in dict(enumerate(val)):
+            current_list_length = len(val[parent_key])
+
+    leaf: t.Any = val if values_parsed else _parse_array_value(val, options, current_list_length)
 
     i: int
     for i in reversed(range(len(chain))):
