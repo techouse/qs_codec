@@ -35,7 +35,10 @@ class Utils:
                     else:
                         target_[len(target_)] = source
 
-                    target = list(filter(lambda el: not isinstance(el, Undefined), target_.values()))
+                    if any(isinstance(value, Undefined) for value in target_.values()):
+                        target = {str(i): target_[i] for i in target_ if not isinstance(target_[i], Undefined)}
+                    else:
+                        target = list(filter(lambda el: not isinstance(el, Undefined), target_.values()))
                 else:
                     if isinstance(source, (list, tuple)):
                         if all((isinstance(el, t.Mapping) or isinstance(el, Undefined)) for el in target) and all(
@@ -123,19 +126,9 @@ class Utils:
                     queue.append({"obj": obj, "prop": key})
                     refs.append(val)
 
-        Utils._compact_queue(queue)
         Utils._remove_undefined_from_map(value)
 
         return value
-
-    @staticmethod
-    def _compact_queue(queue: t.List[t.Dict]) -> None:
-        while len(queue) > 1:
-            item = queue.pop()
-            obj = item["obj"][item["prop"]]
-
-            if isinstance(obj, (list, tuple)):
-                item["obj"][item["prop"]] = list(filter(lambda el: not isinstance(el, Undefined), obj))
 
     @staticmethod
     def _remove_undefined_from_list(value: t.List) -> None:
