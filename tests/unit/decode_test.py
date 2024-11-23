@@ -292,9 +292,9 @@ class TestDecode:
         assert decode("a[]=&a[]=b&a[]=c") == {"a": ["", "b", "c"]}
 
     def test_compacts_sparse_lists(self) -> None:
-        assert (
-            decode("a[10]=1&a[2]=2", DecodeOptions(list_limit=20)) == {"a": {"10": "1", "2": "2"}} != {"a": ["2", "1"]}
-        )
+        decoded = decode("a[10]=1&a[2]=2", DecodeOptions(list_limit=20))
+        assert decoded == {"a": {"10": "1", "2": "2"}}
+        assert decoded != {"a": ["2", "1"]}
         assert decode("a[1][b][2][c]=1", DecodeOptions(list_limit=20)) == {"a": [{"b": [{"c": "1"}]}]}
         assert decode("a[1][2][3][c]=1", DecodeOptions(list_limit=20)) == {"a": [[[{"c": "1"}]]]}
         assert decode("a[1][2][3][c][1]=1", DecodeOptions(list_limit=20)) == {"a": [[[{"c": ["1"]}]]]}
