@@ -1,6 +1,6 @@
 """A query string encoding and decoding library for Python. Ported from qs_codec for JavaScript."""
 
-__version__ = "1.0.4"
+__version__ = "1.0.5"
 
 from .decode import decode
 from .encode import encode

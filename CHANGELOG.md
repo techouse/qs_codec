@@ -1,3 +1,11 @@
+## 1.0.5
+
+* [FEAT] add `DecodeOptions.raise_on_limit_exceeded` option ([#11](https://github.com/techouse/qs_codec/pull/11))
+* [CHORE] remove dead code in `Utils`
+* [CHORE] add more tests
+* [CHORE] update dependencies
+
+
 ## 1.0.4
 
 * [FIX] `decode`: avoid a crash with `comma=True`, `charset=Charset.LATIN1`, `interpret_numeric_entities=True`
