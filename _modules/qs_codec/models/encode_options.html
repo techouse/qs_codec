@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>qs_codec.models.encode_options &#8212; qs-codec 1.0.5 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=d55fa986"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for qs_codec.models.encode_options</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;This module contains the ``EncodeOptions`` class that configures the output of ``encode``.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">asdict</span><span class="p">,</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+
+<span class="kn">from</span> <span class="nn">..enums.charset</span> <span class="kn">import</span> <span class="n">Charset</span>
+<span class="kn">from</span> <span class="nn">..enums.format</span> <span class="kn">import</span> <span class="n">Format</span>
+<span class="kn">from</span> <span class="nn">..enums.list_format</span> <span class="kn">import</span> <span class="n">ListFormat</span>
+<span class="kn">from</span> <span class="nn">..utils.encode_utils</span> <span class="kn">import</span> <span class="n">EncodeUtils</span>
+
+
+<div class="viewcode-block" id="EncodeOptions">
+<a class="viewcode-back" href="../../../qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">EncodeOptions</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Options that configure the output of ``encode``.&quot;&quot;&quot;</span>
+
+    <span class="n">allow_dots</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>  <span class="c1"># type: ignore [assignment]</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set to ``True`` to use dot ``dict`` notation in the encoded output.&quot;&quot;&quot;</span>
+
+    <span class="n">add_query_prefix</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set to ``True`` to add a question mark ``?`` prefix to the encoded output.&quot;&quot;&quot;</span>
+
+    <span class="n">allow_empty_lists</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set to ``True`` to allow empty ``list`` s in the encoded output.&quot;&quot;&quot;</span>
+
+    <span class="n">indices</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Deprecated: Use ``list_format`` instead.&quot;&quot;&quot;</span>
+
+    <span class="n">list_format</span><span class="p">:</span> <span class="n">ListFormat</span> <span class="o">=</span> <span class="n">ListFormat</span><span class="o">.</span><span class="n">INDICES</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The ``list`` encoding format to use.&quot;&quot;&quot;</span>
+
+    <span class="n">charset</span><span class="p">:</span> <span class="n">Charset</span> <span class="o">=</span> <span class="n">Charset</span><span class="o">.</span><span class="n">UTF8</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The character encoding to use.&quot;&quot;&quot;</span>
+
+    <span class="n">charset_sentinel</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set to ``True`` to announce the character by including an ``utf8=✓`` parameter with the proper encoding of the</span>
+<span class="sd">    checkmark, similar to what Ruby on Rails and others do when submitting forms.&quot;&quot;&quot;</span>
+
+    <span class="n">delimiter</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&amp;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The delimiter to use when joining key-value pairs in the encoded output.&quot;&quot;&quot;</span>
+
+    <span class="n">encode</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set to ``False`` to disable encoding.&quot;&quot;&quot;</span>
+
+    <span class="n">encode_dot_in_keys</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>  <span class="c1"># type: ignore [assignment]</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Encode ``dict`` keys using dot notation by setting ``encode_dot_in_keys`` to ``True``.</span>
+<span class="sd">    Caveat: When ``encode_values_only`` is ``True`` as well as ``encode_dot_in_keys``, only dots in keys and nothing</span>
+<span class="sd">    else will be encoded.&quot;&quot;&quot;</span>
+
+    <span class="n">encode_values_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Encoding can be disabled for keys by setting the ``encode_values_only`` to ``True``.&quot;&quot;&quot;</span>
+
+    <span class="nb">format</span><span class="p">:</span> <span class="n">Format</span> <span class="o">=</span> <span class="n">Format</span><span class="o">.</span><span class="n">RFC3986</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The encoding format to use.</span>
+<span class="sd">    The default ``format`` is ``Format.RFC3986`` which encodes ``&#39; &#39;`` to ``%20`` which is backward compatible.</span>
+<span class="sd">    You can also set ``format`` to ``Format.RFC1738`` which encodes ``&#39; &#39;`` to ``+``.&quot;&quot;&quot;</span>
+
+    <span class="nb">filter</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]]]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Use the ``filter`` option to restrict which keys will be included in the encoded output.</span>
+<span class="sd">    If you pass a ``Callable``, it will be called for each key to obtain the replacement value.</span>
+<span class="sd">    If you pass a ``list``, it will be used to select properties and ``list`` indices to be encoded.&quot;&quot;&quot;</span>
+
+    <span class="n">skip_nulls</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set to ``True`` to completely skip encoding keys with ``None`` values.&quot;&quot;&quot;</span>
+
+    <span class="n">serialize_date</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="n">datetime</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">EncodeUtils</span><span class="o">.</span><span class="n">serialize_date</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;If you only want to override the serialization of ``datetime`` objects, you can provide a ``Callable``.&quot;&quot;&quot;</span>
+
+    <span class="n">encoder</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Charset</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Format</span><span class="p">]],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>  <span class="c1"># type: ignore [assignment]</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="n">EncodeUtils</span><span class="o">.</span><span class="n">encode</span>  <span class="c1"># type: ignore [arg-type]</span>
+    <span class="p">)</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set an ``Encoder`` to affect the encoding of values.</span>
+<span class="sd">    Note: the ``encoder`` option does not apply if ``encode`` is ``False``.&quot;&quot;&quot;</span>
+
+    <span class="n">_encoder</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Charset</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Format</span><span class="p">]],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="nd">@property</span>  <span class="c1"># type: ignore [no-redef]</span>
+    <span class="k">def</span> <span class="nf">encoder</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Charset</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Format</span><span class="p">]],</span> <span class="nb">str</span><span class="p">]:</span>  <span class="c1"># noqa: F811</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the encoder function.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="k">lambda</span> <span class="n">v</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">charset</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">format</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encoder</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>  <span class="c1"># type: ignore [misc]</span>
+
+    <span class="nd">@encoder</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">encoder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Charset</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Format</span><span class="p">]],</span> <span class="nb">str</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_encoder</span> <span class="o">=</span> <span class="n">value</span> <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">else</span> <span class="n">EncodeUtils</span><span class="o">.</span><span class="n">encode</span>  <span class="c1"># type: ignore [assignment]</span>
+
+    <span class="n">strict_null_handling</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set to ``True`` to distinguish between ``null`` values and empty ``str``\\ings. This way the encoded string</span>
+<span class="sd">    ``None`` values will have no ``=`` sign.&quot;&quot;&quot;</span>
+
+    <span class="n">comma_round_trip</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;When ``list_format`` is set to ``ListFormat.COMMA``, you can also set ``comma_round_trip`` option to ``True`` or</span>
+<span class="sd">    ``False``, to append ``[]`` on single-item ``list``\\s, so that they can round trip through a parse.&quot;&quot;&quot;</span>
+
+    <span class="n">sort</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">],</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set a ``Callable`` to affect the order of parameter keys.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Post-initialization.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">allow_dots</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">allow_dots</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode_dot_in_keys</span> <span class="ow">is</span> <span class="kc">True</span> <span class="ow">or</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode_dot_in_keys</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">encode_dot_in_keys</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">indices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">list_format</span> <span class="o">=</span> <span class="n">ListFormat</span><span class="o">.</span><span class="n">INDICES</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">indices</span> <span class="k">else</span> <span class="n">ListFormat</span><span class="o">.</span><span class="n">REPEAT</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compare two `EncodeOptions` objects.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">EncodeOptions</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="n">self_dict</span> <span class="o">=</span> <span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">other_dict</span> <span class="o">=</span> <span class="n">asdict</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+        <span class="n">self_dict</span><span class="p">[</span><span class="s2">&quot;encoder&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encoder</span>
+        <span class="n">other_dict</span><span class="p">[</span><span class="s2">&quot;encoder&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">_encoder</span>
+
+        <span class="k">return</span> <span class="n">self_dict</span> <span class="o">==</span> <span class="n">other_dict</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">qs-codec</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html">Decoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html#encoding">Encoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html#handling-none-values">Handling <code class="docutils literal notranslate"><span class="pre">None</span></code> values</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html#dealing-with-special-character-sets">Dealing with special character sets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html#rfc-3986-and-rfc-1738-space-encoding">RFC 3986 and RFC 1738 space encoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">qs_codec</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Klemen Tusar.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
