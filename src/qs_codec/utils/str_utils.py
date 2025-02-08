@@ -11,5 +11,5 @@ def code_unit_at(string: str, index: int) -> int:
 
     Adapted from https://api.dart.dev/stable/3.3.3/dart-core/String/codeUnitAt.html
     """
-    encoded_string: bytes = string.encode("utf-16-le")
-    return encoded_string[index * 2] + 256 * encoded_string[index * 2 + 1]
+    encoded_string: bytes = string.encode("utf-16-le", "surrogatepass")
+    return int.from_bytes(encoded_string[index * 2 : index * 2 + 2], byteorder="little")

@@ -87,7 +87,7 @@ class EncodeUtils:
             return re.sub(
                 r"%u[0-9a-f]{4}",
                 lambda match: f"%26%23{int(match.group(0)[2:], 16)}%3B",
-                EncodeUtils.escape(string, format),
+                cls.escape(cls.to_surrogates(string), format),
                 flags=re.IGNORECASE,
             )
 
@@ -142,6 +142,25 @@ class EncodeUtils:
                 )
 
         return "".join(buffer)
+
+    @staticmethod
+    def to_surrogates(string: str) -> str:
+        """Convert characters in the string that are outside the BMP (i.e. code points > 0xFFFF) into their corresponding surrogate pair."""
+        result: t.List[str] = []
+
+        ch: str
+        for ch in string:
+            cp: int = ord(ch)
+            if cp > 0xFFFF:
+                # Convert to surrogate pair.
+                cp -= 0x10000
+                high: int = 0xD800 + (cp >> 10)
+                low: int = 0xDC00 + (cp & 0x3FF)
+                result.append(chr(high))
+                result.append(chr(low))
+            else:
+                result.append(ch)
+        return "".join(result)
 
     @staticmethod
     def serialize_date(dt: datetime) -> str:

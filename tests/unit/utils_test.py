@@ -288,6 +288,13 @@ class TestUtils:
             (1, "1", None),
             (1.0, "1.0", None),
             (True, "true", None),
+            ("", "", None),
+            ("(abc)", "%28abc%29", None),
+            ("\x28\x29", "%28%29", None),
+            ("\x28\x29", "()", Format.RFC1738),
+            ("Āက豈", "%C4%80%E1%80%80%EF%A4%80", None),
+            ("💩", "%F0%9F%92%A9", None),
+            ("abc 123 💩", "abc%20123%20%F0%9F%92%A9", None),
         ],
     )
     def test_encode(self, decoded: t.Any, encoded: str, format: t.Optional[Format]) -> None:
@@ -303,6 +310,8 @@ class TestUtils:
             ("foo.bar", "foo.bar"),
             ("foo%20bar", "foo bar"),
             ("foo%28bar%29", "foo(bar)"),
+            ("a%2Bb", "a+b"),
+            ("name%2Eobj", "name.obj"),
         ],
     )
     def test_decode(self, encoded: str, decoded: str) -> None:
@@ -360,6 +369,8 @@ class TestUtils:
             (("a", "b"), "", None),
             (1, "1", None),
             (1.0, "1.0", None),
+            ("💩", "%26%2355357%3B%26%2356489%3B", None),
+            ("abc 123 💩", "abc%20123%20%26%2355357%3B%26%2356489%3B", None),
         ],
     )
     def test_encode_latin1(self, decoded: t.Any, encoded: str, format: t.Optional[Format]) -> None:
@@ -375,6 +386,7 @@ class TestUtils:
             ("foo.bar", "foo.bar"),
             ("foo%20bar", "foo bar"),
             ("foo%28bar%29", "foo(bar)"),
+            ("name%2Eobj%2Efoo", "name.obj.foo"),
         ],
     )
     def test_decode_latin1(self, encoded: str, decoded: str) -> None:
@@ -546,3 +558,22 @@ class TestUtils:
                 "c": "c",
             },
         }
+
+    # write to to_surrogates test
+    def test_to_surrogates(self) -> None:
+        assert EncodeUtils.to_surrogates("foo") == "foo"
+        assert EncodeUtils.to_surrogates("foo💩bar") == "foo\uD83D\uDCA9bar"
+        assert EncodeUtils.to_surrogates("foo\uD83D\uDCA9bar") == "foo\uD83D\uDCA9bar"
+        assert EncodeUtils.to_surrogates("foo\uD83D\uDCA9\uD83D\uDCA9bar") == "foo\uD83D\uDCA9\uD83D\uDCA9bar"
+        assert (
+            EncodeUtils.to_surrogates("foo\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9bar")
+            == "foo\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9bar"
+        )
+        assert (
+            EncodeUtils.to_surrogates("foo\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9bar")
+            == "foo\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9bar"
+        )
+        assert (
+            EncodeUtils.to_surrogates("foo\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9bar")
+            == "foo\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9bar"
+        )
