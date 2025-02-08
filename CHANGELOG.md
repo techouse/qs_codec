@@ -1,3 +1,7 @@
+## 1.0.6
+
+* [FIX] fix encoding non-BMP characters when using `charset=Charset.LATIN1`
+
 ## 1.0.5
 
 * [FEAT] add `DecodeOptions.raise_on_limit_exceeded` option ([#11](https://github.com/techouse/qs_codec/pull/11))
