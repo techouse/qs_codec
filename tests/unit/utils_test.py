@@ -559,21 +559,24 @@ class TestUtils:
             },
         }
 
-    # write to to_surrogates test
-    def test_to_surrogates(self) -> None:
-        assert EncodeUtils.to_surrogates("foo") == "foo"
-        assert EncodeUtils.to_surrogates("foo💩bar") == "foo\uD83D\uDCA9bar"
-        assert EncodeUtils.to_surrogates("foo\uD83D\uDCA9bar") == "foo\uD83D\uDCA9bar"
-        assert EncodeUtils.to_surrogates("foo\uD83D\uDCA9\uD83D\uDCA9bar") == "foo\uD83D\uDCA9\uD83D\uDCA9bar"
-        assert (
-            EncodeUtils.to_surrogates("foo\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9bar")
-            == "foo\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9bar"
-        )
-        assert (
-            EncodeUtils.to_surrogates("foo\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9bar")
-            == "foo\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9bar"
-        )
-        assert (
-            EncodeUtils.to_surrogates("foo\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9bar")
-            == "foo\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9\uD83D\uDCA9bar"
-        )
+    @pytest.mark.parametrize(
+        "input_str, expected",
+        [
+            # Test with an empty string
+            ("", ""),
+            # Test with a string containing only BMP characters
+            ("Hello, world!", "Hello, world!"),
+            # Test with a single non-BMP character (💩, U+1F4A9)
+            # Expected surrogate pair: "\ud83d\udca9"
+            ("💩", "\ud83d\udca9"),
+            # Test with a mix of BMP and non-BMP characters
+            ("A💩B", "A\ud83d\udca9B"),
+            # Test with two non-BMP characters in sequence (💩💩)
+            ("💩💩", "\ud83d\udca9\ud83d\udca9"),
+            # Test with another non-BMP character, e.g., Gothic letter 𐍈 (U+10348)
+            # Correct expected surrogate pair: "\ud800\udf48"
+            ("𐍈", "\ud800\udf48"),
+        ],
+    )
+    def test_to_surrogates(self, input_str: str, expected: str) -> None:
+        assert EncodeUtils.to_surrogates(input_str) == expected
