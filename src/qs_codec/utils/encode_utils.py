@@ -17,6 +17,16 @@ class EncodeUtils:
     HEX_TABLE: t.Tuple[str, ...] = tuple(f"%{i:02X}" for i in range(256))
     """Hex table of all 256 characters"""
 
+    # Safe code points for URL encoding
+    SAFE_POINTS: t.Set[int] = (
+        set(range(0x30, 0x3A))  # 0-9
+        | set(range(0x41, 0x5B))  # A-Z
+        | set(range(0x61, 0x7B))  # a-z
+        | {0x40, 0x2A, 0x5F, 0x2D, 0x2B, 0x2E, 0x2F}  # @, *, _, -, +, ., /
+    )
+    # Additional safe points for RFC1738
+    RFC1738_SAFE_POINTS: t.Set[int] = SAFE_POINTS | {0x28, 0x29}  # ( )
+
     @classmethod
     def escape(
         cls,
@@ -28,8 +38,7 @@ class EncodeUtils:
         https://developer.mozilla.org/en-US/docs/web/javascript/reference/global_objects/escape
         """
         # Build a set of "safe" code points.
-        safe: t.Set[int] = set(range(0x30, 0x3A)) | set(range(0x41, 0x5B)) | set(range(0x61, 0x7B))
-        safe |= {0x40, 0x2A, 0x5F, 0x2D, 0x2B, 0x2E, 0x2F}  # @, *, _, -, +, ., /
+        safe: t.Set[int] = cls.RFC1738_SAFE_POINTS if format == Format.RFC1738 else cls.SAFE_POINTS
 
         # For RFC1738, add the ASCII codes for ( and )
         if format == Format.RFC1738:
@@ -137,7 +146,7 @@ class EncodeUtils:
     @staticmethod
     def to_surrogates(string: str) -> str:
         """Convert characters in the string that are outside the BMP (i.e. code points > 0xFFFF) into their corresponding surrogate pair."""
-        result: t.List[str] = []
+        buffer: t.List[str] = []
 
         ch: str
         for ch in string:
@@ -147,11 +156,11 @@ class EncodeUtils:
                 cp -= 0x10000
                 high: int = 0xD800 + (cp >> 10)
                 low: int = 0xDC00 + (cp & 0x3FF)
-                result.append(chr(high))
-                result.append(chr(low))
+                buffer.append(chr(high))
+                buffer.append(chr(low))
             else:
-                result.append(ch)
-        return "".join(result)
+                buffer.append(ch)
+        return "".join(buffer)
 
     @staticmethod
     def serialize_date(dt: datetime) -> str:
