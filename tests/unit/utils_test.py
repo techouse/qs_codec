@@ -1,3 +1,4 @@
+import re
 import typing as t
 
 import pytest
@@ -393,44 +394,118 @@ class TestUtils:
         assert DecodeUtils.decode(encoded, charset=Charset.LATIN1) == decoded
 
     @pytest.mark.parametrize(
-        "unescaped, escaped",
+        "unescaped, escaped, format",
         [
-            ("abc123", "abc123"),
-            ("äöü", "%E4%F6%FC"),
-            ("ć", "%u0107"),
-            ("@*_+-./", "@*_+-./"),
-            ("(", "%28"),
-            (")", "%29"),
-            (" ", "%20"),
-            ("~", "%7E"),
-            (
-                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@*_+-./",
-                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@*_+-./",
-            ),
+            # Basic alphanumerics (remain unchanged)
+            ("abc123", "abc123", None),
+            # Accented characters (Latin-1 range uses %XX)
+            ("äöü", "%E4%F6%FC", None),
+            # Non-ASCII that falls outside Latin-1 uses %uXXXX
+            ("ć", "%u0107", None),
+            # Characters that are defined as safe
+            ("@*_+-./", "@*_+-./", None),
+            # Parentheses: in RFC3986 they are encoded
+            ("(", "%28", None),
+            (")", "%29", None),
+            # Space character
+            (" ", "%20", None),
+            # Tilde is safe
+            ("~", "%7E", None),
+            # Punctuation that is not safe: exclamation and comma
+            ("!", "%21", None),
+            (",", "%2C", None),
+            # Mixed safe and unsafe characters
+            ("hello world!", "hello%20world%21", None),
+            # Multiple spaces are each encoded
+            ("a b c", "a%20b%20c", None),
+            # A string with various punctuation
+            ("Hello, World!", "Hello%2C%20World%21", None),
+            # Null character should be encoded
+            ("\x00", "%00", None),
+            # Emoji (e.g. 😀 U+1F600)
+            ("😀", "%uD83D%uDE00", None),
+            # Test RFC1738 format: Parentheses are safe (left unchanged)
+            ("(", "(", Format.RFC1738),
+            (")", ")", Format.RFC1738),
+            # Mixed test with RFC1738: other unsafe characters are still encoded
+            ("(hello)!", "(hello)%21", Format.RFC1738),
         ],
     )
-    def test_escape(self, unescaped: str, escaped: str) -> None:
-        assert EncodeUtils.escape(unescaped) == escaped
+    def test_escape(self, unescaped: str, escaped: str, format: t.Optional[Format]) -> None:
+        assert EncodeUtils.escape(unescaped, format=format) == escaped
 
     @pytest.mark.parametrize(
         "escaped, unescaped",
         [
+            # No escapes.
             ("abc123", "abc123"),
+            # Hex escapes with uppercase hex digits.
             ("%E4%F6%FC", "äöü"),
+            # Hex escapes with lowercase hex digits.
+            ("%e4%f6%fc", "äöü"),
+            # Unicode escape.
             ("%u0107", "ć"),
+            # Unicode escape with lowercase digits.
+            ("%u0061", "a"),
+            # Characters that do not need escaping.
             ("@*_+-./", "@*_+-./"),
+            # Hex escapes for punctuation.
             ("%28", "("),
             ("%29", ")"),
             ("%20", " "),
             ("%7E", "~"),
+            # A long string with only safe characters.
             (
                 "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@*_+-./",
                 "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@*_+-./",
             ),
+            # A mix of Unicode and hex escapes.
+            ("%u0041%20%42", "A B"),
+            # A mix of literal text and hex escapes.
+            ("hello%20world", "hello world"),
+            # A literal percent sign that is not followed by a valid escape remains unchanged.
+            ("100% sure", "100% sure"),
+            # Mixed Unicode and hex escapes.
+            ("%u0041%65", "Ae"),  # %u0041 -> "A", %65 -> "e"
+            # Escaped percent signs that do not form a valid escape remain unchanged.
+            ("50%% off", "50%% off"),
+            # Consecutive escapes producing multiple spaces.
+            ("%20%u0020", "  "),
+            # An invalid escape sequence should remain unchanged.
+            ("abc%g", "abc%g"),
         ],
     )
     def test_unescape(self, escaped: str, unescaped: str) -> None:
         assert DecodeUtils.unescape(escaped) == unescaped
+
+    def test_unescape_fallback(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """
+        Test that the unescape replacer falls back correctly when neither named group is set.
+
+        We override the UNESCAPE_PATTERN to include a fallback alternative that matches a lone '%'
+        (i.e. a '%' not followed by 'u' or two hex digits). When unescape is called on a string
+        containing such a '%', the fallback branch in the replacer should return the matched '%' unchanged.
+        """
+
+        # Build a new pattern that, in addition to the normal valid escapes, matches a lone '%'
+        # using a fallback alternative.
+        new_pattern: t.Pattern[str] = re.compile(
+            r"%u(?P<unicode>[0-9A-Fa-f]{4})|%(?P<hex>[0-9A-Fa-f]{2})|%(?!u|[0-9A-Fa-f]{2})"
+        )
+        monkeypatch.setattr(DecodeUtils, "UNESCAPE_PATTERN", new_pattern)
+
+        # The input string contains a lone '%' (followed by a space, so it doesn't form a valid escape).
+        input_string: str = "100% sure"
+        # We expect the '%' to be left as-is (via the fallback branch).
+        expected_output: str = "100% sure"
+
+        result: str = DecodeUtils.unescape(input_string)
+        assert result == expected_output
+
+        # Optionally, you can also check with a string where the fallback alternative is the only match.
+        input_string2: str = "abc% def"
+        expected_output2: str = "abc% def"
+        assert DecodeUtils.unescape(input_string2) == expected_output2
 
     def test_merges_dict_with_list(self) -> None:
         assert Utils.merge({"0": "a"}, [Undefined(), "b"]) == {"0": "a", "1": "b"}
