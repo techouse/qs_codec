@@ -1,3 +1,4 @@
+import re
 import typing as t
 
 import pytest
@@ -476,6 +477,41 @@ class TestUtils:
     )
     def test_unescape(self, escaped: str, unescaped: str) -> None:
         assert DecodeUtils.unescape(escaped) == unescaped
+
+    def test_unescape_fallback(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """
+        Test that the unescape replacer falls back correctly when neither named group is set.
+
+        We override the UNESCAPE_PATTERN to include a fallback alternative that matches a lone '%'
+        (i.e. a '%' not followed by 'u' or two hex digits). When unescape is called on a string
+        containing such a '%', the fallback branch in the replacer should return the matched '%' unchanged.
+        """
+        # Save the original pattern to restore later.
+        original_pattern = DecodeUtils.UNESCAPE_PATTERN
+
+        # Build a new pattern that, in addition to the normal valid escapes, matches a lone '%'
+        # using a fallback alternative.
+        new_pattern: t.Pattern[str] = re.compile(
+            r"%u(?P<unicode>[0-9A-Fa-f]{4})|%(?P<hex>[0-9A-Fa-f]{2})|%(?!u|[0-9A-Fa-f]{2})"
+        )
+        monkeypatch.setattr(DecodeUtils, "UNESCAPE_PATTERN", new_pattern)
+
+        # The input string contains a lone '%' (followed by a space, so it doesn't form a valid escape).
+        input_string = "100% sure"
+        # We expect the '%' to be left as-is (via the fallback branch).
+        expected_output = "100% sure"
+
+        result = DecodeUtils.unescape(input_string)
+        assert result == expected_output
+
+        # Optionally, you can also check with a string where the fallback alternative is the only match.
+        input_string2 = "abc% def"
+        expected_output2 = "abc% def"
+        assert DecodeUtils.unescape(input_string2) == expected_output2
+
+        # Restore the original pattern (monkeypatch will do this automatically at the end of the test,
+        # but we show it explicitly here for clarity).
+        monkeypatch.undo()
 
     def test_merges_dict_with_list(self) -> None:
         assert Utils.merge({"0": "a"}, [Undefined(), "b"]) == {"0": "a", "1": "b"}
