@@ -14,7 +14,7 @@ from .str_utils import code_unit_at
 class EncodeUtils:
     """A collection of encode utility methods used by the library."""
 
-    HEX_TABLE: t.Tuple[str, ...] = tuple(f"%{i.to_bytes(1, 'big').hex().upper().zfill(2)}" for i in range(256))
+    HEX_TABLE: t.Tuple[str, ...] = tuple(f"%{i:02X}" for i in range(256))
     """Hex table of all 256 characters"""
 
     @classmethod
