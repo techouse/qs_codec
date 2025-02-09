@@ -27,36 +27,27 @@ class EncodeUtils:
 
         https://developer.mozilla.org/en-US/docs/web/javascript/reference/global_objects/escape
         """
+        # Build a set of "safe" code points.
+        safe: t.Set[int] = set(range(0x30, 0x3A)) | set(range(0x41, 0x5B)) | set(range(0x61, 0x7B))
+        safe |= {0x40, 0x2A, 0x5F, 0x2D, 0x2B, 0x2E, 0x2F}  # @, *, _, -, +, ., /
+
+        # For RFC1738, add the ASCII codes for ( and )
+        if format == Format.RFC1738:
+            safe |= {0x28, 0x29}
+
         buffer: t.List[str] = []
 
         i: int
-        for i, _ in enumerate(string):
+        char: str
+        for i, char in enumerate(string):
+            # Use code_unit_at if it does more than ord()
             c: int = code_unit_at(string, i)
-
-            # These 69 characters are safe for escaping
-            # ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@*_+-./
-            if (
-                (0x30 <= c <= 0x39)  # 0-9
-                or (0x41 <= c <= 0x5A)  # A-Z
-                or (0x61 <= c <= 0x7A)  # a-z
-                or c == 0x40  # @
-                or c == 0x2A  # *
-                or c == 0x5F  # _
-                or c == 0x2D  # -
-                or c == 0x2B  # +
-                or c == 0x2E  # .
-                or c == 0x2F  # /
-                or (format == Format.RFC1738 and (c == 0x28 or c == 0x29))  # ( )
-            ):
-                buffer.append(string[i])
-                continue
-
-            if c < 256:
-                buffer.extend([f"%{c.to_bytes(1, 'big').hex().upper().zfill(2)}"])
-                continue
-
-            buffer.extend([f"%u{c.to_bytes(2, 'big').hex().upper().zfill(4)}"])
-
+            if c in safe:
+                buffer.append(char)
+            elif c < 256:
+                buffer.append(f"%{c:02X}")
+            else:
+                buffer.append(f"%u{c:04X}")
         return "".join(buffer)
 
     @classmethod
