@@ -5,46 +5,35 @@ import typing as t
 from urllib.parse import unquote
 
 from ..enums.charset import Charset
-from .str_utils import code_unit_at
 
 
 class DecodeUtils:
     """A collection of decode utility methods used by the library."""
 
+    # Compile a pattern that matches either a %uXXXX sequence or a %XX sequence.
+    UNESCAPE_PATTERN: re.Pattern[str] = re.compile(r"%u(?P<unicode>[0-9A-Fa-f]{4})|%(?P<hex>[0-9A-Fa-f]{2})")
+
     @classmethod
     def unescape(cls, string: str) -> str:
-        """A Python representation of the deprecated JavaScript unescape function.
-
-        https://developer.mozilla.org/en-US/docs/web/javascript/reference/global_objects/unescape
         """
-        buffer: t.List[str] = []
+        A Python representation of the deprecated JavaScript unescape function.
 
-        i: int = 0
-        while i < len(string):
-            c: int = code_unit_at(string, i)
+        This method replaces both "%XX" and "%uXXXX" escape sequences with
+        their corresponding characters.
 
-            if c == 0x25:  # '%'
-                if string[i + 1] == "u":
-                    buffer.append(cls._unescape_unicode(string, i))
-                    i += 6
-                else:
-                    buffer.append(cls._unescape_hex(string, i))
-                    i += 3
-            else:
-                buffer.append(string[i])
-                i += 1
+        Example:
+            unescape("%u0041%20%42") -> "A B"
+        """
 
-        return "".join(buffer)
+        def replacer(match: re.Match[str]) -> str:
+            if (unicode_val := match.group("unicode")) is not None:
+                return chr(int(unicode_val, 16))
+            elif (hex_val := match.group("hex")) is not None:
+                return chr(int(hex_val, 16))
+            # match.group(0) is always non-None, so cast it to str for mypy.
+            return t.cast(str, match.group(0))
 
-    @staticmethod
-    def _unescape_unicode(string: str, i: int) -> str:
-        """Unescape a unicode escape sequence."""
-        return chr(int(string[i + 2 : i + 6], 16))
-
-    @staticmethod
-    def _unescape_hex(string: str, i: int) -> str:
-        """Unescape a hex escape sequence."""
-        return chr(int(string[i + 1 : i + 3], 16))
+        return cls.UNESCAPE_PATTERN.sub(replacer, string)
 
     @classmethod
     def decode(
@@ -52,18 +41,24 @@ class DecodeUtils:
         string: t.Optional[str],
         charset: t.Optional[Charset] = Charset.UTF8,
     ) -> t.Optional[str]:
-        """Decode a URL-encoded string."""
+        """Decode a URL-encoded string.
+
+        For non-UTF8 charsets (specifically Charset.LATIN1), it replaces plus
+        signs with spaces and applies a custom unescape for percent-encoded hex
+        sequences. Otherwise, it defers to urllib.parse.unquote.
+        """
         if string is None:
             return None
 
+        # Replace '+' with ' ' before processing.
         string_without_plus: str = string.replace("+", " ")
 
         if charset == Charset.LATIN1:
+            # Only process hex escape sequences for Latin1.
             return re.sub(
-                r"%[0-9a-f]{2}",
+                r"%[0-9A-Fa-f]{2}",
                 lambda match: cls.unescape(match.group(0)),
                 string_without_plus,
-                flags=re.IGNORECASE,
             )
 
         return unquote(string_without_plus)
