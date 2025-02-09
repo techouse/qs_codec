@@ -13,7 +13,7 @@ class DecodeUtils:
 
     @classmethod
     def unescape(cls, string: str) -> str:
-        """A Python representation the deprecated JavaScript unescape function.
+        """A Python representation of the deprecated JavaScript unescape function.
 
         https://developer.mozilla.org/en-US/docs/web/javascript/reference/global_objects/unescape
         """
@@ -23,22 +23,28 @@ class DecodeUtils:
         while i < len(string):
             c: int = code_unit_at(string, i)
 
-            if c == 0x25:
+            if c == 0x25:  # '%'
                 if string[i + 1] == "u":
-                    buffer.append(
-                        chr(int(string[i + 2 : i + 6], 16)),
-                    )
+                    buffer.append(cls._unescape_unicode(string, i))
                     i += 6
-                    continue
-
-                buffer.append(chr(int(string[i + 1 : i + 3], 16)))
-                i += 3
-                continue
-
-            buffer.append(string[i])
-            i += 1
+                else:
+                    buffer.append(cls._unescape_hex(string, i))
+                    i += 3
+            else:
+                buffer.append(string[i])
+                i += 1
 
         return "".join(buffer)
+
+    @staticmethod
+    def _unescape_unicode(string: str, i: int) -> str:
+        """Unescape a unicode escape sequence."""
+        return chr(int(string[i + 2 : i + 6], 16))
+
+    @staticmethod
+    def _unescape_hex(string: str, i: int) -> str:
+        """Unescape a hex escape sequence."""
+        return chr(int(string[i + 1 : i + 3], 16))
 
     @classmethod
     def decode(
