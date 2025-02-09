@@ -14,8 +14,23 @@ from .str_utils import code_unit_at
 class EncodeUtils:
     """A collection of encode utility methods used by the library."""
 
-    HEX_TABLE: t.Tuple[str, ...] = tuple(f"%{i.to_bytes(1, 'big').hex().upper().zfill(2)}" for i in range(256))
+    HEX_TABLE: t.Tuple[str, ...] = tuple(f"%{i:02X}" for i in range(256))
     """Hex table of all 256 characters"""
+
+    SAFE_ALPHA: t.Set[int] = set(range(0x30, 0x3A)) | set(range(0x41, 0x5B)) | set(range(0x61, 0x7B))
+    """0-9, A-Z, a-z"""
+
+    SAFE_POINTS: t.Set[int] = SAFE_ALPHA | {0x40, 0x2A, 0x5F, 0x2D, 0x2B, 0x2E, 0x2F}
+    """0-9, A-Z, a-z, @, *, _, -, +, ., /"""
+
+    RFC1738_SAFE_POINTS: t.Set[int] = SAFE_POINTS | {0x28, 0x29}
+    """0-9, A-Z, a-z, @, *, _, -, +, ., /, (, )"""
+
+    SAFE_CHARS: t.Set[int] = SAFE_ALPHA | {0x2D, 0x2E, 0x5F, 0x7E}
+    """0-9, A-Z, a-z, -, ., _, ~"""
+
+    RFC1738_SAFE_CHARS = SAFE_CHARS | {0x28, 0x29}
+    """0-9, A-Z, a-z, -, ., _, ~, (, )"""
 
     @classmethod
     def escape(
@@ -27,36 +42,22 @@ class EncodeUtils:
 
         https://developer.mozilla.org/en-US/docs/web/javascript/reference/global_objects/escape
         """
+        # Build a set of "safe" code points.
+        safe_points: t.Set[int] = cls.RFC1738_SAFE_POINTS if format == Format.RFC1738 else cls.SAFE_POINTS
+
         buffer: t.List[str] = []
 
         i: int
-        for i, _ in enumerate(string):
+        char: str
+        for i, char in enumerate(string):
+            # Use code_unit_at if it does more than ord()
             c: int = code_unit_at(string, i)
-
-            # These 69 characters are safe for escaping
-            # ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@*_+-./
-            if (
-                (0x30 <= c <= 0x39)  # 0-9
-                or (0x41 <= c <= 0x5A)  # A-Z
-                or (0x61 <= c <= 0x7A)  # a-z
-                or c == 0x40  # @
-                or c == 0x2A  # *
-                or c == 0x5F  # _
-                or c == 0x2D  # -
-                or c == 0x2B  # +
-                or c == 0x2E  # .
-                or c == 0x2F  # /
-                or (format == Format.RFC1738 and (c == 0x28 or c == 0x29))  # ( )
-            ):
-                buffer.append(string[i])
-                continue
-
-            if c < 256:
-                buffer.extend([f"%{c.to_bytes(1, 'big').hex().upper().zfill(2)}"])
-                continue
-
-            buffer.extend([f"%u{c.to_bytes(2, 'big').hex().upper().zfill(4)}"])
-
+            if c in safe_points:
+                buffer.append(char)
+            elif c < 256:
+                buffer.append(f"%{c:02X}")
+            else:
+                buffer.append(f"%u{c:04X}")
         return "".join(buffer)
 
     @classmethod
@@ -70,83 +71,92 @@ class EncodeUtils:
         if value is None or not isinstance(value, (int, float, Decimal, Enum, str, bool, bytes)):
             return ""
 
-        string: str
-        if isinstance(value, bytes):
-            string = value.decode("utf-8")
-        elif isinstance(value, bool):
-            string = str(value).lower()
-        elif isinstance(value, str):
-            string = value
-        else:
-            string = str(value)
+        string: str = cls._convert_value_to_string(value)
 
-        if value == "":
+        if not string:
             return ""
 
         if charset == Charset.LATIN1:
             return re.sub(
                 r"%u[0-9a-f]{4}",
                 lambda match: f"%26%23{int(match.group(0)[2:], 16)}%3B",
-                cls.escape(cls.to_surrogates(string), format),
+                cls.escape(cls._to_surrogates(string), format),
                 flags=re.IGNORECASE,
             )
 
+        return cls._encode_string(string, format)
+
+    @staticmethod
+    def _convert_value_to_string(value: t.Any) -> str:
+        """Convert the value to a string based on its type."""
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+        elif isinstance(value, bool):
+            return str(value).lower()
+        elif isinstance(value, str):
+            return value
+        else:
+            return str(value)
+
+    @classmethod
+    def _encode_string(cls, string: str, format: t.Optional[Format]) -> str:
+        """Encode the string to a URL-encoded format."""
         buffer: t.List[str] = []
 
         i: int
         for i, _ in enumerate(string):
             c: int = code_unit_at(string, i)
 
-            if (
-                c == 0x2D  # -
-                or c == 0x2E  # .
-                or c == 0x5F  # _
-                or c == 0x7E  # ~
-                or (0x30 <= c <= 0x39)  # 0-9
-                or (0x41 <= c <= 0x5A)  # a-z
-                or (0x61 <= c <= 0x7A)  # A-Z
-                or (format == Format.RFC1738 and (c == 0x28 or c == 0x29))  # ( )
-            ):
+            if cls._is_safe_char(c, format):
                 buffer.append(string[i])
-                continue
-            elif c < 0x80:  # ASCII
-                buffer.extend([cls.HEX_TABLE[c]])
-                continue
-            elif c < 0x800:  # 2 bytes
-                buffer.extend(
-                    [
-                        cls.HEX_TABLE[0xC0 | (c >> 6)],
-                        cls.HEX_TABLE[0x80 | (c & 0x3F)],
-                    ],
-                )
-                continue
-            elif c < 0xD800 or c >= 0xE000:  # 3 bytes
-                buffer.extend(
-                    [
-                        cls.HEX_TABLE[0xE0 | (c >> 12)],
-                        cls.HEX_TABLE[0x80 | ((c >> 6) & 0x3F)],
-                        cls.HEX_TABLE[0x80 | (c & 0x3F)],
-                    ],
-                )
-                continue
             else:
-                i += 1
-                c = 0x10000 + (((c & 0x3FF) << 10) | (code_unit_at(string, i) & 0x3FF))
-                buffer.extend(
-                    [
-                        cls.HEX_TABLE[0xF0 | (c >> 18)],
-                        cls.HEX_TABLE[0x80 | ((c >> 12) & 0x3F)],
-                        cls.HEX_TABLE[0x80 | ((c >> 6) & 0x3F)],
-                        cls.HEX_TABLE[0x80 | (c & 0x3F)],
-                    ],
-                )
+                buffer.extend(cls._encode_char(string, i, c))
 
         return "".join(buffer)
 
+    @classmethod
+    def _is_safe_char(cls, c: int, format: t.Optional[Format]) -> bool:
+        """Check if the character (given by its code point) is safe to be included in the URL without encoding."""
+        return c in cls.RFC1738_SAFE_CHARS if format == Format.RFC1738 else c in cls.SAFE_CHARS
+
+    @classmethod
+    def _encode_char(cls, string: str, i: int, c: int) -> t.List[str]:
+        """Encode a single character to its URL-encoded representation."""
+        if c < 0x80:  # ASCII
+            return [cls.HEX_TABLE[c]]
+        elif c < 0x800:  # 2 bytes
+            return [
+                cls.HEX_TABLE[0xC0 | (c >> 6)],
+                cls.HEX_TABLE[0x80 | (c & 0x3F)],
+            ]
+        elif c < 0xD800 or c >= 0xE000:  # 3 bytes
+            return [
+                cls.HEX_TABLE[0xE0 | (c >> 12)],
+                cls.HEX_TABLE[0x80 | ((c >> 6) & 0x3F)],
+                cls.HEX_TABLE[0x80 | (c & 0x3F)],
+            ]
+        else:
+            return cls._encode_surrogate_pair(string, i, c)
+
+    @classmethod
+    def _encode_surrogate_pair(cls, string: str, i: int, c: int) -> t.List[str]:
+        """Encode a surrogate pair character to its URL-encoded representation."""
+        buffer: t.List[str] = []
+        c = 0x10000 + (((c & 0x3FF) << 10) | (code_unit_at(string, i + 1) & 0x3FF))
+        buffer.extend(
+            [
+                cls.HEX_TABLE[0xF0 | (c >> 18)],
+                cls.HEX_TABLE[0x80 | ((c >> 12) & 0x3F)],
+                cls.HEX_TABLE[0x80 | ((c >> 6) & 0x3F)],
+                cls.HEX_TABLE[0x80 | (c & 0x3F)],
+            ],
+        )
+        return buffer
+
     @staticmethod
-    def to_surrogates(string: str) -> str:
+    def _to_surrogates(string: str) -> str:
         """Convert characters in the string that are outside the BMP (i.e. code points > 0xFFFF) into their corresponding surrogate pair."""
-        result: t.List[str] = []
+        buffer: t.List[str] = []
 
         ch: str
         for ch in string:
@@ -156,11 +166,11 @@ class EncodeUtils:
                 cp -= 0x10000
                 high: int = 0xD800 + (cp >> 10)
                 low: int = 0xDC00 + (cp & 0x3FF)
-                result.append(chr(high))
-                result.append(chr(low))
+                buffer.append(chr(high))
+                buffer.append(chr(low))
             else:
-                result.append(ch)
-        return "".join(result)
+                buffer.append(ch)
+        return "".join(buffer)
 
     @staticmethod
     def serialize_date(dt: datetime) -> str:

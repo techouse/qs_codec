@@ -483,9 +483,9 @@ class TestUtils:
         ) == {"foo": {"bar": "baz", "0": "xyzzy"}}
 
     def test_combine_both_arrays(self) -> None:
-        a = [1]
-        b = [2]
-        combined = Utils.combine(a, b)
+        a: t.List[int] = [1]
+        b: t.List[int] = [2]
+        combined: t.List[int] = Utils.combine(a, b)
 
         assert a == [1]
         assert b == [2]
@@ -494,31 +494,31 @@ class TestUtils:
         assert combined == [1, 2]
 
     def test_combine_one_array_one_non_array(self) -> None:
-        aN = 1
-        a = [aN]
-        bN = 2
-        b = [bN]
+        a_n: int = 1
+        a: t.List[int] = [a_n]
+        b_n: int = 2
+        b: t.List[int] = [b_n]
 
-        combined_an_b = Utils.combine(aN, b)
-        assert b == [bN]
-        assert aN is not combined_an_b
+        combined_an_b: t.List[int] = Utils.combine(a_n, b)
+        assert b == [b_n]
+        assert a_n is not combined_an_b
         assert a is not combined_an_b
-        assert bN is not combined_an_b
+        assert b_n is not combined_an_b
         assert b is not combined_an_b
         assert combined_an_b == [1, 2]
 
-        combined_a_bn = Utils.combine(a, bN)
-        assert a == [aN]
-        assert aN is not combined_a_bn
+        combined_a_bn = Utils.combine(a, b_n)
+        assert a == [a_n]
+        assert a_n is not combined_a_bn
         assert a is not combined_a_bn
-        assert bN is not combined_a_bn
+        assert b_n is not combined_a_bn
         assert b is not combined_a_bn
         assert combined_a_bn == [1, 2]
 
     def test_combine_neither_is_an_array(self) -> None:
-        a = 1
-        b = 2
-        combined = Utils.combine(a, b)
+        a: int = 1
+        b: int = 2
+        combined: t.List[int] = Utils.combine(a, b)
 
         assert a is not combined
         assert b is not combined
@@ -579,4 +579,31 @@ class TestUtils:
         ],
     )
     def test_to_surrogates(self, input_str: str, expected: str) -> None:
-        assert EncodeUtils.to_surrogates(input_str) == expected
+        assert EncodeUtils._to_surrogates(input_str) == expected
+
+    @pytest.mark.parametrize(
+        "char, format, expected",
+        [
+            # Alphanumeric characters (always safe)
+            ("a", Format.RFC3986, True),
+            ("Z", Format.RFC3986, True),
+            ("0", Format.RFC3986, True),
+            # The safe punctuation in SAFE_CHARS: -, ., _, ~
+            ("-", Format.RFC3986, True),
+            (".", Format.RFC3986, True),
+            ("_", Format.RFC3986, True),
+            ("~", Format.RFC3986, True),
+            # Parentheses are not in SAFE_CHARS but are in RFC1738_SAFE_CHARS.
+            ("(", Format.RFC3986, False),
+            (")", Format.RFC3986, False),
+            ("(", Format.RFC1738, True),
+            (")", Format.RFC1738, True),
+            # Characters that are not safe in either case.
+            ("@", Format.RFC3986, False),
+            ("@", Format.RFC1738, False),
+            ("*", Format.RFC3986, False),
+            ("*", Format.RFC1738, False),
+        ],
+    )
+    def test_is_safe_char(self, char: str, format: Format, expected: bool) -> None:
+        assert EncodeUtils._is_safe_char(ord(char), format) is expected
