@@ -415,18 +415,42 @@ class TestUtils:
     @pytest.mark.parametrize(
         "escaped, unescaped",
         [
+            # No escapes.
             ("abc123", "abc123"),
+            # Hex escapes with uppercase hex digits.
             ("%E4%F6%FC", "äöü"),
+            # Hex escapes with lowercase hex digits.
+            ("%e4%f6%fc", "äöü"),
+            # Unicode escape.
             ("%u0107", "ć"),
+            # Unicode escape with lowercase digits.
+            ("%u0061", "a"),
+            # Characters that do not need escaping.
             ("@*_+-./", "@*_+-./"),
+            # Hex escapes for punctuation.
             ("%28", "("),
             ("%29", ")"),
             ("%20", " "),
             ("%7E", "~"),
+            # A long string with only safe characters.
             (
                 "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@*_+-./",
                 "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@*_+-./",
             ),
+            # A mix of Unicode and hex escapes.
+            ("%u0041%20%42", "A B"),
+            # A mix of literal text and hex escapes.
+            ("hello%20world", "hello world"),
+            # A literal percent sign that is not followed by a valid escape remains unchanged.
+            ("100% sure", "100% sure"),
+            # Mixed Unicode and hex escapes.
+            ("%u0041%65", "Ae"),  # %u0041 -> "A", %65 -> "e"
+            # Escaped percent signs that do not form a valid escape remain unchanged.
+            ("50%% off", "50%% off"),
+            # Consecutive escapes producing multiple spaces.
+            ("%20%u0020", "  "),
+            # An invalid escape sequence should remain unchanged.
+            ("abc%g", "abc%g"),
         ],
     )
     def test_unescape(self, escaped: str, unescaped: str) -> None:
