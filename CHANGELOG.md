@@ -1,3 +1,9 @@
+## 1.0.7
+
+* [FIX] fix `EncodeUtils.encode` for non-BMP characters
+* [CHORE] refactor `EncodeUtils` and `DecodeUtils`
+* [CHORE] add more tests
+
 ## 1.0.6
 
 * [FIX] fix encoding non-BMP characters when using `charset=Charset.LATIN1`
