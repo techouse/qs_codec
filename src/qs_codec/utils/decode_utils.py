@@ -11,7 +11,10 @@ class DecodeUtils:
     """A collection of decode utility methods used by the library."""
 
     # Compile a pattern that matches either a %uXXXX sequence or a %XX sequence.
-    UNESCAPE_PATTERN: t.Pattern[str] = re.compile(r"%u(?P<unicode>[0-9A-Fa-f]{4})|%(?P<hex>[0-9A-Fa-f]{2})")
+    UNESCAPE_PATTERN: t.Pattern[str] = re.compile(
+        r"%u(?P<unicode>[0-9A-Fa-f]{4})|%(?P<hex>[0-9A-Fa-f]{2})",
+        re.IGNORECASE,
+    )
 
     @classmethod
     def unescape(cls, string: str) -> str:
