@@ -486,8 +486,6 @@ class TestUtils:
         (i.e. a '%' not followed by 'u' or two hex digits). When unescape is called on a string
         containing such a '%', the fallback branch in the replacer should return the matched '%' unchanged.
         """
-        # Save the original pattern to restore later.
-        original_pattern = DecodeUtils.UNESCAPE_PATTERN
 
         # Build a new pattern that, in addition to the normal valid escapes, matches a lone '%'
         # using a fallback alternative.
@@ -497,21 +495,17 @@ class TestUtils:
         monkeypatch.setattr(DecodeUtils, "UNESCAPE_PATTERN", new_pattern)
 
         # The input string contains a lone '%' (followed by a space, so it doesn't form a valid escape).
-        input_string = "100% sure"
+        input_string: str = "100% sure"
         # We expect the '%' to be left as-is (via the fallback branch).
-        expected_output = "100% sure"
+        expected_output: str = "100% sure"
 
-        result = DecodeUtils.unescape(input_string)
+        result: str = DecodeUtils.unescape(input_string)
         assert result == expected_output
 
         # Optionally, you can also check with a string where the fallback alternative is the only match.
-        input_string2 = "abc% def"
-        expected_output2 = "abc% def"
+        input_string2: str = "abc% def"
+        expected_output2: str = "abc% def"
         assert DecodeUtils.unescape(input_string2) == expected_output2
-
-        # Restore the original pattern (monkeypatch will do this automatically at the end of the test,
-        # but we show it explicitly here for clarity).
-        monkeypatch.undo()
 
     def test_merges_dict_with_list(self) -> None:
         assert Utils.merge({"0": "a"}, [Undefined(), "b"]) == {"0": "a", "1": "b"}
