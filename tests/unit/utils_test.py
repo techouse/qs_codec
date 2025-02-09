@@ -579,4 +579,33 @@ class TestUtils:
         ],
     )
     def test_to_surrogates(self, input_str: str, expected: str) -> None:
-        assert EncodeUtils.to_surrogates(input_str) == expected
+        assert EncodeUtils._to_surrogates(input_str) == expected
+
+    @pytest.mark.parametrize(
+        "char, format, expected",
+        [
+            # Alphanumeric characters (always safe)
+            ("a", Format.RFC3986, True),
+            ("Z", Format.RFC3986, True),
+            ("0", Format.RFC3986, True),
+            # The safe punctuation in SAFE_CHARS: -, ., _, ~
+            ("-", Format.RFC3986, True),
+            (".", Format.RFC3986, True),
+            ("_", Format.RFC3986, True),
+            ("~", Format.RFC3986, True),
+            # Parentheses are not in SAFE_CHARS but are in RFC1738_SAFE_CHARS.
+            ("(", Format.RFC3986, False),
+            (")", Format.RFC3986, False),
+            ("(", Format.RFC1738, True),
+            (")", Format.RFC1738, True),
+            # Characters that are not safe in either case.
+            ("@", Format.RFC3986, False),
+            ("@", Format.RFC1738, False),
+            ("*", Format.RFC3986, False),
+            ("*", Format.RFC1738, False),
+        ],
+    )
+    def test_is_safe_char(self, char: str, format: Format, expected: bool) -> None:
+        code_point = ord(char)
+        result = EncodeUtils._is_safe_char(code_point, format)
+        assert result is expected
