@@ -393,24 +393,45 @@ class TestUtils:
         assert DecodeUtils.decode(encoded, charset=Charset.LATIN1) == decoded
 
     @pytest.mark.parametrize(
-        "unescaped, escaped",
+        "unescaped, escaped, format",
         [
-            ("abc123", "abc123"),
-            ("äöü", "%E4%F6%FC"),
-            ("ć", "%u0107"),
-            ("@*_+-./", "@*_+-./"),
-            ("(", "%28"),
-            (")", "%29"),
-            (" ", "%20"),
-            ("~", "%7E"),
-            (
-                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@*_+-./",
-                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@*_+-./",
-            ),
+            # Basic alphanumerics (remain unchanged)
+            ("abc123", "abc123", None),
+            # Accented characters (Latin-1 range uses %XX)
+            ("äöü", "%E4%F6%FC", None),
+            # Non-ASCII that falls outside Latin-1 uses %uXXXX
+            ("ć", "%u0107", None),
+            # Characters that are defined as safe
+            ("@*_+-./", "@*_+-./", None),
+            # Parentheses: in RFC3986 they are encoded
+            ("(", "%28", None),
+            (")", "%29", None),
+            # Space character
+            (" ", "%20", None),
+            # Tilde is safe
+            ("~", "%7E", None),
+            # Punctuation that is not safe: exclamation and comma
+            ("!", "%21", None),
+            (",", "%2C", None),
+            # Mixed safe and unsafe characters
+            ("hello world!", "hello%20world%21", None),
+            # Multiple spaces are each encoded
+            ("a b c", "a%20b%20c", None),
+            # A string with various punctuation
+            ("Hello, World!", "Hello%2C%20World%21", None),
+            # Null character should be encoded
+            ("\x00", "%00", None),
+            # Emoji (e.g. 😀 U+1F600)
+            ("😀", "%uD83D%uDE00", None),
+            # Test RFC1738 format: Parentheses are safe (left unchanged)
+            ("(", "(", Format.RFC1738),
+            (")", ")", Format.RFC1738),
+            # Mixed test with RFC1738: other unsafe characters are still encoded
+            ("(hello)!", "(hello)%21", Format.RFC1738),
         ],
     )
-    def test_escape(self, unescaped: str, escaped: str) -> None:
-        assert EncodeUtils.escape(unescaped) == escaped
+    def test_escape(self, unescaped: str, escaped: str, format: t.Optional[Format]) -> None:
+        assert EncodeUtils.escape(unescaped, format=format) == escaped
 
     @pytest.mark.parametrize(
         "escaped, unescaped",

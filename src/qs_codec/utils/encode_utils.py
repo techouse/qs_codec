@@ -42,22 +42,33 @@ class EncodeUtils:
 
         https://developer.mozilla.org/en-US/docs/web/javascript/reference/global_objects/escape
         """
-        # Build a set of "safe" code points.
+        # Convert any non-BMP character into its surrogate pair representation.
+        string = cls._to_surrogates(string)
+
         safe_points: t.Set[int] = cls.RFC1738_SAFE_POINTS if format == Format.RFC1738 else cls.SAFE_POINTS
 
         buffer: t.List[str] = []
 
-        i: int
-        char: str
-        for i, char in enumerate(string):
-            # Use code_unit_at if it does more than ord()
+        i: int = 0
+        while i < len(string):
             c: int = code_unit_at(string, i)
+            # If we detect a high surrogate and there is a following low surrogate, encode both.
+            if 0xD800 <= c <= 0xDBFF and i + 1 < len(string):
+                next_c: int = code_unit_at(string, i + 1)
+                if 0xDC00 <= next_c <= 0xDFFF:
+                    buffer.append(f"%u{c:04X}")
+                    buffer.append(f"%u{next_c:04X}")
+                    i += 2
+                    continue
+
             if c in safe_points:
-                buffer.append(char)
+                buffer.append(string[i])
             elif c < 256:
                 buffer.append(f"%{c:02X}")
             else:
                 buffer.append(f"%u{c:04X}")
+            i += 1
+
         return "".join(buffer)
 
     @classmethod
