@@ -7,7 +7,7 @@ name = "qs-codec"
 description = "A query string encoding and decoding library for Python. Ported from qs for JavaScript."
 readme = "README.rst"
 license = { text = "BSD-3-Clause" }
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 authors = [
     { name = "Klemen Tusar", email = "techouse@gmail.com" },
 ]
@@ -27,19 +27,19 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Software Development :: Libraries",
 ]
 dependencies = [
-    "regex>=2024.4.28",
-    "types-regex>=2024.4.28.20240506",
+    "regex>=2024.11.6",
+    "types-regex>=2024.11.6.20250305",
 ]
 dynamic = ["version"]
 

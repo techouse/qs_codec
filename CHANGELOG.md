@@ -1,3 +1,7 @@
+## 1.1.0
+
+* [CHORE] drop support for Python 3.8 and update dependencies for Python 3.9+
+
 ## 1.0.7
 
 * [FIX] fix `EncodeUtils.encode` for non-BMP characters

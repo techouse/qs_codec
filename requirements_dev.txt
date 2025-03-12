@@ -1,7 +1,7 @@
-regex>=2024.4.28
-types-regex>=2024.4.28.20240506
-pytest>=8.1.2
-pytest-cov>=5.0.0
-mypy>=1.10.0
+regex>=2024.11.6
+types-regex>=2024.11.6.20250305
+pytest>=8.3.5
+pytest-cov>=6.0.0
+mypy>=1.15.0
 toml>=0.10.2
 tox
