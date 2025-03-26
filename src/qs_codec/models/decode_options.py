@@ -89,7 +89,7 @@ class DecodeOptions:
     decoder: t.Callable[[t.Optional[str], t.Optional[Charset]], t.Any] = DecodeUtils.decode
     """Set a ``Callable`` to affect the decoding of the input."""
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Post-initialization."""
         if self.allow_dots is None:
             self.allow_dots = self.decode_dot_in_keys is True or False

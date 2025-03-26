@@ -15,7 +15,12 @@ class WeakWrapper:
         return hash(self._hash_recursive(self.value, seen=set(), stack=set()))
 
     def _hash_recursive(
-        self, value: t.Any, seen: set, stack: set, depth: int = 0, max_depth: int = 1000
+        self,
+        value: t.Any,
+        seen: t.Set[t.Any],
+        stack: t.Set[t.Any],
+        depth: int = 0,
+        max_depth: int = 1000,
     ) -> t.Union[t.Tuple, t.Any]:
         """Recursively hash a value."""
         if id(value) in stack:

@@ -183,12 +183,12 @@ def _encode(
 
         return [f"{formatter(prefix)}={formatter(str(obj))}"]
 
-    values: t.List = []
+    values: t.List[t.Any] = []
 
     if is_undefined:
         return values
 
-    obj_keys: t.List
+    obj_keys: t.List[t.Any]
     if generate_array_prefix == ListFormat.COMMA.generator and isinstance(obj, (list, tuple)):
         # we need to join elements in
         if encode_values_only and callable(encoder):
@@ -202,7 +202,7 @@ def _encode(
     elif isinstance(filter, (list, tuple)):
         obj_keys = list(filter)
     else:
-        keys: t.List
+        keys: t.List[t.Any]
         if isinstance(obj, t.Mapping):
             keys = list(obj.keys())
         elif isinstance(obj, (list, tuple)):

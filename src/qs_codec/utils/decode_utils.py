@@ -33,8 +33,7 @@ class DecodeUtils:
                 return chr(int(unicode_val, 16))
             elif (hex_val := match.group("hex")) is not None:
                 return chr(int(hex_val, 16))
-            # match.group(0) is always non-None, so cast it to str for mypy.
-            return t.cast(str, match.group(0))
+            return match.group(0)
 
         return cls.UNESCAPE_PATTERN.sub(replacer, string)
 
