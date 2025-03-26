@@ -17,11 +17,14 @@ class Utils:
     def merge(
         target: t.Optional[t.Union[t.Mapping[str, t.Any], t.List[t.Any], t.Tuple[t.Any]]],
         source: t.Optional[t.Union[t.Mapping[str, t.Any], t.List[t.Any], t.Tuple[t.Any], t.Any]],
-        options: DecodeOptions = DecodeOptions(),
+        options: t.Optional[DecodeOptions] = None,
     ) -> t.Union[t.Dict[str, t.Any], t.List[t.Any], t.Tuple[t.Any], t.Any]:
         """Merge two objects together."""
         if source is None:
             return target
+
+        if options is None:
+            options = DecodeOptions()
 
         if not isinstance(source, t.Mapping):
             if isinstance(target, (list, tuple)):
