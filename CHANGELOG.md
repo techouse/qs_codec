@@ -1,3 +1,7 @@
+## 1.1.1
+
+* [CHORE] enhance type hints and improve code clarity ([#17](https://github.com/techouse/qs_codec/pull/17))
+
 ## 1.1.0
 
 * [CHORE] drop support for Python 3.8 and update dependencies for Python 3.9+
