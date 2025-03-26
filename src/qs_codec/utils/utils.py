@@ -15,10 +15,10 @@ class Utils:
 
     @staticmethod
     def merge(
-        target: t.Optional[t.Union[t.Mapping[str, t.Any], t.List[t.Any], t.Tuple]],
-        source: t.Optional[t.Union[t.Mapping[str, t.Any], t.List[t.Any], t.Tuple, t.Any]],
+        target: t.Optional[t.Union[t.Mapping[str, t.Any], t.List[t.Any], t.Tuple[t.Any]]],
+        source: t.Optional[t.Union[t.Mapping[str, t.Any], t.List[t.Any], t.Tuple[t.Any], t.Any]],
         options: DecodeOptions = DecodeOptions(),
-    ) -> t.Union[t.Dict[str, t.Any], t.List, t.Tuple, t.Any]:
+    ) -> t.Union[t.Dict[str, t.Any], t.List[t.Any], t.Tuple[t.Any], t.Any]:
         """Merge two objects together."""
         if source is None:
             return target
@@ -107,13 +107,13 @@ class Utils:
     def compact(value: t.Dict[str, t.Any]) -> t.Dict[str, t.Any]:
         """Remove all `Undefined` values from a dictionary."""
         queue: t.List[t.Dict[str, t.Any]] = [{"obj": {"o": value}, "prop": "o"}]
-        refs: t.List = []
+        refs: t.List[t.Any] = []
 
         for i in range(len(queue)):  # pylint: disable=C0200
-            item: t.Mapping = queue[i]
-            obj: t.Mapping = item["obj"][item["prop"]]
+            item: t.Mapping[t.Any, t.Any] = queue[i]
+            obj: t.Mapping[t.Any, t.Any] = item["obj"][item["prop"]]
 
-            keys: t.List = list(obj.keys())
+            keys: t.List[t.Any] = list(obj.keys())
             for key in keys:
                 val = obj.get(key)
 
@@ -131,7 +131,7 @@ class Utils:
         return value
 
     @staticmethod
-    def _remove_undefined_from_list(value: t.List) -> None:
+    def _remove_undefined_from_list(value: t.List[t.Any]) -> None:
         i: int = len(value) - 1
         while i >= 0:
             item = value[i]
@@ -147,8 +147,8 @@ class Utils:
             i -= 1
 
     @staticmethod
-    def _remove_undefined_from_map(obj: t.Dict) -> None:
-        keys: t.List = list(obj.keys())
+    def _remove_undefined_from_map(obj: t.Dict[t.Any, t.Any]) -> None:
+        keys: t.List[t.Any] = list(obj.keys())
         for key in keys:
             val = obj[key]
             if isinstance(val, Undefined):
@@ -162,7 +162,11 @@ class Utils:
                 Utils._remove_undefined_from_list(obj[key])
 
     @staticmethod
-    def _dicts_are_equal(d1: t.Mapping, d2: t.Mapping, path=None) -> bool:
+    def _dicts_are_equal(
+        d1: t.Mapping[t.Any, t.Any],
+        d2: t.Mapping[t.Any, t.Any],
+        path: t.Optional[t.Set[t.Any]] = None,
+    ) -> bool:
         if path is None:
             path = set()
 
@@ -185,12 +189,18 @@ class Utils:
             return d1 == d2
 
     @staticmethod
-    def combine(a: t.Union[list, tuple, t.Any], b: t.Union[list, tuple, t.Any]) -> t.List:
+    def combine(
+        a: t.Union[t.List[t.Any], t.Tuple[t.Any], t.Any],
+        b: t.Union[t.List[t.Any], t.Tuple[t.Any], t.Any],
+    ) -> t.List[t.Any]:
         """Combine two lists or values."""
         return [*(a if isinstance(a, (list, tuple)) else [a]), *(b if isinstance(b, (list, tuple)) else [b])]
 
     @staticmethod
-    def apply(val: t.Union[list, tuple, t.Any], fn: t.Callable) -> t.Union[t.List, t.Any]:
+    def apply(
+        val: t.Union[t.List[t.Any], t.Tuple[t.Any], t.Any],
+        fn: t.Callable,
+    ) -> t.Union[t.List[t.Any], t.Any]:
         """Apply a function to a value or a list of values."""
         return [fn(item) for item in val] if isinstance(val, (list, tuple)) else fn(val)
 

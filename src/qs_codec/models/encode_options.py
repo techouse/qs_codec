@@ -81,7 +81,7 @@ class EncodeOptions:
 
     @encoder.setter
     def encoder(self, value: t.Optional[t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str]]) -> None:
-        self._encoder = value if callable(value) else EncodeUtils.encode  # type: ignore [assignment]
+        self._encoder = value if callable(value) else EncodeUtils.encode
 
     strict_null_handling: bool = False
     """Set to ``True`` to distinguish between ``null`` values and empty ``str``\\ings. This way the encoded string
@@ -94,7 +94,7 @@ class EncodeOptions:
     sort: t.Optional[t.Callable[[t.Any, t.Any], int]] = field(default=None)
     """Set a ``Callable`` to affect the order of parameter keys."""
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Post-initialization."""
         if self.allow_dots is None:
             self.allow_dots = self.encode_dot_in_keys is True or False

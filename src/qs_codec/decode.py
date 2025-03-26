@@ -116,7 +116,7 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
         pos: int = part.find("=") if bracket_equals_pos == -1 else (bracket_equals_pos + 1)
 
         key: str
-        val: t.Union[t.List, t.Tuple, str, t.Any]
+        val: t.Union[t.List[t.Any], t.Tuple[t.Any], str, t.Any]
         if pos == -1:
             key = options.decoder(part, charset)
             val = None if options.strict_null_handling else ""
@@ -134,7 +134,7 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
         if val and options.interpret_numeric_entities and charset == Charset.LATIN1:
             val = _interpret_numeric_entities(
                 val if isinstance(val, str) else ",".join(val) if isinstance(val, (list, tuple)) else str(val)
-            )  # type: ignore [arg-type]
+            )
 
         if "[]=" in part:
             val = [val] if isinstance(val, (list, tuple)) else val
