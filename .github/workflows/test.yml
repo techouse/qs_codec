@@ -65,10 +65,10 @@ jobs:
       - name: Test with tox
         run: tox
       - name: Check Code Coverage
-        uses: VeryGoodOpenSource/very_good_coverage@v3.0.0
+        uses: irongut/CodeCoverageSummary@v1.3.0
         with:
-          path: coverage/lcov.info
-          min_coverage: 90
+          filename: ./coverage.xml
+          thresholds: 90
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         continue-on-error: true
