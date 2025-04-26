@@ -15,7 +15,7 @@ from .utils.utils import Utils
 
 
 def decode(
-    value: t.Optional[t.Union[str, t.Dict[str, t.Any]]],
+    value: t.Optional[t.Union[str, t.Mapping[str, t.Any]]],
     options: DecodeOptions = DecodeOptions(),
 ) -> t.Dict[str, t.Any]:
     """
