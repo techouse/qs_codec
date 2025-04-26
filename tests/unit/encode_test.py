@@ -54,15 +54,6 @@ class TestEncode:
         result = encode(data) if options is None else encode(data, options)
         assert result == expected
 
-    @staticmethod
-    def _encode_with_n(
-        value: t.Any,
-        charset: t.Optional[Charset] = None,
-        format: t.Optional[Format] = None,
-    ) -> str:
-        result: str = EncodeUtils.encode(value)
-        return f"{result}n" if isinstance(value, Decimal) else result
-
     _PI: Decimal = Decimal(math.pi)
 
     @pytest.mark.parametrize(
@@ -72,14 +63,22 @@ class TestEncode:
             pytest.param([_PI], None, f"0=3.141592653589793115997963468544185161590576171875", id="list-decimal"),
             pytest.param(
                 [_PI],
-                EncodeOptions(encoder=_encode_with_n),
+                EncodeOptions(
+                    encoder=lambda v, charset=None, format=None: (
+                        f"{EncodeUtils.encode(v)}n" if isinstance(v, Decimal) else EncodeUtils.encode(v)
+                    )
+                ),
                 f"0=3.141592653589793115997963468544185161590576171875n",
                 id="list-decimal-with-n",
             ),
             pytest.param({"a": _PI}, None, f"a=3.141592653589793115997963468544185161590576171875", id="dict-decimal"),
             pytest.param(
                 {"a": _PI},
-                EncodeOptions(encoder=_encode_with_n),
+                EncodeOptions(
+                    encoder=lambda v, charset=None, format=None: (
+                        f"{EncodeUtils.encode(v)}n" if isinstance(v, Decimal) else EncodeUtils.encode(v)
+                    )
+                ),
                 f"a=3.141592653589793115997963468544185161590576171875n",
                 id="dict-decimal-with-n",
             ),
@@ -91,7 +90,13 @@ class TestEncode:
             ),
             pytest.param(
                 {"a": [_PI]},
-                EncodeOptions(encode_values_only=True, list_format=ListFormat.BRACKETS, encoder=_encode_with_n),
+                EncodeOptions(
+                    encode_values_only=True,
+                    list_format=ListFormat.BRACKETS,
+                    encoder=lambda v, charset=None, format=None: (
+                        f"{EncodeUtils.encode(v)}n" if isinstance(v, Decimal) else EncodeUtils.encode(v)
+                    ),
+                ),
                 f"a[]=3.141592653589793115997963468544185161590576171875n",
                 id="brackets-list-decimal-with-n",
             ),
@@ -821,23 +826,18 @@ class TestEncode:
     def test_can_disable_uri_encoding(self, data: t.Mapping[str, t.Any], options: EncodeOptions, expected: str) -> None:
         assert encode(data, options) == expected
 
-    @staticmethod
-    def _sort_keys(a: str, b: str) -> int:
-        if a > b:
-            return 1
-        if a < b:
-            return -1
-        return 0
-
     @pytest.mark.parametrize(
         "data, options, expected",
         [
             pytest.param(
-                {"a": "c", "z": "y", "b": "f"}, EncodeOptions(sort=_sort_keys), "a=c&b=f&z=y", id="sort-simple"
+                {"a": "c", "z": "y", "b": "f"},
+                EncodeOptions(sort=lambda a, b: 1 if a > b else -1 if a < b else 0),
+                "a=c&b=f&z=y",
+                id="sort-simple",
             ),
             pytest.param(
                 {"a": "c", "z": {"j": "a", "i": "b"}, "b": "f"},
-                EncodeOptions(sort=_sort_keys),
+                EncodeOptions(sort=lambda a, b: 1 if a > b else -1 if a < b else 0),
                 "a=c&b=f&z%5Bi%5D=b&z%5Bj%5D=a",
                 id="sort-nested",
             ),
@@ -851,7 +851,7 @@ class TestEncode:
         [
             pytest.param(
                 {"a": "a", "z": {"zj": {"zjb": "zjb", "zja": "zja"}, "zi": {"zib": "zib", "zia": "zia"}}, "b": "b"},
-                EncodeOptions(sort=_sort_keys, encode=False),
+                EncodeOptions(sort=lambda a, b: 1 if a > b else -1 if a < b else 0, encode=False),
                 "a=a&b=b&z[zi][zia]=zia&z[zi][zib]=zib&z[zj][zja]=zja&z[zj][zjb]=zjb",
                 id="sort-at-depth-3-or-more",
             ),
