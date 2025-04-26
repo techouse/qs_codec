@@ -63,34 +63,36 @@ class TestEncode:
         result: str = EncodeUtils.encode(value)
         return f"{result}n" if isinstance(value, Decimal) else result
 
+    _PI: Decimal = Decimal(math.pi)
+
     @pytest.mark.parametrize(
         "data, options, expected",
         [
-            pytest.param(Decimal(math.pi), None, "", id="decimal-root"),
-            pytest.param([Decimal(math.pi)], None, f"0={Decimal(math.pi)}", id="list-decimal"),
+            pytest.param(_PI, None, "", id="decimal-root"),
+            pytest.param([_PI], None, f"0=3.141592653589793115997963468544185161590576171875", id="list-decimal"),
             pytest.param(
-                [Decimal(math.pi)],
+                [_PI],
                 EncodeOptions(encoder=_encode_with_n),
-                f"0={Decimal(math.pi)}n",
+                f"0=3.141592653589793115997963468544185161590576171875n",
                 id="list-decimal-with-n",
             ),
-            pytest.param({"a": Decimal(math.pi)}, None, f"a={Decimal(math.pi)}", id="dict-decimal"),
+            pytest.param({"a": _PI}, None, f"a=3.141592653589793115997963468544185161590576171875", id="dict-decimal"),
             pytest.param(
-                {"a": Decimal(math.pi)},
+                {"a": _PI},
                 EncodeOptions(encoder=_encode_with_n),
-                f"a={Decimal(math.pi)}n",
+                f"a=3.141592653589793115997963468544185161590576171875n",
                 id="dict-decimal-with-n",
             ),
             pytest.param(
-                {"a": [Decimal(math.pi)]},
+                {"a": [_PI]},
                 EncodeOptions(encode_values_only=True, list_format=ListFormat.BRACKETS),
-                f"a[]={Decimal(math.pi)}",
+                f"a[]=3.141592653589793115997963468544185161590576171875",
                 id="brackets-list-decimal",
             ),
             pytest.param(
-                {"a": [Decimal(math.pi)]},
+                {"a": [_PI]},
                 EncodeOptions(encode_values_only=True, list_format=ListFormat.BRACKETS, encoder=_encode_with_n),
-                f"a[]={Decimal(math.pi)}n",
+                f"a[]=3.141592653589793115997963468544185161590576171875n",
                 id="brackets-list-decimal-with-n",
             ),
         ],
