@@ -30,3 +30,11 @@ class TestWeakrefWithDictKeys:
         del foo
         assert len(d) == 0
         assert d.get(foo_copy) is None
+
+    def test_wrapper_hash_stable_over_lifetime(self) -> None:
+        # ensure that hash(w) == hash(w_copy) so lookups work
+        v = {"a": {"b": 2}}
+        w1 = WeakWrapper(v)
+        w2 = WeakWrapper(v)
+        assert hash(w1) == hash(w2)
+        assert w1 == w2
