@@ -44,7 +44,7 @@ class WeakWrapper:
 
     def __hash__(self) -> int:
         """Return the hash of the value."""
-        return hash(self._hash_recursive(self._proxy.value, seen=set(), stack=set()))
+        return self._hash_recursive(self._proxy.value, seen=set(), stack=set())
 
     # Recursive hash with cycle/Depth checks
     def _hash_recursive(
@@ -54,7 +54,7 @@ class WeakWrapper:
         stack: t.Set[int],
         depth: int = 0,
         max_depth: int = 400,  # default recursion limit
-    ) -> t.Union[t.Tuple[t.Any], t.Any]:
+    ) -> int:
         """Recursively hash a value."""
         vid = id(value)
         if vid in stack:
