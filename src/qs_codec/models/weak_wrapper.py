@@ -1,3 +1,5 @@
+"""A wrapper that allows weak references to be used as dictionary keys."""
+
 import typing as t
 import weakref
 from collections.abc import Mapping
@@ -17,14 +19,14 @@ class _Refable:
 
 @dataclass(frozen=True)
 class WeakWrapper:
-    """Weakly wraps *any* object (even dicts/lists) with
-    deep-content hashing and identity equality."""
+    """Weakly wraps *any* object (even dicts/lists) with deep-content hashing and identity equality."""
 
     _proxy: _Refable  # strong ref while the wrapper lives
     _value_id: int
     _wref: weakref.ReferenceType["_Refable"]  # weak ref for hash/GC callbacks
 
     def __init__(self, value: t.Any):
+        """Initialize the WeakWrapper with a value."""
         # obtain (or create) a shared proxy for this value
         proxy = _proxy_cache.get(id(value))
         if proxy is None:
@@ -37,9 +39,11 @@ class WeakWrapper:
 
     # Equality / hash
     def __eq__(self, other: object) -> bool:
+        """Compare two `WeakWrapper` objects."""
         return isinstance(other, WeakWrapper) and self._value_id == other._value_id
 
     def __hash__(self) -> int:
+        """Return the hash of the value."""
         return hash(self._hash_recursive(self._proxy.value, seen=set(), stack=set()))
 
     # Recursive hash with cycle/Depth checks
@@ -51,6 +55,7 @@ class WeakWrapper:
         depth: int = 0,
         max_depth: int = 400,  # default recursion limit
     ) -> t.Union[t.Tuple[t.Any], t.Any]:
+        """Recursively hash a value."""
         vid = id(value)
         if vid in stack:
             raise ValueError("Circular reference detected")
@@ -77,6 +82,7 @@ class WeakWrapper:
     # Helpful property
     @property
     def value(self) -> t.Any:
+        """Return the value of the weak reference."""
         proxy = self._wref()  # dereference weakly
         if proxy is None:
             raise ReferenceError("original object has been garbage-collected")
