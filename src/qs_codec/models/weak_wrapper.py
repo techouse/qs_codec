@@ -1,7 +1,8 @@
 import typing as t
 import weakref
-from dataclasses import dataclass
 from collections.abc import Mapping
+from dataclasses import dataclass
+
 
 # weak-value dictionary: values are kept **weakly**
 _proxy_cache: "weakref.WeakValueDictionary[int, _Refable]" = weakref.WeakValueDictionary()
