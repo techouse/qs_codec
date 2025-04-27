@@ -1,3 +1,15 @@
+## 1.1.2
+
+* [FEAT] **WeakWrapper** now fully supports using mutable objects (e.g. `dict`, `list`, `set`) as weak-keys  
+  * shared proxy layer stored in a `WeakValueDictionary` → automatic cleanup when the original object is GC’d  
+  * deep-content hashing + identity-based equality  
+  * safeguards for circular references and configurable depth limit
+* [FIX] prevent recursion crashes when hashing very deep or cyclic structures (raises `RecursionError` / `ValueError` with clear messages)
+* [CHORE] refactor `WeakWrapper` internals for clarity and performance
+* [CHORE] add an extensive WeakWrapper test-suite (proxy sharing, GC removal, stable hashes, error conditions)
+* [CHORE] tighten type-hints  
+  * use `weakref.ReferenceType[_Refable]`  
+
 ## 1.1.1
 
 * [CHORE] enhance type hints and improve code clarity ([#17](https://github.com/techouse/qs_codec/pull/17))
