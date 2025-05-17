@@ -726,6 +726,68 @@ class TestEncode:
 
         assert encode({"x": arr, "y": arr}, options=EncodeOptions(encode=False)) == "x[0]=a&y[0]=a"
 
+    def test_circular_reference_at_different_position(self) -> None:
+        # Create a structure where a circular reference is detected at a different position
+        # than the current step, which should trigger lines 152-155 and 157 in encode.py
+        a: t.Dict[str, t.Any] = {}
+        b: t.Dict[str, t.Any] = {"a": a}
+        c: t.Dict[str, t.Any] = {"b": b}
+        a["c"] = c  # This creates a circular reference: a -> c -> b -> a
+
+        # This should raise a ValueError with "Circular reference detected"
+        with pytest.raises(ValueError, match="Circular reference detected"):
+            encode({"root": a})
+
+    def test_default_parameter_assignments(self) -> None:
+        # Test default parameter assignments in _encode function (lines 133, 136, 139)
+        # We need to call _encode directly with None values for prefix, comma_round_trip, and formatter
+        from weakref import WeakKeyDictionary
+
+        from qs_codec.encode import _encode
+
+        # Create a simple value to encode
+        value = {"test": "value"}
+
+        # Call _encode with None values for prefix, comma_round_trip, and formatter
+        # This should use the default values and not raise any exceptions
+        result = _encode(
+            value=value,
+            is_undefined=False,
+            side_channel=WeakKeyDictionary(),
+            prefix=None,  # This will trigger line 133
+            comma_round_trip=None,  # This will trigger line 136
+            encoder=None,
+            serialize_date=lambda dt: dt.isoformat(),
+            sort=None,
+            filter=None,
+            formatter=None,  # This will trigger line 139
+        )
+
+        # Verify the result contains the expected key-value pair
+        assert result == ["[test]=value"]
+
+    def test_exception_in_getitem(self) -> None:
+        # Test that the code handles exceptions when accessing object properties
+        # This should trigger the try-except block in lines 242-246 of encode.py
+
+        class BrokenObject:
+            def __getitem__(self, key):
+                # Always raise an exception
+                raise Exception("Cannot access item")
+
+            def keys(self):
+                # Return a key that will trigger __getitem__
+                return ["test"]
+
+        # Create an instance of our broken object
+        obj = BrokenObject()
+
+        # Encode it - this should catch the exception and set _value_undefined = True
+        result = encode({"broken": obj})
+
+        # The result should be empty since the value is undefined
+        assert result == "broken="
+
     def test_non_circular_duplicated_references_can_still_work(self) -> None:
         hour_of_day: t.Dict[str, t.Any] = {"function": "hour_of_day"}
 
@@ -1059,6 +1121,16 @@ class TestEncode:
     )
     def test_charset_sentinel_option(self, data: t.Mapping[str, t.Any], options: EncodeOptions, expected: str) -> None:
         assert encode(data, options) == expected
+
+    def test_charset_sentinel_with_invalid_charset(self) -> None:
+        # Create a custom EncodeOptions with an invalid charset
+        options = EncodeOptions(charset_sentinel=True)
+        # Set the charset to an invalid value (not UTF8 or LATIN1)
+        options.charset = None  # type: ignore
+
+        # This should raise a ValueError
+        with pytest.raises(ValueError, match="Invalid charset"):
+            encode({"a": "test"}, options)
 
     def test_strict_null_handling_works_with_null_serialize_date(self) -> None:
         assert (

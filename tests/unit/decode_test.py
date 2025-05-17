@@ -1167,6 +1167,20 @@ class TestParameterList:
                 False,
                 id="unlimited-parameters",
             ),
+            pytest.param(
+                "a=1&b=2&c=3",
+                DecodeOptions(parameter_limit=0),
+                None,
+                True,
+                id="zero-parameter-limit",
+            ),
+            pytest.param(
+                "a=1&b=2&c=3",
+                DecodeOptions(parameter_limit=-1),
+                None,
+                True,
+                id="negative-parameter-limit",
+            ),
         ],
     )
     def test_parameter_limit(
@@ -1180,6 +1194,25 @@ class TestParameterList:
 
 
 class TestListLimit:
+
+    def test_current_list_length_calculation(self) -> None:
+        # Test for line 166 in decode.py
+        # This test creates a scenario where the current list length is calculated
+        # when a parent key is found in a list
+
+        # Create a query string with a nested array
+        query = "a[0][]=1&a[0][]=2&a[0][]=3"
+
+        # Decode with a reasonable list limit
+        options = DecodeOptions(list_limit=5, raise_on_limit_exceeded=True)
+        result = decode(query, options)
+        assert result == {"a": [["1", "2", "3"]]}
+
+        # Now decode with a list limit that would be exceeded
+        # This should raise a ValueError because we're trying to create a list with more items than allowed
+        options_limit = DecodeOptions(list_limit=2, raise_on_limit_exceeded=True)
+        with pytest.raises(ValueError, match="List limit exceeded"):
+            decode(query, options_limit)
 
     @pytest.mark.parametrize(
         "query, options, expected, raises_error",
@@ -1219,6 +1252,13 @@ class TestListLimit:
                 None,
                 True,
                 id="nested-list-limit-raise",
+            ),
+            pytest.param(
+                "a=1,2,3,4,5",
+                DecodeOptions(list_limit=3, raise_on_limit_exceeded=True, comma=True),
+                None,
+                True,
+                id="comma-separated-list-exceed-limit",
             ),
         ],
     )

@@ -548,6 +548,16 @@ class TestUtils:
     def test_merges_two_arrays_into_an_array(self) -> None:
         assert Utils.merge({"foo": ["baz"]}, {"foo": ["bar", "xyzzy"]}) == {"foo": ["baz", "bar", "xyzzy"]}
 
+    def test_merges_with_tuples(self) -> None:
+        # Test for lines 59 and 63 in utils.py
+        # Test merging when target is a tuple (should convert to list before extending)
+        result1 = Utils.merge({"foo": ("a", "b")}, {"foo": ["c", "d"]})
+        assert result1 == {"foo": ["a", "b", "c", "d"]}
+
+        # Test merging when target is a tuple and source is not a list/tuple (should convert to list before appending)
+        result2 = Utils.merge({"foo": ("a", "b")}, {"foo": "c"})
+        assert result2 == {"foo": ["a", "b", "c"]}
+
     def test_merges_object_into_array(self) -> None:
         assert Utils.merge({"foo": ["bar"]}, {"foo": {"baz": "xyzzy"}}) == {"foo": {"0": "bar", "baz": "xyzzy"}}
 
@@ -616,6 +626,17 @@ class TestUtils:
             "a": ["a", "b", "c"],
         }
 
+    def test_remove_undefined_from_list_with_tuple(self) -> None:
+        # Test for lines 148-149 in utils.py
+        # Create a list with a tuple that contains an Undefined value
+        test_list = ["a", ("b", Undefined(), "c"), "d"]
+
+        # Remove undefined values
+        Utils._remove_undefined_from_list(test_list)
+
+        # The tuple should be converted to a list with Undefined removed
+        assert test_list == ["a", ["b", "c"], "d"]
+
     def test_remove_undefined_from_map(self) -> None:
         map_with_undefined: t.Dict[str, t.Any] = {
             "a": {
@@ -633,6 +654,38 @@ class TestUtils:
                 "c": "c",
             },
         }
+
+    def test_remove_undefined_from_map_with_tuple(self) -> None:
+        # Test for lines 164-165 in utils.py
+        # Create a map with a tuple value that contains an Undefined value
+        test_map = {"a": "value", "b": ("item1", Undefined(), "item2")}
+
+        # Remove undefined values
+        Utils._remove_undefined_from_map(test_map)
+
+        # The tuple should be converted to a list with Undefined removed
+        assert test_map == {"a": "value", "b": ["item1", "item2"]}
+
+    def test_dicts_are_equal_with_non_dicts(self) -> None:
+        # Test for lines 189 and 192 in utils.py
+        # Test comparing a dict with a non-dict (should return False)
+        assert not Utils._dicts_are_equal({"a": 1}, "not a dict")
+
+        # Test comparing two non-dicts that are equal
+        assert Utils._dicts_are_equal("same", "same")
+
+        # Test comparing two non-dicts that are not equal
+        assert not Utils._dicts_are_equal("one", "two")
+
+    def test_is_non_nullish_primitive_catch_all(self) -> None:
+        # Test for line 226-228 in utils.py
+        # Create a custom class that doesn't match any of the explicit type checks
+        class CustomType:
+            pass
+
+        # This should trigger the check for isinstance(val, object) and not isinstance(val, (list, tuple, t.Mapping))
+        # which returns True for custom objects
+        assert Utils.is_non_nullish_primitive(CustomType())
 
     @pytest.mark.parametrize(
         "input_str, expected",

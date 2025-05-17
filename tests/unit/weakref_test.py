@@ -110,3 +110,21 @@ class TestWeakrefWithDictKeys:
 
         # cache entry gone
         assert cache_key not in _proxy_cache
+
+    def test_accessing_value_after_gc_raises_reference_error(self) -> None:
+        d: t.Dict[str, t.Any] = {"k": "v"}
+        wrapper = WeakWrapper(d)
+
+        # Get the weak reference
+        wref = wrapper._wref
+
+        # Manually set the weak reference to None to simulate garbage collection
+        # This is a bit of a hack, but it allows us to test the behavior
+        object.__setattr__(wrapper, "_wref", lambda: None)
+
+        # Accessing value should raise ReferenceError
+        with pytest.raises(ReferenceError, match="original object has been garbage-collected"):
+            _ = wrapper.value
+
+        # Restore the original weak reference to avoid affecting other tests
+        object.__setattr__(wrapper, "_wref", wref)
