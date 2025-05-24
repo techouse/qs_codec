@@ -35,6 +35,9 @@ def decode(
         _parse_query_string_values(value, options) if isinstance(value, str) else value
     )
 
+    if temp_obj is not None and options.parse_lists and 0 < options.list_limit < len(temp_obj):
+        options.parse_lists = False
+
     # Iterate over the keys and setup the new object
     if temp_obj:
         for key, val in temp_obj.items():

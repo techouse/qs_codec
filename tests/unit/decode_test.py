@@ -252,9 +252,7 @@ class TestDecode:
             pytest.param("a[]=b&a=c", None, {"a": ["b", "c"]}, id="explicit-first-mix-simple-second"),
             pytest.param("a[0]=b&a=c", None, {"a": ["b", "c"]}, id="indexed-list-first"),
             pytest.param("a=b&a[0]=c", None, {"a": ["b", "c"]}, id="simple-first-indexed-list-second"),
-            pytest.param(
-                "a[1]=b&a=c", DecodeOptions(list_limit=20), {"a": {"1": "b", "2": "c"}}, id="indexed-list-with-limit"
-            ),
+            pytest.param("a[1]=b&a=c", DecodeOptions(list_limit=20), {"a": ["b", "c"]}, id="indexed-list-with-limit"),
             pytest.param(
                 "a[]=b&a=c", DecodeOptions(list_limit=0), {"a": ["b", "c"]}, id="explicit-list-with-zero-limit"
             ),
@@ -292,6 +290,30 @@ class TestDecode:
             pytest.param("a[1]=c", DecodeOptions(list_limit=20), {"a": ["c"]}, id="list-limit-20"),
             pytest.param("a[1]=c", DecodeOptions(list_limit=0), {"a": {"1": "c"}}, id="list-limit-0"),
             pytest.param("a[1]=c", None, {"a": ["c"]}, id="default-behavior"),
+            pytest.param(
+                "a[0]=b&a[2]=c",
+                DecodeOptions(parse_lists=True),
+                {"a": ["b", "c"]},
+                id="list-starting-with-0-with-missing-index-parse-lists-true",
+            ),
+            pytest.param(
+                "a[0]=b&a[2]=c",
+                DecodeOptions(parse_lists=False),
+                {"a": {"0": "b", "2": "c"}},
+                id="list-starting-with-0-with-missing-index-parse-lists-false",
+            ),
+            pytest.param(
+                "a[1]=b&a[15]=c",
+                DecodeOptions(parse_lists=False),
+                {"a": {"1": "b", "15": "c"}},
+                id="list-starting-with-non-0-with-missing-index-parse-lists-false",
+            ),
+            pytest.param(
+                "a[1]=b&a[15]=c",
+                DecodeOptions(parse_lists=True),
+                {"a": ["b", "c"]},
+                id="list-starting-with-non-0-with-missing-index-parse-lists-false",
+            ),
         ],
     )
     def test_allows_to_specify_list_indices(
@@ -513,22 +535,18 @@ class TestDecode:
         assert result == expected
 
     @pytest.mark.parametrize(
-        "query, expected, not_expected",
+        "query, expected",
         [
-            pytest.param("a[10]=1&a[2]=2", {"a": {"10": "1", "2": "2"}}, {"a": ["2", "1"]}, id="sparse-list"),
-            pytest.param("a[1][b][2][c]=1", {"a": [{"b": [{"c": "1"}]}]}, None, id="nested-list-of-dicts"),
-            pytest.param("a[1][2][3][c]=1", {"a": [[[{"c": "1"}]]]}, None, id="deeper-nested-list"),
-            pytest.param("a[1][2][3][c][1]=1", {"a": [[[{"c": ["1"]}]]]}, None, id="deepest-nested-list"),
+            pytest.param("a[10]=1&a[2]=2", {"a": ["2", "1"]}, id="sparse-list"),
+            pytest.param("a[1][b][2][c]=1", {"a": [{"b": [{"c": "1"}]}]}, id="nested-list-of-dicts"),
+            pytest.param("a[1][2][3][c]=1", {"a": [[[{"c": "1"}]]]}, id="deeper-nested-list"),
+            pytest.param("a[1][2][3][c][1]=1", {"a": [[[{"c": ["1"]}]]]}, id="deepest-nested-list"),
         ],
     )
-    def test_compacts_sparse_lists(
-        self, query: str, expected: t.Mapping[str, t.Any], not_expected: t.Optional[t.Mapping[str, t.Any]]
-    ) -> None:
+    def test_compacts_sparse_lists(self, query: str, expected: t.Mapping[str, t.Any]) -> None:
         opts = DecodeOptions(list_limit=20)
         result = decode(query, opts)
         assert result == expected
-        if not_expected is not None:
-            assert result != not_expected
 
     @pytest.mark.parametrize(
         "query, expected",
