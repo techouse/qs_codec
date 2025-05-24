@@ -120,7 +120,7 @@ class TestDecoding:
         # Note that the only difference between an index in a `list` and a key in a `dict` is that the value between the
         # brackets must be a number to create a `list`. When creating `list`s with specific indices, **qs_codec** will compact
         # a sparse `list` to only the existing values preserving their order:
-        assert qs_codec.decode("a[1]=b&a[15]=c") == {"a": {"1": "b", "15": "c"}}
+        assert qs_codec.decode("a[1]=b&a[15]=c") == {"a": ["b", "c"]}
 
         # Note that an empty string is also a value, and will be preserved:
         assert qs_codec.decode("a[]=&a[]=b") == {"a": ["", "b"]}

@@ -38,7 +38,7 @@ class Utils:
                     else:
                         target_[len(target_)] = source
 
-                    if any(isinstance(value, Undefined) for value in target_.values()):
+                    if not options.parse_lists and any(isinstance(value, Undefined) for value in target_.values()):
                         target = {str(i): target_[i] for i in target_ if not isinstance(target_[i], Undefined)}
                     else:
                         target = list(filter(lambda el: not isinstance(el, Undefined), target_.values()))
