@@ -1,3 +1,7 @@
+## 1.1.3
+
+* [FIX] list with indexes always get parsed into dict ([#19](https://github.com/techouse/qs_codec/pull/19))
+
 ## 1.1.2
 
 * [FEAT] **WeakWrapper** now fully supports using mutable objects (e.g. `dict`, `list`, `set`) as weak-keys  
