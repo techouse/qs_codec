@@ -990,10 +990,7 @@ The default `format <https://techouse.github.io/qs_codec/qs_codec.models.html#qs
 
    import qs_codec as qs
 
-   assert qs.encode(
-       {'a': 'b c'},
-       qs.EncodeOptions(format=qs.Format.RFC3986)
-   ) == 'a=b%20c'
+   assert qs.encode({'a': 'b c'}) == 'a=b%20c'
 
    assert qs.encode(
        {'a': 'b c'},
