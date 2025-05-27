@@ -1,6 +1,10 @@
+## 1.1.4
+
+* [CHORE] update readme for clarity around RFC 3986 and RFC 1738 space encoding
+
 ## 1.1.3
 
-* [FIX] list with indexes always get parsed into dict ([#19](https://github.com/techouse/qs_codec/pull/19))
+* [FIX] fix list with indices always getting parsed into a dict ([#19](https://github.com/techouse/qs_codec/pull/19))
 
 ## 1.1.2
 
