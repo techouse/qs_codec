@@ -104,6 +104,9 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
     return prefix + joined if joined else ""
 
 
+# Alias for the `encode` function.
+dumps = encode
+
 _sentinel: WeakWrapper = WeakWrapper({})
 
 

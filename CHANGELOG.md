@@ -1,3 +1,8 @@
+## 1.1.5
+
+* [FEAT] add `load` and `loads` alias methods for `decode`
+* [FEAT] add `dump` and `dumps` alias methods for `encode`
+
 ## 1.1.4
 
 * [CHORE] update readme for clarity around RFC 3986 and RFC 1738 space encoding

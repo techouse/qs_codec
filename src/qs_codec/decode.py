@@ -47,6 +47,19 @@ def decode(
     return Utils.compact(obj)
 
 
+# Alias for decode function
+load = decode
+
+
+def loads(value: t.Optional[str], options: DecodeOptions = DecodeOptions()) -> t.Dict[str, t.Any]:
+    """
+    Alias for ``decode``. Decodes a query string into a ``Dict[str, Any]``.
+
+    Use ``decode`` if you want to pass a ``Dict[str, Any]``.
+    """
+    return decode(value, options)
+
+
 def _interpret_numeric_entities(value: str) -> str:
     return re.sub(r"&#(\d+);", lambda match: chr(int(match.group(1))), value)
 

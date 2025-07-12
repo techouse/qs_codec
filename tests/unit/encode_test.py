@@ -8,7 +8,7 @@ from urllib.parse import quote
 
 import pytest
 
-from qs_codec import Charset, EncodeOptions, Format, ListFormat, encode
+from qs_codec import Charset, EncodeOptions, Format, ListFormat, dumps, encode
 from qs_codec.models.undefined import Undefined
 from qs_codec.utils.encode_utils import EncodeUtils
 
@@ -29,6 +29,22 @@ class TestEncode:
     )
     def test_encodes_a_query_string_dict(self, decoded: t.Mapping, encoded: str) -> None:
         assert encode(decoded) == encoded
+
+    @pytest.mark.parametrize(
+        "decoded, encoded",
+        [
+            ({"a": "b"}, "a=b"),
+            ({"a": 1}, "a=1"),
+            ({"a": 1, "b": 2}, "a=1&b=2"),
+            ({"a": "A_Z"}, "a=A_Z"),
+            ({"a": "€"}, "a=%E2%82%AC"),
+            ({"a": ""}, "a=%EE%80%80"),
+            ({"a": "א"}, "a=%D7%90"),
+            ({"a": "𐐷"}, "a=%F0%90%90%B7"),
+        ],
+    )
+    def test_dumps_alias(self, decoded: t.Mapping, encoded: str) -> None:
+        assert dumps(decoded) == encoded
 
     @pytest.mark.parametrize(
         "decoded, encoded",

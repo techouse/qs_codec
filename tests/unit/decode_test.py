@@ -6,7 +6,7 @@ from sys import getsizeof
 
 import pytest
 
-from qs_codec import Charset, DecodeOptions, Duplicates, decode
+from qs_codec import Charset, DecodeOptions, Duplicates, decode, load, loads
 from qs_codec.utils.decode_utils import DecodeUtils
 
 
@@ -46,6 +46,68 @@ class TestDecode:
             assert decode(encoded, options=options) == decoded
         else:
             assert decode(encoded) == decoded
+
+    @pytest.mark.parametrize(
+        "encoded, decoded, options",
+        [
+            ("0=foo", {"0": "foo"}, None),
+            ("foo=c++", {"foo": "c  "}, None),
+            ("a[>=]=23", {"a": {">=": "23"}}, None),
+            ("a[<=>]==23", {"a": {"<=>": "=23"}}, None),
+            ("a[==]=23", {"a": {"==": "23"}}, None),
+            ("foo", {"foo": None}, DecodeOptions(strict_null_handling=True)),
+            ("foo", {"foo": ""}, None),
+            ("foo=", {"foo": ""}, None),
+            ("foo=bar", {"foo": "bar"}, None),
+            (" foo = bar = baz ", {" foo ": " bar = baz "}, None),
+            ("foo=bar=baz", {"foo": "bar=baz"}, None),
+            ("foo=bar&bar=baz", {"foo": "bar", "bar": "baz"}, None),
+            ("foo2=bar2&baz2=", {"foo2": "bar2", "baz2": ""}, None),
+            ("foo=bar&baz", {"foo": "bar", "baz": None}, DecodeOptions(strict_null_handling=True)),
+            (
+                "cht=p3&chd=t:60,40&chs=250x100&chl=Hello|World",
+                {"cht": "p3", "chd": "t:60,40", "chs": "250x100", "chl": "Hello|World"},
+                None,
+            ),
+        ],
+    )
+    def test_load_alias(self, encoded: str, decoded: t.Mapping[str, t.Any], options: t.Optional[DecodeOptions]) -> None:
+        if options is not None:
+            assert load(encoded, options=options) == decoded
+        else:
+            assert load(encoded) == decoded
+
+    @pytest.mark.parametrize(
+        "encoded, decoded, options",
+        [
+            ("0=foo", {"0": "foo"}, None),
+            ("foo=c++", {"foo": "c  "}, None),
+            ("a[>=]=23", {"a": {">=": "23"}}, None),
+            ("a[<=>]==23", {"a": {"<=>": "=23"}}, None),
+            ("a[==]=23", {"a": {"==": "23"}}, None),
+            ("foo", {"foo": None}, DecodeOptions(strict_null_handling=True)),
+            ("foo", {"foo": ""}, None),
+            ("foo=", {"foo": ""}, None),
+            ("foo=bar", {"foo": "bar"}, None),
+            (" foo = bar = baz ", {" foo ": " bar = baz "}, None),
+            ("foo=bar=baz", {"foo": "bar=baz"}, None),
+            ("foo=bar&bar=baz", {"foo": "bar", "bar": "baz"}, None),
+            ("foo2=bar2&baz2=", {"foo2": "bar2", "baz2": ""}, None),
+            ("foo=bar&baz", {"foo": "bar", "baz": None}, DecodeOptions(strict_null_handling=True)),
+            (
+                "cht=p3&chd=t:60,40&chs=250x100&chl=Hello|World",
+                {"cht": "p3", "chd": "t:60,40", "chs": "250x100", "chl": "Hello|World"},
+                None,
+            ),
+        ],
+    )
+    def test_loads_alias(
+        self, encoded: str, decoded: t.Mapping[str, t.Any], options: t.Optional[DecodeOptions]
+    ) -> None:
+        if options is not None:
+            assert loads(encoded, options=options) == decoded
+        else:
+            assert loads(encoded) == decoded
 
     @pytest.mark.parametrize(
         "encoded, decoded",
