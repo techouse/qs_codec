@@ -143,13 +143,14 @@ def _encode(
 
     obj: t.Any = deepcopy(value)
 
+    obj_wrapper = WeakWrapper(value)
     tmp_sc: t.Optional[WeakKeyDictionary] = side_channel
     step: int = 0
     find_flag: bool = False
 
     while (tmp_sc := tmp_sc.get(_sentinel)) and not find_flag:  # type: ignore [union-attr]
         # Where value last appeared in the ref tree
-        pos: t.Optional[int] = tmp_sc.get(WeakWrapper(value))
+        pos: t.Optional[int] = tmp_sc.get(obj_wrapper)
         step += 1
         if pos is not None:
             if pos == step:
@@ -161,17 +162,14 @@ def _encode(
 
     if callable(filter):
         obj = filter(prefix, obj)
-    elif isinstance(obj, datetime):
-        obj = serialize_date(obj) if callable(serialize_date) else obj.isoformat()
-    elif generate_array_prefix == ListFormat.COMMA.generator and isinstance(obj, (list, tuple)):
-        obj = Utils.apply(
-            obj,
-            lambda val: (
-                (serialize_date(val) if callable(serialize_date) else val.isoformat())
-                if isinstance(val, datetime)
-                else val
-            ),
-        )
+    else:
+        if isinstance(obj, datetime):
+            obj = serialize_date(obj) if callable(serialize_date) else obj.isoformat()
+        elif generate_array_prefix == ListFormat.COMMA.generator and isinstance(obj, (list, tuple)):
+            if callable(serialize_date):
+                obj = [serialize_date(x) if isinstance(x, datetime) else x for x in obj]
+            else:
+                obj = [x.isoformat() if isinstance(x, datetime) else x for x in obj]
 
     if not is_undefined and obj is None:
         if strict_null_handling:
@@ -259,7 +257,7 @@ def _encode(
             else f"{adjusted_prefix}{f'.{encoded_key}' if allow_dots else f'[{encoded_key}]'}"
         )
 
-        side_channel[WeakWrapper(value)] = step
+        side_channel[obj_wrapper] = step
         value_side_channel: WeakKeyDictionary = WeakKeyDictionary()
         value_side_channel[_sentinel] = side_channel
 
