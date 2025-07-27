@@ -143,7 +143,7 @@ def _encode(
 
     obj: t.Any = deepcopy(value)
 
-    obj_wrapper = WeakWrapper(value)
+    obj_wrapper: WeakWrapper = WeakWrapper(value)
     tmp_sc: t.Optional[WeakKeyDictionary] = side_channel
     step: int = 0
     find_flag: bool = False
