@@ -1,3 +1,7 @@
+## 1.1.6
+
+* [FIX] remove redundant `WeakWrapper` instances in `encode`
+
 ## 1.1.5
 
 * [FEAT] add `load` and `loads` alias methods for `decode`
