@@ -4,13 +4,12 @@ import re
 import typing as t
 from math import isinf
 
-from regex import regex
-
 from .enums.charset import Charset
 from .enums.duplicates import Duplicates
 from .enums.sentinel import Sentinel
 from .models.decode_options import DecodeOptions
 from .models.undefined import Undefined
+from .utils.decode_utils import DecodeUtils
 from .utils.utils import Utils
 
 
@@ -228,34 +227,13 @@ def _parse_object(
 
 def _parse_keys(given_key: t.Optional[str], val: t.Any, options: DecodeOptions, values_parsed: bool) -> t.Any:
     if not given_key:
-        return
+        return None
 
-    # Transform dot notation to bracket notation
-    key: str = re.sub(r"\.([^.[]+)", r"[\1]", given_key) if options.allow_dots else given_key
-
-    # The regex chunks
-    brackets: regex.Pattern[str] = regex.compile(r"\[(?:[^\[\]]|(?R))*\]")
-
-    # Get the parent
-    segment: t.Optional[regex.Match] = brackets.search(key) if options.depth > 0 else None
-    parent: str = key[0 : segment.start()] if segment is not None else key
-
-    # Stash the parent if it exists
-    keys: t.List[str] = [parent] if parent else []
-
-    # Loop through children appending to the array until we hit depth
-    i: int = 0
-    while options.depth > 0 and (segment := brackets.search(key)) is not None and i < options.depth:
-        i += 1
-        if segment is not None:
-            keys.append(segment.group())
-            # Update the key to start searching from the next position
-            key = key[segment.end() :]
-
-    # If there's a remainder, just add whatever is left
-    if segment is not None:
-        if options.strict_depth:
-            raise IndexError(f"Input depth exceeded depth option of {options.depth} and strict_depth is True")
-        keys.append(f"[{key[segment.start():]}]")
+    keys: t.List[str] = DecodeUtils.split_key_into_segments(
+        original_key=given_key,
+        allow_dots=options.allow_dots,
+        max_depth=options.depth,
+        strict_depth=options.strict_depth,
+    )
 
     return _parse_object(keys, val, options, values_parsed)
