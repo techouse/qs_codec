@@ -37,10 +37,6 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Software Development :: Libraries",
 ]
-dependencies = [
-    "regex>=2024.11.6",
-    "types-regex>=2024.11.6.20250305",
-]
 dynamic = ["version"]
 
 [project.urls]
