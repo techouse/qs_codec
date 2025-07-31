@@ -41,6 +41,11 @@ def decode(
     if temp_obj:
         for key, val in temp_obj.items():
             new_obj: t.Any = _parse_keys(key, val, options, isinstance(value, str))
+
+            if not obj and isinstance(new_obj, dict):
+                obj = new_obj
+                continue
+
             obj = Utils.merge(obj, new_obj, options)  # type: ignore [assignment]
 
     return Utils.compact(obj)
