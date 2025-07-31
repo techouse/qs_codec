@@ -1,3 +1,7 @@
+## 1.1.7
+
+* [CHORE] optimize `decode` performance
+
 ## 1.1.6
 
 * [FIX] remove redundant `WeakWrapper` instances in `encode`
