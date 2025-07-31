@@ -2,6 +2,7 @@
 
 import copy
 import typing as t
+from collections import deque
 from datetime import datetime, timedelta
 from decimal import Decimal
 from enum import Enum
@@ -107,31 +108,35 @@ class Utils:
         }
 
     @staticmethod
-    def compact(value: t.Dict[str, t.Any]) -> t.Dict[str, t.Any]:
-        """Remove all `Undefined` values from a dictionary."""
-        queue: t.List[t.Dict[str, t.Any]] = [{"obj": {"o": value}, "prop": "o"}]
-        refs: t.List[t.Any] = []
+    def compact(root: t.Dict) -> t.Dict:
+        """Remove all instances of Undefined from the object."""
+        stack: deque[t.Union[t.Dict, t.List]] = deque([root])
+        visited: t.Set[int] = {id(root)}
 
-        for i in range(len(queue)):  # pylint: disable=C0200
-            item: t.Mapping[t.Any, t.Any] = queue[i]
-            obj: t.Mapping[t.Any, t.Any] = item["obj"][item["prop"]]
-
-            keys: t.List[t.Any] = list(obj.keys())
-            for key in keys:
-                val = obj.get(key)
-
-                if (
-                    val is not None
-                    and not isinstance(val, Undefined)
-                    and isinstance(val, t.Mapping)
-                    and val not in refs
-                ):
-                    queue.append({"obj": obj, "prop": key})
-                    refs.append(val)
-
-        Utils._remove_undefined_from_map(value)
-
-        return value
+        while stack:
+            node: t.Union[t.Dict, t.List] = stack.pop()
+            if isinstance(node, dict):
+                # copy keys to allow deletion during iteration
+                for k in list(node.keys()):
+                    v: object = node[k]
+                    if isinstance(v, Undefined):  # whatever your sentinel class is
+                        del node[k]
+                    elif isinstance(v, (dict, list)):
+                        if id(v) not in visited:
+                            visited.add(id(v))
+                            stack.append(v)
+            elif isinstance(node, list):
+                i: int = 0
+                while i < len(node):
+                    v = node[i]
+                    if isinstance(v, Undefined):
+                        del node[i]
+                    else:
+                        if isinstance(v, (dict, list)) and id(v) not in visited:
+                            visited.add(id(v))
+                            stack.append(v)
+                        i += 1
+        return root
 
     @staticmethod
     def _remove_undefined_from_list(value: t.List[t.Any]) -> None:
