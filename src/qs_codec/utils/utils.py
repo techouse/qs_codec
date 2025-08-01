@@ -108,8 +108,8 @@ class Utils:
         }
 
     @staticmethod
-    def compact(root: t.Dict) -> t.Dict:
-        """Remove all instances of Undefined from the object."""
+    def compact(root: t.Dict[str, t.Any]) -> t.Dict[str, t.Any]:
+        """Remove all instances of `Undefined` from a dictionary."""
         stack: deque[t.Union[t.Dict, t.List]] = deque([root])
         visited: t.Set[int] = {id(root)}
 
