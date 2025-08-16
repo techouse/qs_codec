@@ -2,6 +2,7 @@
 
 import reprlib
 import typing as t
+from threading import RLock
 from weakref import ReferenceType, WeakValueDictionary, ref
 
 
@@ -10,6 +11,7 @@ __all__ = ["WeakWrapper", "_proxy_cache"]
 
 # Exported for tests
 _proxy_cache: "WeakValueDictionary[int, _Proxy]" = WeakValueDictionary()
+_proxy_cache_lock = RLock()
 
 
 class _Proxy:
@@ -30,10 +32,14 @@ def _get_proxy(value: t.Any) -> "_Proxy":
     """Return a per-object proxy, cached by id(value)."""
     key = id(value)
     proxy = _proxy_cache.get(key)
-    if proxy is None:
-        proxy = _Proxy(value)
-        _proxy_cache[key] = proxy
-    return proxy
+    if proxy is not None:
+        return proxy
+    with _proxy_cache_lock:
+        proxy = _proxy_cache.get(key)
+        if proxy is None:
+            proxy = _Proxy(value)
+            _proxy_cache[key] = proxy
+        return proxy
 
 
 def _deep_hash(
