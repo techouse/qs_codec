@@ -1,3 +1,14 @@
+## 1.1.8
+
+* [FIX] fix stable hashing for mappings and sets by sorting on hashed keys and elements to prevent ordering errors
+* [FIX] fix percent-encoding to operate on UTF-16 code units for accurate surrogate pair handling and JS compatibility
+* [FIX] handle surrogate pairs only when valid high+low combination is present in UTF-8 encoding
+* [FIX] replace code_unit_at with ord for direct code unit retrieval in EncodeUtils methods
+* [FIX] fix WeakWrapper equality to compare underlying object identity instead of proxy instance
+* [FIX] ensure thread-safe access to _proxy_cache with RLock in get_proxy
+* [CHORE] add tests for EncodeUtils._encode_string with RFC3986 format and emoji handling
+* [CHORE] update documentation
+
 ## 1.1.7
 
 * [CHORE] optimize `decode` performance
