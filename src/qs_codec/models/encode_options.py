@@ -85,7 +85,7 @@ class EncodeOptions:
     """Hook to stringify `datetime` values before encoding; return `None` to delegate to `encoder` (default ISO‑8601 via `EncodeUtils.serialize_date`)."""
 
     encoder: t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str] = field(  # type: ignore [assignment]
-        default_factory=EncodeUtils.encode  # type: ignore [arg-type]
+        default=EncodeUtils.encode, init=False, repr=False
     )
     """Custom scalar encoder. Signature: `(value, charset|None, format|None) -> str`.
     Note: when `encode=False`, this is bypassed and values are joined without
@@ -123,6 +123,8 @@ class EncodeOptions:
         - Default `encode_dot_in_keys` to `False` when unset.
         - Map deprecated `indices` to `list_format` for backward compatibility.
         """
+        if not hasattr(self, "_encoder") or self._encoder is None:
+            self._encoder = EncodeUtils.encode
         if self.allow_dots is None:
             self.allow_dots = self.encode_dot_in_keys is True or False
         if self.encode_dot_in_keys is None:
