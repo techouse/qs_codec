@@ -86,6 +86,7 @@ jobs:
           env_vars: OS,PYTHON
           verbose: true
       - name: Upload coverage to Codacy
+        continue-on-error: true
         uses: codacy/codacy-coverage-reporter-action@v1
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         with:
