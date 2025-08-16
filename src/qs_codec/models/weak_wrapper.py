@@ -147,8 +147,8 @@ class WeakWrapper:
         """Check equality by comparing the proxy identity."""
         if not isinstance(other, WeakWrapper):
             return NotImplemented
-        # Same proxy instance => same wrapped object
-        return self._proxy is other._proxy
+        # Same underlying object => same wrapper identity
+        return self._proxy.value is other._proxy.value
 
     def __hash__(self) -> int:
         """Return a deep hash of the wrapped value."""
