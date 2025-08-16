@@ -1,19 +1,16 @@
 """Query‑string *encoder* (stringifier).
 
-This module converts Python mappings and sequences into a percent‑encoded
-query string with feature parity to the Node.js `qs` package where it makes
-sense for Python. It supports:
+This module converts Python mappings and sequences into a percent‑encoded query string with feature parity to the
+Node.js `qs` package where it makes sense for Python. It supports:
 
 - Stable, deterministic key ordering with an optional custom comparator.
-- Multiple list encodings (indices, brackets, repeat key, comma) including the
-  "comma round‑trip" behavior to preserve single‑element lists.
+- Multiple list encodings (indices, brackets, repeat key, comma) including the "comma round‑trip" behavior to preserve single‑element lists.
 - Custom per‑scalar encoder and `datetime` serializer hooks.
 - RFC 3986 vs RFC 1738 formatting and optional charset sentinels.
 - Dots vs brackets in key paths (`allow_dots`, `encode_dot_in_keys`).
 - Strict/null handling, empty‑list emission, and cycle detection.
 
-Nothing in this module mutates caller objects: inputs are shallow‑normalized
-and deep‑copied only where safe/necessary to honor options.
+Nothing in this module mutates caller objects: inputs are shallow‑normalized and deep‑copied only where safe/necessary to honor options.
 """
 
 import typing as t
@@ -44,14 +41,12 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
         options: Encoding behavior (parity with the Node.js `qs` API).
 
     Returns:
-        The encoded query string (possibly prefixed with "?" if requested),
-        or an empty string when there is nothing to encode.
+        The encoded query string (possibly prefixed with "?" if requested), or an empty string when there is nothing to encode.
 
     Notes:
-        - Caller input is not mutated. When a mapping is provided it is
-          deep-copied; sequences are projected to a temporary mapping.
+        - Caller input is not mutated. When a mapping is provided it is deep-copied; sequences are projected to a temporary mapping.
         - If a callable `filter` is provided, it can transform the root object.
-          If an iterable filter is provided, it selects which *root* keys to emit.
+        - If an iterable filter is provided, it selects which *root* keys to emit.
     """
     # Treat `None` as "nothing to encode".
     if value is None:
@@ -190,8 +185,7 @@ def _encode(
       * a list/tuple of tokens (strings) to be appended to the parent list, or
       * a single token string (when a scalar is reached).
 
-    It threads a *side-channel* (a chained `WeakKeyDictionary`) through recursion
-    to detect cycles by remembering where each visited object last appeared.
+    It threads a *side-channel* (a chained `WeakKeyDictionary`) through recursion to detect cycles by remembering where each visited object last appeared.
 
     Args:
         value: Current subtree value.

@@ -11,7 +11,7 @@ A query string encoding and decoding library for Python.
 Ported from `qs <https://www.npmjs.com/package/qs>`__ for JavaScript.
 
 |PyPI - Version| |PyPI - Downloads| |PyPI - Status| |PyPI - Python Version| |PyPI - Format| |Black|
-|Test| |CodeQL| |Publish| |Docs| |codecov| |Codacy| |Black| |flake8| |mypy| |pylint| |isort| |bandit|
+|Test| |CodeQL| |Publish| |Docs| |codecov| |Codacy| |flake8| |mypy| |pylint| |isort| |bandit|
 |License| |Contributor Covenant| |GitHub Sponsors| |GitHub Repo stars|
 
 Usage

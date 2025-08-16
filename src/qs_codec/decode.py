@@ -38,8 +38,7 @@ def decode(
         Either a raw query string (``str``) or an already-parsed mapping (``Mapping[str, Any]``).
         Passing a mapping is useful in tests or when a custom tokenizer is used upstream.
     options:
-        ``DecodeOptions`` controlling delimiter, duplicates policy, list & depth limits,
-        dot-notation, decoding charset, and more.
+        ``DecodeOptions`` controlling delimiter, duplicates policy, list & depth limits, dot-notation, decoding charset, and more.
 
     Returns
     -------
@@ -49,15 +48,12 @@ def decode(
     Raises
     ------
     ValueError
-        If ``value`` is neither ``str`` nor ``Mapping``, or when limits are violated under
-        ``raise_on_limit_exceeded=True``.
+        If ``value`` is neither ``str`` nor ``Mapping``, or when limits are violated under ``raise_on_limit_exceeded=True``.
 
     Notes
     -----
     - Empty/falsey ``value`` returns an empty dict.
-    - When the *number of top-level tokens* exceeds ``list_limit`` and ``parse_lists`` is enabled,
-      the parser temporarily **disables list parsing** for this invocation to avoid quadratic work.
-      This mirrors the behavior of other ports and keeps large flat query strings efficient.
+    - When the *number of top-level tokens* exceeds ``list_limit`` and ``parse_lists`` is enabled, the parser temporarily **disables list parsing** for this invocation to avoid quadratic work. This mirrors the behavior of other ports and keeps large flat query strings efficient.
     """
     obj: t.Dict[str, t.Any] = {}
 
@@ -120,8 +116,7 @@ def _parse_array_value(value: t.Any, options: DecodeOptions, current_list_length
     Behavior
     --------
     - If `comma=True` and `value` is a string that contains commas, split into a list.
-    - Otherwise, enforce the per-list length limit by comparing `current_list_length` to
-      `options.list_limit`. When `raise_on_limit_exceeded=True`, violations raise `ValueError`.
+    - Otherwise, enforce the per-list length limit by comparing `current_list_length` to `options.list_limit`. When `raise_on_limit_exceeded=True`, violations raise `ValueError`.
 
     Returns either the original value or a list of values, without decoding (that happens later).
     """
@@ -158,8 +153,7 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
         * Handle empty brackets ``[]`` as list markers.
         * Merge duplicate keys according to ``duplicates`` policy.
 
-    The output is a *flat* dict (keys are full key-path strings). Higher-level structure is
-    constructed later by ``_parse_keys`` / ``_parse_object``.
+    The output is a *flat* dict (keys are full key-path strings). Higher-level structure is constructed later by ``_parse_keys`` / ``_parse_object``.
     """
     obj: t.Dict[str, t.Any] = {}
 
@@ -274,8 +268,7 @@ def _parse_object(
     -----
     - Builds lists when encountering ``[]`` (respecting ``allow_empty_lists`` and null handling).
     - Converts bracketed numeric segments into list indices when allowed and within ``list_limit``.
-    - When list parsing is disabled and an empty segment is encountered, coerces to ``{"0": leaf}``
-      to preserve round-trippability with other ports.
+    - When list parsing is disabled and an empty segment is encountered, coerces to ``{"0": leaf}`` to preserve round-trippability with other ports.
     """
     current_list_length: int = 0
 

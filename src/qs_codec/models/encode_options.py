@@ -1,18 +1,14 @@
 """Configuration object for `encode`.
 
-`EncodeOptions` mirrors the behavior and defaults of the reference `qs` implementation
-(ported across Techouse repos). It controls how Python values (dicts/lists/scalars)
-are turned into a URL-encoded query string. The options here are intentionally
-close to the Node.js library so behavior is predictable across languages.
+`EncodeOptions` mirrors the behavior and defaults of the reference `qs` implementation. It controls how Python values
+(dicts/lists/scalars) are turned into a URL-encoded query string. The options here are intentionally close to the Node.js
+library so behavior is predictable across languages.
 
 Key interactions to be aware of:
-- `allow_dots` vs `encode_dot_in_keys`: when unspecified, `allow_dots` mirrors the
-  value of `encode_dot_in_keys` (see `__post_init__`).
+- `allow_dots` vs `encode_dot_in_keys`: when unspecified, `allow_dots` mirrors the value of `encode_dot_in_keys` (see `__post_init__`).
 - `indices` is deprecated and mapped to `list_format` for parity with newer ports.
-- `encoder` and `serialize_date` let you customize scalar/date serialization,
-  while `encode=False` short-circuits the encoder entirely.
-- `sort` may return -1/0/+1 (like `strcmp`/`NSComparisonResult.rawValue`) to
-  deterministically order keys.
+- `encoder` and `serialize_date` let you customize scalar/date serialization, while `encode=False` short-circuits the encoder entirely.
+- `sort` may return -1/0/+1 (like `strcmp`/`NSComparisonResult.rawValue`) to deterministically order keys.
 """
 
 import typing as t
@@ -74,7 +70,7 @@ class EncodeOptions:
     filter: t.Optional[t.Union[t.Callable, t.List[t.Union[str, int]]]] = field(default=None)
     """Restrict which keys get included.
     - If a callable is provided, it is invoked for each key and should return the
-      replacement value (or `None` to drop when `skip_nulls` applies).
+    replacement value (or `None` to drop when `skip_nulls` applies).
     - If a list is provided, only those keys/indices are retained.
     """
 

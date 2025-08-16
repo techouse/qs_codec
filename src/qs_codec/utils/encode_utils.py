@@ -39,12 +39,10 @@ class EncodeUtils:
     ) -> str:
         """Emulate the legacy JavaScript escaping behavior.
 
-        This function operates on UTF‑16 *code units* to emulate JavaScript's legacy
-        `%uXXXX` behavior. Non‑BMP code points are first expanded into surrogate
-        pairs via `_to_surrogates`, then each code unit is processed.
+        This function operates on UTF‑16 *code units* to emulate JavaScript's legacy `%uXXXX` behavior. Non‑BMP code
+        points are first expanded into surrogate pairs via `_to_surrogates`, then each code unit is processed.
 
-        - Safe set: when `format == Format.RFC1738`, the characters `(` and `)` are
-          additionally treated as safe. Otherwise, the RFC3986 safe set is used.
+        - Safe set: when `format == Format.RFC1738`, the characters `(` and `)` are additionally treated as safe. Otherwise, the RFC3986 safe set is used.
         - ASCII characters in the safe set are emitted unchanged.
         - Code units &lt; 256 are emitted as `%XX`.
         - Other code units are emitted as `%uXXXX`.
@@ -90,10 +88,8 @@ class EncodeUtils:
     ) -> str:
         """Encode a scalar value to a URL‑encoded string.
 
-        - Accepts numbers, `Decimal`, `Enum`, `str`, `bool`, and `bytes`. Any other
-          type (including `None`) yields an empty string, matching the Node `qs` behavior.
-        - For `Charset.LATIN1`, the output mirrors the JS `%uXXXX` + numeric entity
-          trick so the result can be safely transported as latin‑1.
+        - Accepts numbers, `Decimal`, `Enum`, `str`, `bool`, and `bytes`. Any other type (including `None`) yields an empty string, matching the Node `qs` behavior.
+        - For `Charset.LATIN1`, the output mirrors the JS `%uXXXX` + numeric entity trick so the result can be safely transported as latin‑1.
         - Otherwise, values are encoded as UTF‑8 using `_encode_string`.
         """
         if value is None or not isinstance(value, (int, float, Decimal, Enum, str, bool, bytes)):
@@ -136,9 +132,8 @@ class EncodeUtils:
     def _encode_string(cls, string: str, format: t.Optional[Format]) -> str:
         """Percent-encode `string` per RFC3986 or RFC1738, operating on UTF-16 code units.
 
-        We first expand non-BMP code points into surrogate pairs so that indexing and
-        length checks are done in *code units*, matching JavaScript semantics. We then
-        walk the string with a manual index, skipping the low surrogate when we emit a
+        We first expand non-BMP code points into surrogate pairs so that indexing and length checks are done in *code units*,
+        matching JavaScript semantics. We then walk the string with a manual index, skipping the low surrogate when we emit a
         surrogate pair.
         """
         # Work on UTF-16 code units for JS parity.
@@ -237,9 +232,8 @@ class EncodeUtils:
     def _to_surrogates(string: str) -> str:
         """Expand non‑BMP code points (code point &gt; 0xFFFF) into UTF‑16 surrogate pairs.
 
-        This mirrors how JavaScript strings store characters, allowing compatibility
-        with legacy `%uXXXX` encoding paths and consistent behavior with the Node `qs`
-        implementation.
+        This mirrors how JavaScript strings store characters, allowing compatibility with legacy `%uXXXX` encoding paths
+        and consistent behavior with the Node `qs` implementation.
         """
         buffer: t.List[str] = []
 

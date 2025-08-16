@@ -20,14 +20,6 @@ qs\_codec.utils.encode\_utils module
    :undoc-members:
    :show-inheritance:
 
-qs\_codec.utils.str\_utils module
----------------------------------
-
-.. automodule:: qs_codec.utils.str_utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 qs\_codec.utils.utils module
 ----------------------------
 

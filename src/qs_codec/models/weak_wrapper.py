@@ -17,8 +17,7 @@ _proxy_cache_lock = RLock()
 class _Proxy:
     """Container for the original object.
 
-    NOTE: Proxies must be weak-referenceable because the cache holds them
-    in a WeakValueDictionary. That requires "__weakref__" in __slots__.
+    NOTE: Proxies must be weak-referenceable because the cache holds them in a WeakValueDictionary. That requires "__weakref__" in __slots__.
     """
 
     __slots__ = ("value", "__weakref__")

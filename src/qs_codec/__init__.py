@@ -1,5 +1,5 @@
 """
-qs_codec — Query string encoding/decoding for Python.
+Query string encoding/decoding for Python.
 
 This package is a Python port of the popular `qs` library for JavaScript/Node.js.
 It strives to match `qs` semantics and edge cases — including list/array formats,

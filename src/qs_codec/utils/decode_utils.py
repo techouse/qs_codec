@@ -3,8 +3,7 @@
 This mirrors the semantics of the Node `qs` library:
 
 - Decoding handles both UTF‑8 and Latin‑1 code paths.
-- Key splitting keeps bracket groups *balanced* and optionally treats dots
-  as path separators when ``allow_dots=True``.
+- Key splitting keeps bracket groups *balanced* and optionally treats dots as path separators when ``allow_dots=True``.
 """
 
 import re
@@ -68,13 +67,16 @@ class DecodeUtils:
         """Decode a URL‑encoded scalar.
 
         Behavior:
-        - Always replace ``+`` with a literal space *before* decoding.
-        - For ``Charset.LATIN1``: unescape only ``%XX`` byte sequences using
-          :meth:`unescape` (to mimic older browser/JS behavior). ``%uXXXX``
-          sequences are left untouched here.
-        - For UTF‑8 (default): defer to :func:`urllib.parse.unquote`.
+        - Replace ``+`` with a literal space *before* decoding.
+        - If ``charset`` is :data:`~qs_codec.enums.charset.Charset.LATIN1`,
+        replace only ``%XX`` byte sequences using :meth:`DecodeUtils.unescape`.
+        ``%uXXXX`` sequences are left as‑is here to mimic older browser/JS behavior.
+        - Otherwise (UTF‑8), defer to :func:`urllib.parse.unquote`.
 
-        Returns ``None`` when the input is ``None``.
+        Returns
+        -------
+        Optional[str]
+            ``None`` when the input is ``None``.
         """
         if string is None:
             return None
@@ -103,18 +105,11 @@ class DecodeUtils:
         """
         Split a composite key into *balanced* bracket segments.
 
-        - If ``allow_dots`` is True, convert dots to bracket groups first
-          (``a.b[c]`` → ``a[b][c]``) while leaving existing brackets intact.
-        - The *parent* (non‑bracket) prefix becomes the first segment, e.g.
-          ``"a[b][c]"`` → ``["a", "[b]", "[c]"]``.
-        - Bracket groups are *balanced* using a counter so nested brackets
-          within a single group (e.g. ``"[with[inner]]"``) are treated as one
-          segment.
-        - When ``max_depth <= 0``, no splitting occurs; the key is returned as
-          a single segment (qs semantics).
-        - If there are more groups beyond ``max_depth`` and ``strict_depth`` is
-          True, an ``IndexError`` is raised. Otherwise, the remainder is added
-          as one final segment (again mirroring qs).
+        - If ``allow_dots`` is True, convert dots to bracket groups first (``a.b[c]`` → ``a[b][c]``) while leaving existing brackets intact.
+        - The *parent* (non‑bracket) prefix becomes the first segment, e.g. ``"a[b][c]"`` → ``["a", "[b]", "[c]"]``.
+        - Bracket groups are *balanced* using a counter so nested brackets within a single group (e.g. ``"[with[inner]]"``) are treated as one segment.
+        - When ``max_depth <= 0``, no splitting occurs; the key is returned as a single segment (qs semantics).
+        - If there are more groups beyond ``max_depth`` and ``strict_depth`` is True, an ``IndexError`` is raised. Otherwise, the remainder is added as one final segment (again mirroring qs).
 
         This runs in O(n) time over the key string.
         """

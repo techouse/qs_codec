@@ -1,9 +1,8 @@
 """
 Utility helpers shared across the `qs_codec` decode/encode internals.
 
-The functions in this module are intentionally small, allocation‑aware, and
-careful about container mutation to match the behavior (and performance
-characteristics) of the original JavaScript `qs` library.
+The functions in this module are intentionally small, allocation‑aware, and careful about container mutation to match the
+behavior (and performance characteristics) of the original JavaScript `qs` library.
 
 Key responsibilities:
 - Merging decoded key/value pairs into nested Python containers (`merge`)
@@ -13,12 +12,9 @@ Key responsibilities:
 - Primitive checks used by the encoder (`is_non_nullish_primitive`)
 
 Notes:
-- `Undefined` marks entries that should be *omitted* from output structures.
-  We remove these in place where possible to minimize allocations.
-- Many helpers accept both `list` and `tuple`; tuples are converted to lists
-  on mutation because Python tuples are immutable.
-- Several routines use an object‑identity `visited` set to avoid infinite
-  recursion when user inputs contain cycles.
+- `Undefined` marks entries that should be *omitted* from output structures. We remove these in place where possible to minimize allocations.
+- Many helpers accept both `list` and `tuple`; tuples are converted to lists on mutation because Python tuples are immutable.
+- Several routines use an object‑identity `visited` set to avoid infinite recursion when user inputs contain cycles.
 """
 
 import copy
@@ -36,8 +32,8 @@ class Utils:
     """
     Namespace container for stateless utility routines.
 
-    All methods are `@staticmethod`s to keep call sites simple and to make the
-    functions easy to reuse across modules without constructing objects.
+    All methods are `@staticmethod`s to keep call sites simple and to make the functions easy to reuse across modules
+    without constructing objects.
     """
 
     @staticmethod
@@ -47,32 +43,42 @@ class Utils:
         options: t.Optional[DecodeOptions] = None,
     ) -> t.Union[t.Dict[str, t.Any], t.List[t.Any], t.Tuple[t.Any], t.Any]:
         """
-        Merge two containers (mapping / list / tuple) or values.
+        Merge `source` into `target` in a qs‑compatible way.
 
-        Semantics are aligned with the `qs` family:
-        - When `source` is not a mapping:
-            * If `target` is a sequence, append/extend while skipping `Undefined`.
-            * If `target` is a mapping, coerce the sequence to a mapping of string
-              indices and update the target.
-            * Otherwise, return a two‑element list `[target, source]` (skipping
-              `Undefined` where applicable).
-        - When `source` is a mapping:
-            * If `target` is not a mapping, coerce `target` to an index‑keyed mapping
-              (if it is a sequence) and merge recursively.
-            * If `target` is a mapping, deep‑merge keys, recursing where keys collide.
+        This function mirrors how the original JavaScript `qs` library builds nested structures while parsing query strings.
+        It accepts mappings, sequences (``list`` / ``tuple``), and scalars on either side and returns a merged value.
 
-        `DecodeOptions` influence list handling:
-        - If `options.parse_lists` is False and we must inject into a list that
-          already contains `Undefined`, we promote that list to a dict with string
-          indices so keys can be addressed deterministically.
+        Rules (high level)
+        ------------------
+        - If `source` is ``None``: return `target` unchanged.
+        - If `source` is **not** a mapping:
+          * `target` is a sequence → append/extend, skipping :class:`Undefined`.
+          * `target` is a mapping → write items from the sequence under string indices ("0", "1", …).
+          * otherwise → return ``[target, source]`` (skipping :class:`Undefined` where applicable).
+        - If `source` **is** a mapping:
+          * `target` is not a mapping → if `target` is a sequence, coerce it to an index‑keyed dict and merge; otherwise, concatenate as a list ``[target, source]`` while skipping :class:`Undefined`.
+          * `target` is a mapping → deep‑merge keys; where keys collide, merge values recursively.
 
-        Args:
-            target: Existing value to merge into (may be None).
-            source: Incoming value; may be a mapping, list/tuple, scalar, or None.
-            options: DecodeOptions that affect list promotion/handling.
+        List handling
+        -------------
+        When a list that already contains :class:`Undefined` must receive new values and ``options.parse_lists`` is ``False``,
+        the list is promoted to a dict with string indices so positions can be addressed deterministically. Otherwise,
+        sentinels are simply removed as we go.
 
-        Returns:
-            A merged structure. May return `target` unchanged when `source is None`.
+        Parameters
+        ----------
+        target : mapping | list | tuple | Any | None
+            Existing value to merge into.
+        source : mapping | list | tuple | Any | None
+            Incoming value.
+        options : DecodeOptions | None
+            Options that affect list promotion/handling.
+
+        Returns
+        -------
+        mapping | list | tuple | Any
+            The merged structure. May be the original `target` object when
+            `source` is ``None``.
         """
         if source is None:
             # Nothing to merge — keep the original target as‑is.
@@ -179,8 +185,8 @@ class Utils:
         """
         Remove all `Undefined` sentinels from a nested container in place.
 
-        Traversal is iterative (explicit stack) to avoid deep recursion, and a
-        per‑object `visited` set prevents infinite loops on cyclic inputs.
+        Traversal is iterative (explicit stack) to avoid deep recursion, and a per‑object `visited` set prevents infinite
+        loops on cyclic inputs.
 
         Args:
             root: Dictionary to clean. It is mutated and also returned.
@@ -229,8 +235,7 @@ class Utils:
         """
         Recursively remove `Undefined` from a list in place.
 
-        Tuples encountered inside the list are converted to lists so they can be
-        pruned or further traversed.
+        Tuples encountered inside the list are converted to lists so they can be pruned or further traversed.
         """
         i: int = len(value) - 1
         while i >= 0:
@@ -251,9 +256,8 @@ class Utils:
         """
         Recursively remove `Undefined` from a mapping in place.
 
-        Any tuple values are converted to lists to allow in‑place pruning. Uses a
-        lightweight cycle guard via `_dicts_are_equal` to avoid descending into the
-        same mapping from itself.
+        Any tuple values are converted to lists to allow in‑place pruning. Uses a lightweight cycle guard via
+        `_dicts_are_equal` to avoid descending into the same mapping from itself.
         """
         # Snapshot keys so we can delete while iterating.
         keys: t.List[t.Any] = list(obj.keys())
@@ -278,9 +282,8 @@ class Utils:
         """
         Minimal deep equality helper with cycle guarding.
 
-        This is not a general deep‑equality routine; it exists to prevent infinite
-        recursion when structures point at themselves. If both inputs are dicts,
-        we compare keys and recurse into values; otherwise we fall back to `==`.
+        This is not a general deep‑equality routine; it exists to prevent infinite recursion when structures point at
+        themselves. If both inputs are dicts, we compare keys and recurse into values; otherwise we fall back to `==`.
 
         Args:
             d1, d2: Structures to compare.
