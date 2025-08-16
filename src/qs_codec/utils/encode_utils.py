@@ -169,11 +169,13 @@ class EncodeUtils:
                 )
                 i += 1
                 continue
-            # Surrogates → 4-byte UTF-8 (ensure we skip the low surrogate)
+            # Surrogates → 4-byte UTF-8 (only when a valid high+low pair is present)
             if 0xD800 <= c <= 0xDBFF and (i + 1) < n:
-                buffer.extend(cls._encode_surrogate_pair(s, i, c))
-                i += 2
-                continue
+                next_c = code_unit_at(s, i + 1)
+                if 0xDC00 <= next_c <= 0xDFFF:
+                    buffer.extend(cls._encode_surrogate_pair(s, i, c))
+                    i += 2
+                    continue
             # 3-byte UTF-8 (non-surrogate BMP)
             buffer.extend(
                 [
