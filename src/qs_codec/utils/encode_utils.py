@@ -8,7 +8,6 @@ from enum import Enum
 
 from ..enums.charset import Charset
 from ..enums.format import Format
-from .str_utils import code_unit_at
 
 
 class EncodeUtils:
@@ -60,11 +59,12 @@ class EncodeUtils:
         buffer: t.List[str] = []
 
         i: int = 0
-        while i < len(string):
-            c: int = code_unit_at(string, i)
+        n: int = len(string)
+        while i < n:
+            c: int = ord(string[i])
             # If we detect a high surrogate and there is a following low surrogate, encode both.
-            if 0xD800 <= c <= 0xDBFF and i + 1 < len(string):
-                next_c: int = code_unit_at(string, i + 1)
+            if 0xD800 <= c <= 0xDBFF and (i + 1) < n:
+                next_c: int = ord(string[i + 1])
                 if 0xDC00 <= next_c <= 0xDFFF:
                     buffer.append(f"%u{c:04X}")
                     buffer.append(f"%u{next_c:04X}")
@@ -108,7 +108,7 @@ class EncodeUtils:
             return re.sub(
                 r"%u[0-9a-f]{4}",
                 lambda match: f"%26%23{int(match.group(0)[2:], 16)}%3B",
-                cls.escape(cls._to_surrogates(string), format),
+                cls.escape(string, format),
                 flags=re.IGNORECASE,
             )
 
@@ -221,7 +221,8 @@ class EncodeUtils:
     def _encode_surrogate_pair(cls, string: str, i: int, c: int) -> t.List[str]:
         """Encode a surrogate pair starting at `i` as a 4‑byte UTF‑8 sequence."""
         buffer: t.List[str] = []
-        c = 0x10000 + (((c & 0x3FF) << 10) | (code_unit_at(string, i + 1) & 0x3FF))
+        low = ord(string[i + 1])
+        c = 0x10000 + (((c & 0x3FF) << 10) | (low & 0x3FF))
         buffer.extend(
             [
                 cls.HEX_TABLE[0xF0 | (c >> 18)],
