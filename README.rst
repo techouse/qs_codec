@@ -267,7 +267,7 @@ option as well:
 
 .. code:: python
 
-   import qs_codec qs qs
+   import qs_codec as qs
 
    assert qs.decode(
        'a=%26%239786%3B',
@@ -467,7 +467,7 @@ to override decoding of properties and values:
 .. code:: python
 
    import qs_codec as qs
-   typing as t
+   import typing as t
 
    def custom_decoder(
        value: t.Any,
