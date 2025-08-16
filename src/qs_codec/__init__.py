@@ -1,5 +1,19 @@
-"""A query string encoding and decoding library for Python. Ported from qs_codec for JavaScript."""
+"""
+qs_codec — Query string encoding/decoding for Python.
 
+This package is a Python port of the popular `qs` library for JavaScript/Node.js.
+It strives to match `qs` semantics and edge cases — including list/array formats,
+duplicate key handling, RFC 3986 vs RFC 1738 formatting, character set sentinels,
+and other interoperability details.
+
+The package root re-exports the most commonly used functions and enums so you can:
+
+    >>> from qs_codec import encode, decode, ListFormat, EncodeOptions
+    >>> encode({"a": [1, 2, 3]}, options=EncodeOptions(list_format=ListFormat.brackets))
+    'a[]=1&a[]=2&a[]=3'
+"""
+
+# Package version (PEP 440). Bump in lockstep with distribution metadata.
 __version__ = "1.1.7"
 
 from .decode import decode, load, loads
@@ -14,6 +28,7 @@ from .models.encode_options import EncodeOptions
 from .models.undefined import Undefined
 
 
+# Public API surface re-exported at the package root.
 __all__ = [
     "decode",
     "encode",

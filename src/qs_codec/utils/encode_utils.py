@@ -29,7 +29,7 @@ class EncodeUtils:
     SAFE_CHARS: t.Set[int] = SAFE_ALPHA | {0x2D, 0x2E, 0x5F, 0x7E}
     """0-9, A-Z, a-z, -, ., _, ~"""
 
-    RFC1738_SAFE_CHARS = SAFE_CHARS | {0x28, 0x29}
+    RFC1738_SAFE_CHARS: t.Set[int] = SAFE_CHARS | {0x28, 0x29}
     """0-9, A-Z, a-z, -, ., _, ~, (, )"""
 
     @classmethod
@@ -38,9 +38,19 @@ class EncodeUtils:
         string: str,
         format: t.Optional[Format] = Format.RFC3986,
     ) -> str:
-        """A Python representation the deprecated JavaScript escape function.
+        """Emulate the legacy JavaScript escaping behavior.
 
-        https://developer.mozilla.org/en-US/docs/web/javascript/reference/global_objects/escape
+        This function operates on UTF‑16 *code units* to emulate JavaScript's legacy
+        `%uXXXX` behavior. Non‑BMP code points are first expanded into surrogate
+        pairs via `_to_surrogates`, then each code unit is processed.
+
+        - Safe set: when `format == Format.RFC1738`, the characters `(` and `)` are
+          additionally treated as safe. Otherwise, the RFC3986 safe set is used.
+        - ASCII characters in the safe set are emitted unchanged.
+        - Code units &lt; 256 are emitted as `%XX`.
+        - Other code units are emitted as `%uXXXX`.
+
+        Reference: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/escape
         """
         # Convert any non-BMP character into its surrogate pair representation.
         string = cls._to_surrogates(string)
@@ -78,7 +88,14 @@ class EncodeUtils:
         charset: t.Optional[Charset] = Charset.UTF8,
         format: t.Optional[Format] = Format.RFC3986,
     ) -> str:
-        """Encode a value to a URL-encoded string."""
+        """Encode a scalar value to a URL‑encoded string.
+
+        - Accepts numbers, `Decimal`, `Enum`, `str`, `bool`, and `bytes`. Any other
+          type (including `None`) yields an empty string, matching the Node `qs` behavior.
+        - For `Charset.LATIN1`, the output mirrors the JS `%uXXXX` + numeric entity
+          trick so the result can be safely transported as latin‑1.
+        - Otherwise, values are encoded as UTF‑8 using `_encode_string`.
+        """
         if value is None or not isinstance(value, (int, float, Decimal, Enum, str, bool, bytes)):
             return ""
 
@@ -99,7 +116,13 @@ class EncodeUtils:
 
     @staticmethod
     def _convert_value_to_string(value: t.Any) -> str:
-        """Convert the value to a string based on its type."""
+        """Coerce a supported scalar to `str`.
+
+        - `bytes` are decoded as UTF‑8.
+        - `bool` values are lower‑cased (`"true"` / `"false"`).
+        - `str` passes through.
+        - All other supported scalars use `str(value)`.
+        """
         if isinstance(value, bytes):
             return value.decode("utf-8")
         elif isinstance(value, bool):
@@ -111,7 +134,15 @@ class EncodeUtils:
 
     @classmethod
     def _encode_string(cls, string: str, format: t.Optional[Format]) -> str:
-        """Encode the string to a URL-encoded format."""
+        """Percent‑encode `string` per RFC3986 or RFC1738.
+
+        The input is traversed by UTF‑16 code unit using `code_unit_at` so that
+        surrogate pairs (non‑BMP code points) can be detected and encoded as a
+        single 4‑byte UTF‑8 sequence via `_encode_surrogate_pair`.
+
+        Characters in the active "safe" set are copied verbatim; everything else
+        is converted into the correct percent‑encoded UTF‑8 byte sequence.
+        """
         buffer: t.List[str] = []
 
         i: int
@@ -127,12 +158,17 @@ class EncodeUtils:
 
     @classmethod
     def _is_safe_char(cls, c: int, format: t.Optional[Format]) -> bool:
-        """Check if the character (given by its code point) is safe to be included in the URL without encoding."""
+        """Return True if code unit `c` is allowed unescaped for the given `format`."""
         return c in cls.RFC1738_SAFE_CHARS if format == Format.RFC1738 else c in cls.SAFE_CHARS
 
     @classmethod
     def _encode_char(cls, string: str, i: int, c: int) -> t.List[str]:
-        """Encode a single character to its URL-encoded representation."""
+        """Encode one UTF‑16 code unit (at index `i`) into percent‑encoded UTF‑8 bytes.
+
+        - ASCII (`c &lt; 0x80`) → single `%XX`.
+        - Two‑byte, three‑byte UTF‑8 forms as needed.
+        - If `c` is a surrogate, defer to `_encode_surrogate_pair`.
+        """
         if c < 0x80:  # ASCII
             return [cls.HEX_TABLE[c]]
         elif c < 0x800:  # 2 bytes
@@ -151,7 +187,7 @@ class EncodeUtils:
 
     @classmethod
     def _encode_surrogate_pair(cls, string: str, i: int, c: int) -> t.List[str]:
-        """Encode a surrogate pair character to its URL-encoded representation."""
+        """Encode a surrogate pair starting at `i` as a 4‑byte UTF‑8 sequence."""
         buffer: t.List[str] = []
         c = 0x10000 + (((c & 0x3FF) << 10) | (code_unit_at(string, i + 1) & 0x3FF))
         buffer.extend(
@@ -166,7 +202,12 @@ class EncodeUtils:
 
     @staticmethod
     def _to_surrogates(string: str) -> str:
-        """Convert characters in the string that are outside the BMP (i.e. code points > 0xFFFF) into their corresponding surrogate pair."""
+        """Expand non‑BMP code points (code point &gt; 0xFFFF) into UTF‑16 surrogate pairs.
+
+        This mirrors how JavaScript strings store characters, allowing compatibility
+        with legacy `%uXXXX` encoding paths and consistent behavior with the Node `qs`
+        implementation.
+        """
         buffer: t.List[str] = []
 
         ch: str
@@ -185,5 +226,5 @@ class EncodeUtils:
 
     @staticmethod
     def serialize_date(dt: datetime) -> str:
-        """Serialize a `datetime` object to an ISO 8601 string."""
+        """Serialize a `datetime` to ISO‑8601 using `datetime.isoformat()`."""
         return dt.isoformat()

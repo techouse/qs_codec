@@ -1,4 +1,16 @@
-"""A query string decoder (parser)."""
+"""Query string **decoder** (a.k.a. parser) with feature parity to the Node.js `qs` package.
+
+Highlights
+----------
+- Accepts either a raw query string or a pre-tokenized mapping (mirrors `qs.parse`).
+- Supports RFC 3986 / 1738 percent-decoding via `DecodeOptions.decoder`.
+- Handles bracket notation, indices, dotted keys (opt-in), and duplicate keys strategies.
+- Respects list parsing limits, depth limits, and charset sentinels (`utf8=%E2%9C%93` / `utf8=%26%2310003%3B`).
+- Returns plain `dict` / `list` containers and never mutates the caller’s input.
+
+This module intentionally keeps the control flow close to the original reference implementation
+so that behavior across ports stays predictable and easy to verify with shared test vectors.
+"""
 
 import re
 import typing as t
@@ -18,9 +30,34 @@ def decode(
     options: DecodeOptions = DecodeOptions(),
 ) -> t.Dict[str, t.Any]:
     """
-    Decodes a query string into a ``Dict[str, Any]``.
+    Decode a query string (or a pre-tokenized mapping) into a nested ``Dict[str, Any]``.
 
-    Providing custom ``DecodeOptions`` will override the default behavior.
+    Parameters
+    ----------
+    value:
+        Either a raw query string (``str``) or an already-parsed mapping (``Mapping[str, Any]``).
+        Passing a mapping is useful in tests or when a custom tokenizer is used upstream.
+    options:
+        ``DecodeOptions`` controlling delimiter, duplicates policy, list & depth limits,
+        dot-notation, decoding charset, and more.
+
+    Returns
+    -------
+    Dict[str, Any]
+        A freshly-allocated mapping containing nested dicts/lists/values.
+
+    Raises
+    ------
+    ValueError
+        If ``value`` is neither ``str`` nor ``Mapping``, or when limits are violated under
+        ``raise_on_limit_exceeded=True``.
+
+    Notes
+    -----
+    - Empty/falsey ``value`` returns an empty dict.
+    - When the *number of top-level tokens* exceeds ``list_limit`` and ``parse_lists`` is enabled,
+      the parser temporarily **disables list parsing** for this invocation to avoid quadratic work.
+      This mirrors the behavior of other ports and keeps large flat query strings efficient.
     """
     obj: t.Dict[str, t.Any] = {}
 
@@ -34,6 +71,10 @@ def decode(
         _parse_query_string_values(value, options) if isinstance(value, str) else value
     )
 
+    # If a raw query string produced *more parts than list_limit*, turn list parsing off.
+    # This prevents O(n^2) behavior when the input is a very large flat list of tokens.
+    # We only toggle for this call (mutating the local `options` instance by design,
+    # consistent with the other ports).
     if temp_obj is not None and options.parse_lists and 0 < options.list_limit < len(temp_obj):
         options.parse_lists = False
 
@@ -65,10 +106,25 @@ def loads(value: t.Optional[str], options: DecodeOptions = DecodeOptions()) -> t
 
 
 def _interpret_numeric_entities(value: str) -> str:
+    """Convert HTML numeric entities (e.g., ``&#169;``) to their character equivalents.
+
+    Only used when ``options.interpret_numeric_entities`` is True and the effective charset
+    is Latin-1; see the Node `qs` compatibility behavior.
+    """
     return re.sub(r"&#(\d+);", lambda match: chr(int(match.group(1))), value)
 
 
 def _parse_array_value(value: t.Any, options: DecodeOptions, current_list_length: int) -> t.Any:
+    """Post-process a raw scalar for list semantics and enforce `list_limit`.
+
+    Behavior
+    --------
+    - If `comma=True` and `value` is a string that contains commas, split into a list.
+    - Otherwise, enforce the per-list length limit by comparing `current_list_length` to
+      `options.list_limit`. When `raise_on_limit_exceeded=True`, violations raise `ValueError`.
+
+    Returns either the original value or a list of values, without decoding (that happens later).
+    """
     if isinstance(value, str) and value and options.comma and "," in value:
         split_val: t.List[str] = value.split(",")
         if options.raise_on_limit_exceeded and len(split_val) > options.list_limit:
@@ -86,16 +142,39 @@ def _parse_array_value(value: t.Any, options: DecodeOptions, current_list_length
 
 
 def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str, t.Any]:
+    """Tokenize a raw query string into a flat ``Dict[str, Any]``.
+
+    Responsibilities
+    ----------------
+    - Strip a leading '?' if ``ignore_query_prefix`` is True.
+    - Normalize percent-encoded square brackets (``%5B/%5D``) so the key splitter can operate.
+    - Split into parts using either a string delimiter or a regex delimiter.
+    - Enforce ``parameter_limit`` (optionally raising).
+    - Detect the UTF-8/Latin-1 charset via the `utf8=…` sentinel when enabled.
+    - For each ``key=value`` pair:
+        * Percent-decode key/value using the selected charset.
+        * Apply list/comma logic to values.
+        * Interpret numeric entities for Latin-1 when requested.
+        * Handle empty brackets ``[]`` as list markers.
+        * Merge duplicate keys according to ``duplicates`` policy.
+
+    The output is a *flat* dict (keys are full key-path strings). Higher-level structure is
+    constructed later by ``_parse_keys`` / ``_parse_object``.
+    """
     obj: t.Dict[str, t.Any] = {}
 
     clean_str: str = value.replace("?", "", 1) if options.ignore_query_prefix else value
     clean_str = clean_str.replace("%5B", "[").replace("%5b", "[").replace("%5D", "]").replace("%5d", "]")
+
+    # Compute an effective parameter limit (None means "no limit").
     limit: t.Optional[int] = None if isinf(options.parameter_limit) else options.parameter_limit  # type: ignore [assignment]
 
+    # Guard against non-positive limits early for clearer errors.
     if limit is not None and limit <= 0:
         raise ValueError("Parameter limit must be a positive integer.")
 
     parts: t.List[str]
+    # Split using either a compiled regex or a literal string delimiter.
     if isinstance(options.delimiter, re.Pattern):
         parts = (
             re.split(options.delimiter, clean_str)
@@ -109,6 +188,7 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
             else clean_str.split(options.delimiter)[: (limit + 1 if options.raise_on_limit_exceeded else limit)]
         )
 
+    # Enforce parameter count when strict mode is enabled.
     if options.raise_on_limit_exceeded and (limit is not None) and len(parts) > limit:
         raise ValueError(f"Parameter limit exceeded: Only {limit} parameter{'' if limit == 1 else 's'} allowed.")
 
@@ -117,6 +197,7 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
 
     charset: Charset = options.charset
 
+    # Probe for `utf8=` charset sentinel and adjust decoding charset accordingly.
     if options.charset_sentinel:
         for i, _part in enumerate(parts):
             if _part.startswith("utf8="):
@@ -127,6 +208,7 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
                 skip_index = i
                 break
 
+    # Iterate over parts and decode each key/value pair.
     for i, _ in enumerate(parts):
         if i == skip_index:
             continue
@@ -156,11 +238,13 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
                 val if isinstance(val, str) else ",".join(val) if isinstance(val, (list, tuple)) else str(val)
             )
 
+        # If the pair used empty brackets syntax, note that as a list marker.
         if "[]=" in part:
             val = [val] if isinstance(val, (list, tuple)) else val
 
         existing: bool = key in obj
 
+        # Combine/overwrite according to the configured duplicates policy.
         if existing and options.duplicates == Duplicates.COMBINE:
             obj[key] = Utils.combine(obj[key], val)
         elif not existing or options.duplicates == Duplicates.LAST:
@@ -172,8 +256,30 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
 def _parse_object(
     chain: t.Union[t.List[str], t.Tuple[str, ...]], val: t.Any, options: DecodeOptions, values_parsed: bool
 ) -> t.Any:
+    """Fold a flat key-path chain into nested containers.
+
+    Parameters
+    ----------
+    chain:
+        Key segments like ``["user", "[tags]", "[]"]`` produced by the key splitter.
+        Bracketed indices and empty brackets are preserved here.
+    val:
+        The (possibly preprocessed) leaf value.
+    options:
+        Decoding options governing list handling, depth, and index interpretation.
+    values_parsed:
+        Whether `val` has already been decoded and split; influences list handling.
+
+    Notes
+    -----
+    - Builds lists when encountering ``[]`` (respecting ``allow_empty_lists`` and null handling).
+    - Converts bracketed numeric segments into list indices when allowed and within ``list_limit``.
+    - When list parsing is disabled and an empty segment is encountered, coerces to ``{"0": leaf}``
+      to preserve round-trippability with other ports.
+    """
     current_list_length: int = 0
 
+    # If the chain ends with an empty list marker, compute current list length for limit checks.
     if bool(chain) and chain[-1] == "[]":
         parent_key: t.Optional[int]
 
@@ -187,6 +293,7 @@ def _parse_object(
 
     leaf: t.Any = val if values_parsed else _parse_array_value(val, options, current_list_length)
 
+    # Walk the chain from the leaf to the root, building nested containers on the way out.
     i: int
     for i in reversed(range(len(chain))):
         obj: t.Optional[t.Union[t.Dict[str, t.Any], t.List[t.Any]]]
@@ -200,10 +307,12 @@ def _parse_object(
         else:
             obj = dict()
 
+            # Optionally treat `%2E` as a literal dot (when `decode_dot_in_keys` is enabled).
             clean_root: str = root[1:-1] if root.startswith("[") and root.endswith("]") else root
 
             decoded_root: str = clean_root.replace(r"%2E", ".") if options.decode_dot_in_keys else clean_root
 
+            # Parse numeric segment to decide between dict key vs. list index.
             index: t.Optional[int]
             try:
                 index = int(decoded_root, 10)
@@ -231,6 +340,10 @@ def _parse_object(
 
 
 def _parse_keys(given_key: t.Optional[str], val: t.Any, options: DecodeOptions, values_parsed: bool) -> t.Any:
+    """Split a full key string into segments and dispatch to ``_parse_object``.
+
+    Returns ``None`` for empty keys (mirrors upstream behavior).
+    """
     if not given_key:
         return None
 

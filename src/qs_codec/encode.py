@@ -1,4 +1,20 @@
-"""A query string encoder (stringifier)."""
+"""Query‑string *encoder* (stringifier).
+
+This module converts Python mappings and sequences into a percent‑encoded
+query string with feature parity to the Node.js `qs` package where it makes
+sense for Python. It supports:
+
+- Stable, deterministic key ordering with an optional custom comparator.
+- Multiple list encodings (indices, brackets, repeat key, comma) including the
+  "comma round‑trip" behavior to preserve single‑element lists.
+- Custom per‑scalar encoder and `datetime` serializer hooks.
+- RFC 3986 vs RFC 1738 formatting and optional charset sentinels.
+- Dots vs brackets in key paths (`allow_dots`, `encode_dot_in_keys`).
+- Strict/null handling, empty‑list emission, and cycle detection.
+
+Nothing in this module mutates caller objects: inputs are shallow‑normalized
+and deep‑copied only where safe/necessary to honor options.
+"""
 
 import typing as t
 from copy import deepcopy
@@ -18,13 +34,33 @@ from .utils.utils import Utils
 
 def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
     """
-    Encodes an object into a query string.
+    Stringify a Python value into a query string.
 
-    Providing custom ``EncodeOptions`` will override the default behavior.
+    Args:
+        value: The object to encode. Accepted shapes:
+            * Mapping -> encoded as-is.
+            * Sequence (list/tuple) -> treated as an object with string indices.
+            * Other/None -> treated as empty input.
+        options: Encoding behavior (parity with the Node.js `qs` API).
+
+    Returns:
+        The encoded query string (possibly prefixed with "?" if requested),
+        or an empty string when there is nothing to encode.
+
+    Notes:
+        - Caller input is not mutated. When a mapping is provided it is
+          deep-copied; sequences are projected to a temporary mapping.
+        - If a callable `filter` is provided, it can transform the root object.
+          If an iterable filter is provided, it selects which *root* keys to emit.
     """
+    # Treat `None` as "nothing to encode".
     if value is None:
         return ""
 
+    # Normalize the root into a mapping we can traverse deterministically:
+    # - Mapping  -> deepcopy (avoid mutating caller containers)
+    # - Sequence -> promote to {"0": v0, "1": v1, ...}
+    # - Other    -> empty (encodes to "")
     obj: t.Mapping[str, t.Any]
     if isinstance(value, t.Mapping):
         obj = deepcopy(value)
@@ -33,32 +69,41 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
     else:
         obj = {}
 
-    keys: t.List[t.Any] = []
-
+    # Early exit if there's nothing to emit.
     if not obj:
         return ""
 
-    obj_keys: t.Optional[t.List[t.Any]] = None
+    keys: t.List[t.Any] = []
 
+    # If an iterable filter is provided for the root, restrict emission to those keys.
+    obj_keys: t.Optional[t.List[t.Any]] = None
     if options.filter is not None:
         if callable(options.filter):
+            # Callable filter may transform the root object.
             obj = options.filter("", obj)
         elif isinstance(options.filter, (list, tuple)):
             obj_keys = list(options.filter)
 
+    # Single-item list round-trip marker when using comma format.
     comma_round_trip: bool = options.list_format == ListFormat.COMMA and options.comma_round_trip is True
 
+    # Default root key set if no iterable filter was provided.
     if obj_keys is None:
         obj_keys = list(obj.keys())
 
+    # Deterministic ordering via user-supplied comparator (if any).
     if options.sort is not None and callable(options.sort):
         obj_keys = sorted(obj_keys, key=cmp_to_key(options.sort))
 
+    # Side channel for cycle detection across recursive calls.
     side_channel: WeakKeyDictionary = WeakKeyDictionary()
 
+    # Encode each selected root key.
     for _key in obj_keys:
         if not isinstance(_key, str):
+            # Skip non-string keys; parity with ports that stringify key paths.
             continue
+        # Optionally drop explicit nulls at the root.
         if _key in obj and obj.get(_key) is None and options.skip_nulls:
             continue
 
@@ -85,14 +130,19 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
             add_query_prefix=options.add_query_prefix,
         )
 
+        # `_encode` yields either a flat list of `key=value` tokens or a single token.
         if isinstance(_encoded, (list, tuple)):
             keys.extend(_encoded)
         else:
             keys.append(_encoded)
 
+    # Join tokens with the selected pair delimiter.
     joined: str = options.delimiter.join(keys)
+
+    # Optional leading "?" prefix (applied *before* a charset sentinel, if any).
     prefix: str = "?" if options.add_query_prefix else ""
 
+    # Optional charset sentinel token for downstream parsers (e.g., "utf-8" or "iso-8859-1").
     if options.charset_sentinel:
         if options.charset == Charset.LATIN1:
             prefix += f"{Sentinel.ISO.encoded}&"
@@ -105,8 +155,9 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
 
 
 # Alias for the `encode` function.
-dumps = encode
+dumps = encode  # public alias (parity with `json.dumps` / Node `qs.stringify`)
 
+# Unique placeholder used as a key within the side-channel chain to pass context down recursion.
 _sentinel: WeakWrapper = WeakWrapper({})
 
 
@@ -132,24 +183,66 @@ def _encode(
     charset: t.Optional[Charset] = Charset.UTF8,
     add_query_prefix: bool = False,
 ) -> t.Union[t.List[t.Any], t.Tuple[t.Any, ...], t.Any]:
+    """
+    Recursive worker that produces `key=value` tokens for a single subtree.
+
+    This function returns either:
+      * a list/tuple of tokens (strings) to be appended to the parent list, or
+      * a single token string (when a scalar is reached).
+
+    It threads a *side-channel* (a chained `WeakKeyDictionary`) through recursion
+    to detect cycles by remembering where each visited object last appeared.
+
+    Args:
+        value: Current subtree value.
+        is_undefined: Whether the current key was absent in the parent mapping.
+        side_channel: Cycle-detection chain; child frames point to their parent via `_sentinel`.
+        prefix: The key path accumulated so far (unencoded except for dot-encoding when requested).
+        comma_round_trip: Whether a single-element list should emit `[]` to ensure round-trip with comma format.
+        encoder: Custom per-scalar encoder; if None, falls back to `str(value)` for primitives.
+        serialize_date: Optional `datetime` serializer hook.
+        sort: Optional comparator for object/array key ordering.
+        filter: Callable (transform value) or iterable of keys/indices (select).
+        formatter: Percent-escape function chosen by `format` (RFC3986/1738).
+        format: Format enum (only used to choose a default `formatter` if none provided).
+        generate_array_prefix: Strategy used to build array key segments (indices/brackets/repeat/comma).
+        allow_empty_lists: Emit `[]` for empty lists if True.
+        strict_null_handling: If True, emit bare keys for nulls (no `=`).
+        skip_nulls: If True, drop nulls entirely.
+        encode_dot_in_keys: Percent-encode literal '.' in key names.
+        allow_dots: Use dot notation for nested objects instead of brackets.
+        encode_values_only: If True, do not encode key names (only values).
+        charset: The charset hint passed to `encoder`.
+        add_query_prefix: Whether the top-level caller requested a leading '?'.
+
+    Returns:
+        Either a list/tuple of tokens or a single token string.
+    """
+    # Establish a starting prefix for the top-most invocation (used when called directly).
     if prefix is None:
         prefix = "?" if add_query_prefix else ""
 
+    # Infer comma round-trip when using the COMMA generator and the flag was not explicitly provided.
     if comma_round_trip is None:
         comma_round_trip = generate_array_prefix == ListFormat.COMMA.generator
 
+    # Choose a formatter if one wasn't provided (based on the selected format).
     if formatter is None:
         formatter = format.formatter
 
+    # Work on a copy to avoid mutating caller state during normalization.
     obj: t.Any = deepcopy(value)
 
+    # --- Cycle detection via chained side-channel -----------------------------------------
     obj_wrapper: WeakWrapper = WeakWrapper(value)
     tmp_sc: t.Optional[WeakKeyDictionary] = side_channel
     step: int = 0
     find_flag: bool = False
 
+    # Walk up the chain looking for `obj_wrapper`. If we see it at the same "step"
+    # again we've closed a loop.
     while (tmp_sc := tmp_sc.get(_sentinel)) and not find_flag:  # type: ignore [union-attr]
-        # Where value last appeared in the ref tree
+        # Where `value` last appeared in the ref tree
         pos: t.Optional[int] = tmp_sc.get(obj_wrapper)
         step += 1
         if pos is not None:
@@ -160,9 +253,12 @@ def _encode(
         if tmp_sc.get(_sentinel) is None:
             step = 0
 
+    # --- Pre-processing: filter & datetime handling ---------------------------------------
     if callable(filter):
+        # Callable filter can transform the object for this prefix.
         obj = filter(prefix, obj)
     else:
+        # Normalize datetimes both for scalars and (in COMMA mode) list elements.
         if isinstance(obj, datetime):
             obj = serialize_date(obj) if callable(serialize_date) else obj.isoformat()
         elif generate_array_prefix == ListFormat.COMMA.generator and isinstance(obj, (list, tuple)):
@@ -171,38 +267,43 @@ def _encode(
             else:
                 obj = [x.isoformat() if isinstance(x, datetime) else x for x in obj]
 
+    # --- Null handling --------------------------------------------------------------------
     if not is_undefined and obj is None:
         if strict_null_handling:
+            # Bare key (no '=value') when strict handling is requested.
             return encoder(prefix, charset, format) if callable(encoder) and not encode_values_only else prefix
-
+        # Otherwise treat `None` as empty string.
         obj = ""
 
+    # --- Fast path for primitives/bytes ---------------------------------------------------
     if Utils.is_non_nullish_primitive(obj, skip_nulls) or isinstance(obj, bytes):
         if callable(encoder):
             key_value = prefix if encode_values_only else encoder(prefix, charset, format)
             return [f"{formatter(key_value)}={formatter(encoder(obj, charset, format))}"]
-
         return [f"{formatter(prefix)}={formatter(str(obj))}"]
 
     values: t.List[t.Any] = []
 
+    # If the *key itself* was undefined (not present in the parent), there is nothing to emit.
     if is_undefined:
         return values
 
+    # --- Determine which keys/indices to traverse ----------------------------------------
     obj_keys: t.List[t.Any]
     if generate_array_prefix == ListFormat.COMMA.generator and isinstance(obj, (list, tuple)):
-        # we need to join elements in
+        # In COMMA mode we join the elements into a single token at this level.
         if encode_values_only and callable(encoder):
             obj = Utils.apply(obj, encoder)
-
         if obj:
             obj_keys_value = ",".join([str(e) if e is not None else "" for e in obj])
             obj_keys = [{"value": obj_keys_value if obj_keys_value else None}]
         else:
             obj_keys = [{"value": Undefined()}]
     elif isinstance(filter, (list, tuple)):
+        # Iterable filter restricts traversal to a fixed key/index set.
         obj_keys = list(filter)
     else:
+        # Default: enumerate keys/indices from mappings or sequences.
         keys: t.List[t.Any]
         if isinstance(obj, t.Mapping):
             keys = list(obj.keys())
@@ -210,24 +311,27 @@ def _encode(
             keys = [index for index in range(len(obj))]
         else:
             keys = []
-
         obj_keys = sorted(keys, key=cmp_to_key(sort)) if sort is not None else list(keys)
 
+    # Percent-encode literal dots in key names when requested.
     encoded_prefix: str = prefix.replace(".", "%2E") if encode_dot_in_keys else prefix
 
+    # In comma round-trip mode, ensure a single-element list appends `[]` to preserve type on decode.
     adjusted_prefix: str = (
         f"{encoded_prefix}[]"
         if comma_round_trip and isinstance(obj, (list, tuple)) and len(obj) == 1
         else encoded_prefix
     )
 
+    # Optionally emit empty lists as `key[]=`.
     if allow_empty_lists and isinstance(obj, (list, tuple)) and not obj:
         return [f"{adjusted_prefix}[]"]
 
+    # --- Recurse for each child -----------------------------------------------------------
     for _key in obj_keys:
+        # Resolve the child value and whether it was "undefined" at this level.
         _value: t.Any
         _value_undefined: bool
-
         if isinstance(_key, t.Mapping) and "value" in _key and not isinstance(_key.get("value"), Undefined):
             _value = _key.get("value")
             _value_undefined = False
@@ -246,21 +350,26 @@ def _encode(
                 _value = None
                 _value_undefined = True
 
+        # Optionally drop null children.
         if skip_nulls and _value is None:
             continue
 
+        # When using dotted paths and also encoding dots in keys, percent-escape '.' inside key names.
         encoded_key: str = str(_key).replace(".", "%2E") if allow_dots and encode_dot_in_keys else str(_key)
 
+        # Build the child key path depending on whether we're traversing a list or a mapping.
         key_prefix: str = (
             generate_array_prefix(adjusted_prefix, encoded_key)
             if isinstance(obj, (list, tuple))
             else f"{adjusted_prefix}{f'.{encoded_key}' if allow_dots else f'[{encoded_key}]'}"
         )
 
+        # Update side-channel for the child call and thread the parent channel via `_sentinel`.
         side_channel[obj_wrapper] = step
         value_side_channel: WeakKeyDictionary = WeakKeyDictionary()
         value_side_channel[_sentinel] = side_channel
 
+        # Recurse into the child.
         encoded: t.Union[t.List[t.Any], t.Tuple[t.Any, ...], t.Any] = _encode(
             value=_value,
             is_undefined=_value_undefined,
@@ -289,6 +398,7 @@ def _encode(
             charset=charset,
         )
 
+        # Flatten nested results into the `values` list.
         if isinstance(encoded, (list, tuple)):
             values.extend(encoded)
         else:
