@@ -7,7 +7,9 @@ on:
 defaults:
   run:
     shell: bash
-permissions: read-all
+
+permissions:
+  contents: read
 
 jobs:
   test:
