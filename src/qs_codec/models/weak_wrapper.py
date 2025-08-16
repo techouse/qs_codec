@@ -1,144 +1,150 @@
-"""Weak-wrapper utilities for using arbitrary (incl. mutable) objects as keys.
+"""Weakly wrap *any* object with identity equality and deep content hashing."""
 
-This module exposes :class:`WeakWrapper`, a tiny helper that:
-- keeps only a **weak reference** to the underlying value (so it won't keep it alive),
-- compares **by identity** (two wrappers are equal iff they wrap the *same* object),
-- computes a **deep, content-based hash** with cycle and depth protection.
-
-⚠️ Caveat: because the hash is computed from the *current* content, mutating a
-container *after* it has been used as a key in a dict/set can violate Python’s
-hash contract and lead to look‑up anomalies. Only use this in contexts where
-wrapped values are effectively immutable while they participate as keys.
-"""
-
+import reprlib
 import typing as t
-import weakref
-from collections.abc import Mapping
-from dataclasses import dataclass
+from weakref import ReferenceType, WeakValueDictionary, ref
 
 
-# Global weak-value cache of lightweight proxy objects.
-# Keyed by the CPython object id() of the wrapped value → value held **weakly**.
-# This lets multiple WeakWrapper instances share the same proxy while ensuring
-# the original object can still be garbage‑collected.
-_proxy_cache: "weakref.WeakValueDictionary[int, _Refable]" = weakref.WeakValueDictionary()
+__all__ = ["WeakWrapper", "_proxy_cache"]
 
 
-class _Refable:
-    """Simple holder that supports being weak‑referenced."""
+# Exported for tests
+_proxy_cache: "WeakValueDictionary[int, _Proxy]" = WeakValueDictionary()
 
-    __slots__ = ("value", "__weakref__")  # allow weak-refs
 
-    def __init__(self, value: t.Any):
-        """Store the wrapped value."""
+class _Proxy:
+    """Container for the original object.
+
+    NOTE: Proxies must be weak-referenceable because the cache holds them
+    in a WeakValueDictionary. That requires "__weakref__" in __slots__.
+    """
+
+    __slots__ = ("value", "__weakref__")
+
+    def __init__(self, value: t.Any) -> None:
+        """Strong ref to the value so hash/equality can access it while a wrapper keeps this proxy alive."""
         self.value = value
 
 
-@dataclass(frozen=True)
+def _get_proxy(value: t.Any) -> "_Proxy":
+    """Return a per-object proxy, cached by id(value)."""
+    key = id(value)
+    proxy = _proxy_cache.get(key)
+    if proxy is None:
+        proxy = _Proxy(value)
+        _proxy_cache[key] = proxy
+    return proxy
+
+
+def _deep_hash(
+    obj: t.Any,
+    _seen: t.Optional[set[int]] = None,
+    _depth: int = 0,
+) -> int:
+    """Deterministic deep hash with cycle & depth protection.
+
+    - Raises ValueError("Circular reference detected") on cycles.
+    - Raises RecursionError when nesting exceeds 400.
+    - Produces equal hashes for equal-by-contents containers.
+    """
+    if _depth > 400:
+        raise RecursionError("Maximum hashing depth exceeded")
+
+    if _seen is None:
+        _seen = set()
+
+    # Track only containers by identity for cycle detection
+    def _enter(o: t.Any) -> int:
+        oid = id(o)
+        if oid in _seen:
+            raise ValueError("Circular reference detected")
+        _seen.add(oid)
+        return oid
+
+    def _leave(oid: int) -> None:
+        _seen.remove(oid)
+
+    if isinstance(obj, dict):
+        oid = _enter(obj)
+        try:
+            # Sort by repr(key) to be stable across runs
+            kv_hashes = tuple(
+                (
+                    _deep_hash(k, _seen, _depth + 1),
+                    _deep_hash(v, _seen, _depth + 1),
+                )
+                for k, v in sorted(obj.items(), key=lambda kv: repr(kv[0]))
+            )
+            return hash(("dict", kv_hashes))
+        finally:
+            _leave(oid)
+
+    if isinstance(obj, (list, tuple)):
+        oid = _enter(obj)
+        try:
+            elem_hashes = tuple(_deep_hash(x, _seen, _depth + 1) for x in obj)
+            tag = "list" if isinstance(obj, list) else "tuple"
+            return hash((tag, elem_hashes))
+        finally:
+            _leave(oid)
+
+    if isinstance(obj, set):
+        oid = _enter(obj)
+        try:
+            set_hashes = tuple(sorted(_deep_hash(x, _seen, _depth + 1) for x in obj))
+            return hash(("set", set_hashes))
+        finally:
+            _leave(oid)
+
+    # Fallback for scalars / unhashables
+    try:
+        return hash(obj)
+    except TypeError:
+        return hash(repr(obj))
+
+
 class WeakWrapper:
-    """Weakly wrap *any* object with identity equality and deep content hashing.
+    """Wrapper suitable for use as a WeakKeyDictionary key.
 
-    Equality: two wrappers are equal iff they wrap the **same** underlying object
-    (i.e. their `id(value)` matches). This avoids the pitfalls of comparing
-    mutable containers by content.
-
-    Hashing: the hash is derived by recursively hashing the current content of
-    the wrapped value (mappings by key/value pairs, sequences in order, sets as
-    a sorted sequence). Cycles raise ``ValueError`` and recursion beyond
-    ``max_depth`` raises ``RecursionError``.
+    - Holds a *strong* reference to the proxy (keeps proxy alive while wrapper exists).
+    - Exposes a weakref to the proxy via `_wref` so tests can observe/force GC.
+    - Equality is proxy identity; hash is a deep hash of the underlying value.
     """
 
-    # Strong ref while the wrapper lives; the cache holds a weak one.
-    _proxy: _Refable
-    # Captured object id() for cheap identity checks.
-    _value_id: int
-    # Weak reference used to avoid prolonging object lifetime.
-    _wref: weakref.ReferenceType["_Refable"]
+    __slots__ = ("_proxy", "_wref", "__weakref__")
+    _proxy: _Proxy
+    _wref: ReferenceType[_Proxy]
 
-    def __init__(self, value: t.Any):
-        """Initialize a wrapper around ``value`` using a shared proxy."""
-        # Obtain (or create) a shared proxy for this value's id.
-        proxy = _proxy_cache.get(id(value))
-        if proxy is None:
-            proxy = _Refable(value)
-            _proxy_cache[id(value)] = proxy
-
-        # dataclass(frozen=True) → assign via object.__setattr__
-        object.__setattr__(self, "_proxy", proxy)  # strong edge
-        object.__setattr__(self, "_value_id", id(value))  # identity stamp
-        object.__setattr__(self, "_wref", weakref.ref(proxy))  # weak edge
-
-    # -------------------------
-    # Equality / hashing
-    # -------------------------
-
-    def __eq__(self, other: object) -> bool:
-        """Return True if both wrappers reference the same underlying object."""
-        return isinstance(other, WeakWrapper) and self._value_id == other._value_id
-
-    def __hash__(self) -> int:
-        """Compute a deep, content-based hash of the wrapped value."""
-        return self._hash_recursive(self._proxy.value, seen=set(), stack=set())
-
-    # Recursive hash with cycle and depth checks
-    def _hash_recursive(
-        self,
-        value: t.Any,
-        seen: t.Set[int],
-        stack: t.Set[int],
-        depth: int = 0,
-        max_depth: int = 400,  # default recursion limit
-    ) -> int:
-        """Recursively hash ``value`` with cycle and depth protection.
-
-        Mappings are hashed as an ordered tuple of (key, hashed-value) pairs
-        sorted by key. Lists and tuples are hashed by element order. Sets are
-        hashed by the tuple of their elements hashed after sorting to ensure a
-        stable order across runs.
-
-        Raises:
-            ValueError: if a circular reference is encountered.
-            RecursionError: if recursion exceeds ``max_depth``.
-        """
-        vid = id(value)
-        if vid in stack:
-            raise ValueError("Circular reference detected")
-        if depth > max_depth:
-            raise RecursionError("Maximum recursion depth exceeded")
-
-        stack.add(vid)
-        try:
-            if isinstance(value, Mapping):
-                # Stable and comparable ordering: sort by hashed key, not by the key itself.
-                pairs = []
-                for k, v in value.items():
-                    hk = hash(k)
-                    hv = self._hash_recursive(v, seen, stack, depth + 1)
-                    pairs.append((hk, hv))
-                pairs.sort()
-                return hash(tuple(pairs))
-            elif isinstance(value, (list, tuple, set)):
-                if isinstance(value, set):
-                    # Order by hashed element to avoid TypeError on unorderable elements.
-                    elems = [self._hash_recursive(v, seen, stack, depth + 1) for v in value]
-                    elems.sort()
-                    return hash(tuple(elems))
-                else:
-                    seq = (self._hash_recursive(v, seen, stack, depth + 1) for v in value)
-                    return hash(tuple(seq))
-            else:
-                return hash(value)
-        finally:
-            stack.remove(vid)
-
-    # -------------------------
-    # Accessors
-    # -------------------------
+    def __init__(self, value: t.Any) -> None:
+        """Initialize the wrapper with a value."""
+        proxy = _get_proxy(value)
+        # Strong edge: wrapper -> proxy
+        object.__setattr__(self, "_proxy", proxy)
+        # Weak edge so tests can observe GC of the proxy
+        object.__setattr__(self, "_wref", ref(proxy))
 
     @property
     def value(self) -> t.Any:
-        """Return the currently wrapped value or raise if it was GC'ed."""
-        proxy = self._wref()  # dereference weakly
-        if proxy is None:
+        """Guard with the weakref so tests can simulate GC by swapping _wref."""
+        if self._wref() is None:
             raise ReferenceError("Original object has been garbage-collected")
-        return proxy.value
+        return self._proxy.value
+
+    def __repr__(self) -> str:
+        """Return a string representation of the wrapper."""
+        if self._wref() is None:
+            return "WeakWrapper(<gc'd>)"
+        # Use reprlib to avoid excessive size and recursion issues without broad exception handling.
+        return f"WeakWrapper({reprlib.repr(self._proxy.value)})"
+
+    def __eq__(self, other: object) -> bool:
+        """Check equality by comparing the proxy identity."""
+        if not isinstance(other, WeakWrapper):
+            return NotImplemented
+        # Same proxy instance => same wrapped object
+        return self._proxy is other._proxy
+
+    def __hash__(self) -> int:
+        """Return a deep hash of the wrapped value."""
+        # Uses your existing deep-hash helper (not shown here).
+        return _deep_hash(self.value)
