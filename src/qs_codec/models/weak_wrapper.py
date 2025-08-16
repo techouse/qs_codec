@@ -109,14 +109,23 @@ class WeakWrapper:
         stack.add(vid)
         try:
             if isinstance(value, Mapping):
-                # Hash as sorted (key, hashed(value)) pairs for stability.
-                items = ((k, self._hash_recursive(v, seen, stack, depth + 1)) for k, v in value.items())
-                return hash(tuple(sorted(items)))
+                # Stable and comparable ordering: sort by hashed key, not by the key itself.
+                pairs = []
+                for k, v in value.items():
+                    hk = hash(k)
+                    hv = self._hash_recursive(v, seen, stack, depth + 1)
+                    pairs.append((hk, hv))
+                pairs.sort()
+                return hash(tuple(pairs))
             elif isinstance(value, (list, tuple, set)):
-                # Sets are unordered → sort to get a stable hashing order.
-                iterable = sorted(value) if isinstance(value, set) else value
-                seq = (self._hash_recursive(v, seen, stack, depth + 1) for v in iterable)
-                return hash(tuple(seq))
+                if isinstance(value, set):
+                    # Order by hashed element to avoid TypeError on unorderable elements.
+                    elems = [self._hash_recursive(v, seen, stack, depth + 1) for v in value]
+                    elems.sort()
+                    return hash(tuple(elems))
+                else:
+                    seq = (self._hash_recursive(v, seen, stack, depth + 1) for v in value)
+                    return hash(tuple(seq))
             else:
                 return hash(value)
         finally:
