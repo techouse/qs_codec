@@ -134,25 +134,55 @@ class EncodeUtils:
 
     @classmethod
     def _encode_string(cls, string: str, format: t.Optional[Format]) -> str:
-        """Percent‑encode `string` per RFC3986 or RFC1738.
+        """Percent-encode `string` per RFC3986 or RFC1738, operating on UTF-16 code units.
 
-        The input is traversed by UTF‑16 code unit using `code_unit_at` so that
-        surrogate pairs (non‑BMP code points) can be detected and encoded as a
-        single 4‑byte UTF‑8 sequence via `_encode_surrogate_pair`.
-
-        Characters in the active "safe" set are copied verbatim; everything else
-        is converted into the correct percent‑encoded UTF‑8 byte sequence.
+        We first expand non-BMP code points into surrogate pairs so that indexing and
+        length checks are done in *code units*, matching JavaScript semantics. We then
+        walk the string with a manual index, skipping the low surrogate when we emit a
+        surrogate pair.
         """
+        # Work on UTF-16 code units for JS parity.
+        s = cls._to_surrogates(string)
         buffer: t.List[str] = []
 
-        i: int
-        for i, _ in enumerate(string):
-            c: int = code_unit_at(string, i)
+        i = 0
+        n = len(s)
+        while i < n:
+            c = code_unit_at(s, i)
 
             if cls._is_safe_char(c, format):
-                buffer.append(string[i])
-            else:
-                buffer.extend(cls._encode_char(string, i, c))
+                buffer.append(s[i])
+                i += 1
+                continue
+            # ASCII
+            if c < 0x80:
+                buffer.append(cls.HEX_TABLE[c])
+                i += 1
+                continue
+            # Two-byte UTF-8
+            if c < 0x800:
+                buffer.extend(
+                    [
+                        cls.HEX_TABLE[0xC0 | (c >> 6)],
+                        cls.HEX_TABLE[0x80 | (c & 0x3F)],
+                    ]
+                )
+                i += 1
+                continue
+            # Surrogates → 4-byte UTF-8 (ensure we skip the low surrogate)
+            if 0xD800 <= c <= 0xDBFF and (i + 1) < n:
+                buffer.extend(cls._encode_surrogate_pair(s, i, c))
+                i += 2
+                continue
+            # 3-byte UTF-8 (non-surrogate BMP)
+            buffer.extend(
+                [
+                    cls.HEX_TABLE[0xE0 | (c >> 12)],
+                    cls.HEX_TABLE[0x80 | ((c >> 6) & 0x3F)],
+                    cls.HEX_TABLE[0x80 | (c & 0x3F)],
+                ]
+            )
+            i += 1
 
         return "".join(buffer)
 
