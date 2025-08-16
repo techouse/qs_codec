@@ -1,4 +1,25 @@
-"""A collection of utility methods used by the library."""
+"""
+Utility helpers shared across the `qs_codec` decode/encode internals.
+
+The functions in this module are intentionally small, allocation‑aware, and
+careful about container mutation to match the behavior (and performance
+characteristics) of the original JavaScript `qs` library.
+
+Key responsibilities:
+- Merging decoded key/value pairs into nested Python containers (`merge`)
+- Removing the library's `Undefined` sentinel values (`compact` and helpers)
+- Minimal deep‑equality for cycle detection guards (`_dicts_are_equal`)
+- Small helpers for list/value composition (`combine`, `apply`)
+- Primitive checks used by the encoder (`is_non_nullish_primitive`)
+
+Notes:
+- `Undefined` marks entries that should be *omitted* from output structures.
+  We remove these in place where possible to minimize allocations.
+- Many helpers accept both `list` and `tuple`; tuples are converted to lists
+  on mutation because Python tuples are immutable.
+- Several routines use an object‑identity `visited` set to avoid infinite
+  recursion when user inputs contain cycles.
+"""
 
 import copy
 import typing as t
@@ -12,7 +33,12 @@ from ..models.undefined import Undefined
 
 
 class Utils:
-    """A collection of utility methods used by the library."""
+    """
+    Namespace container for stateless utility routines.
+
+    All methods are `@staticmethod`s to keep call sites simple and to make the
+    functions easy to reuse across modules without constructing objects.
+    """
 
     @staticmethod
     def merge(
@@ -20,16 +46,49 @@ class Utils:
         source: t.Optional[t.Union[t.Mapping[str, t.Any], t.List[t.Any], t.Tuple[t.Any], t.Any]],
         options: t.Optional[DecodeOptions] = None,
     ) -> t.Union[t.Dict[str, t.Any], t.List[t.Any], t.Tuple[t.Any], t.Any]:
-        """Merge two objects together."""
+        """
+        Merge two containers (mapping / list / tuple) or values.
+
+        Semantics are aligned with the `qs` family:
+        - When `source` is not a mapping:
+            * If `target` is a sequence, append/extend while skipping `Undefined`.
+            * If `target` is a mapping, coerce the sequence to a mapping of string
+              indices and update the target.
+            * Otherwise, return a two‑element list `[target, source]` (skipping
+              `Undefined` where applicable).
+        - When `source` is a mapping:
+            * If `target` is not a mapping, coerce `target` to an index‑keyed mapping
+              (if it is a sequence) and merge recursively.
+            * If `target` is a mapping, deep‑merge keys, recursing where keys collide.
+
+        `DecodeOptions` influence list handling:
+        - If `options.parse_lists` is False and we must inject into a list that
+          already contains `Undefined`, we promote that list to a dict with string
+          indices so keys can be addressed deterministically.
+
+        Args:
+            target: Existing value to merge into (may be None).
+            source: Incoming value; may be a mapping, list/tuple, scalar, or None.
+            options: DecodeOptions that affect list promotion/handling.
+
+        Returns:
+            A merged structure. May return `target` unchanged when `source is None`.
+        """
         if source is None:
+            # Nothing to merge — keep the original target as‑is.
             return target
 
         if options is None:
+            # Use default decode options when none are provided.
             options = DecodeOptions()
 
         if not isinstance(source, t.Mapping):
+            # Fast‑path: merging a non‑mapping (list/tuple/scalar) into target.
             if isinstance(target, (list, tuple)):
+                # If the target sequence contains `Undefined`, we may need to promote it
+                # to a dict keyed by string indices for stable writes.
                 if any(isinstance(el, Undefined) for el in target):
+                    # Create an index → value view so we can overwrite by position.
                     target_: t.Dict[int, t.Any] = dict(enumerate(target))
 
                     if isinstance(source, (list, tuple)):
@@ -39,6 +98,7 @@ class Utils:
                     else:
                         target_[len(target_)] = source
 
+                    # When list parsing is disabled, collapse to a string‑keyed dict and drop sentinels.
                     if not options.parse_lists and any(isinstance(value, Undefined) for value in target_.values()):
                         target = {str(i): target_[i] for i in target_ if not isinstance(target_[i], Undefined)}
                     else:
@@ -56,14 +116,17 @@ class Utils:
                                 }.values()
                             )
                         else:
+                            # Tuples are immutable; work with a list when mutating.
                             if isinstance(target, tuple):
                                 target = list(target)
                             target.extend(filter(lambda el: not isinstance(el, Undefined), source))
                     elif source is not None:
+                        # Tuples are immutable; work with a list when mutating.
                         if isinstance(target, tuple):
                             target = list(target)
                         target.append(source)
             elif isinstance(target, t.Mapping):
+                # Target is a mapping but source is a sequence — coerce indices to string keys.
                 if isinstance(source, (list, tuple)):
                     target = {
                         **target,
@@ -76,6 +139,8 @@ class Utils:
 
             return target
 
+        # Source is a mapping but target is not — coerce target to a mapping or
+        # concatenate as a list, then proceed.
         if target is None or not isinstance(target, t.Mapping):
             if isinstance(target, (list, tuple)):
                 return {
@@ -93,12 +158,14 @@ class Utils:
                 if not isinstance(el, Undefined)
             ]
 
+        # Prepare a mutable copy of the target we can merge into.
         merge_target: t.Dict[str, t.Any] = (
             {str(i): el for i, el in enumerate(source) if not isinstance(el, Undefined)}
             if isinstance(target, (list, tuple)) and not isinstance(source, (list, tuple))
             else copy.deepcopy(dict(target) if not isinstance(target, dict) else target)
         )
 
+        # For overlapping keys, merge recursively; otherwise, take the new value.
         return {
             **merge_target,
             **{
@@ -109,23 +176,40 @@ class Utils:
 
     @staticmethod
     def compact(root: t.Dict[str, t.Any]) -> t.Dict[str, t.Any]:
-        """Remove all instances of `Undefined` from a dictionary."""
+        """
+        Remove all `Undefined` sentinels from a nested container in place.
+
+        Traversal is iterative (explicit stack) to avoid deep recursion, and a
+        per‑object `visited` set prevents infinite loops on cyclic inputs.
+
+        Args:
+            root: Dictionary to clean. It is mutated and also returned.
+
+        Returns:
+            The same `root` object for chaining.
+        """
+        # Depth‑first traversal without recursion.
         stack: deque[t.Union[t.Dict, t.List]] = deque([root])
+        # Track object identities to avoid revisiting in cycles.
         visited: t.Set[int] = {id(root)}
 
         while stack:
             node: t.Union[t.Dict, t.List] = stack.pop()
             if isinstance(node, dict):
-                # copy keys to allow deletion during iteration
+                # Copy keys so we can delete from the dict during iteration.
                 for k in list(node.keys()):
                     v: object = node[k]
-                    if isinstance(v, Undefined):  # whatever your sentinel class is
+                    # Library sentinel: drop this key entirely.
+                    if isinstance(v, Undefined):
                         del node[k]
                     elif isinstance(v, (dict, list)):
                         if id(v) not in visited:
-                            visited.add(id(v))
+                            visited.add(
+                                id(v)
+                            )  # Mark before descending to avoid re‑pushing the same object through a cycle.
                             stack.append(v)
             elif isinstance(node, list):
+                # Manual index loop since we may delete elements while iterating.
                 i: int = 0
                 while i < len(node):
                     v = node[i]
@@ -133,13 +217,21 @@ class Utils:
                         del node[i]
                     else:
                         if isinstance(v, (dict, list)) and id(v) not in visited:
-                            visited.add(id(v))
+                            visited.add(
+                                id(v)
+                            )  # Mark before descending to avoid re‑pushing the same object through a cycle.
                             stack.append(v)
                         i += 1
         return root
 
     @staticmethod
     def _remove_undefined_from_list(value: t.List[t.Any]) -> None:
+        """
+        Recursively remove `Undefined` from a list in place.
+
+        Tuples encountered inside the list are converted to lists so they can be
+        pruned or further traversed.
+        """
         i: int = len(value) - 1
         while i >= 0:
             item = value[i]
@@ -156,6 +248,14 @@ class Utils:
 
     @staticmethod
     def _remove_undefined_from_map(obj: t.Dict[t.Any, t.Any]) -> None:
+        """
+        Recursively remove `Undefined` from a mapping in place.
+
+        Any tuple values are converted to lists to allow in‑place pruning. Uses a
+        lightweight cycle guard via `_dicts_are_equal` to avoid descending into the
+        same mapping from itself.
+        """
+        # Snapshot keys so we can delete while iterating.
         keys: t.List[t.Any] = list(obj.keys())
         for key in keys:
             val = obj[key]
@@ -175,9 +275,25 @@ class Utils:
         d2: t.Mapping[t.Any, t.Any],
         path: t.Optional[t.Set[t.Any]] = None,
     ) -> bool:
+        """
+        Minimal deep equality helper with cycle guarding.
+
+        This is not a general deep‑equality routine; it exists to prevent infinite
+        recursion when structures point at themselves. If both inputs are dicts,
+        we compare keys and recurse into values; otherwise we fall back to `==`.
+
+        Args:
+            d1, d2: Structures to compare.
+            path: Internal identity set used to detect cycles.
+
+        Returns:
+            True if considered equal, or if a cycle is detected on either side.
+        """
+        # Lazily create the identity set used for cycle detection.
         if path is None:
             path = set()
 
+        # If we've seen either mapping at this level, treat as equal to break cycles.
         if id(d1) in path or id(d2) in path:
             return True
 
@@ -201,7 +317,11 @@ class Utils:
         a: t.Union[t.List[t.Any], t.Tuple[t.Any], t.Any],
         b: t.Union[t.List[t.Any], t.Tuple[t.Any], t.Any],
     ) -> t.List[t.Any]:
-        """Combine two lists or values."""
+        """
+        Concatenate two values, treating non‑sequences as singletons.
+
+        Returns a new `list`; tuples are expanded but not preserved as tuples.
+        """
         return [*(a if isinstance(a, (list, tuple)) else [a]), *(b if isinstance(b, (list, tuple)) else [b])]
 
     @staticmethod
@@ -209,12 +329,27 @@ class Utils:
         val: t.Union[t.List[t.Any], t.Tuple[t.Any], t.Any],
         fn: t.Callable,
     ) -> t.Union[t.List[t.Any], t.Any]:
-        """Apply a function to a value or a list of values."""
+        """
+        Map a callable over a value or sequence.
+
+        If `val` is a list/tuple, returns a list of mapped results; otherwise returns
+        the single mapped value.
+        """
         return [fn(item) for item in val] if isinstance(val, (list, tuple)) else fn(val)
 
     @staticmethod
     def is_non_nullish_primitive(val: t.Any, skip_nulls: bool = False) -> bool:
-        """Check if a value is a non-nullish primitive."""
+        """
+        Return True if `val` is considered a primitive for encoding purposes.
+
+        Rules:
+        - `None` and `Undefined` are not primitives.
+        - Strings are primitives; if `skip_nulls` is True, the empty string is not.
+        - Numbers, booleans, `Enum`, `datetime`, and `timedelta` are primitives.
+        - Any non‑container object is treated as primitive.
+
+        This mirrors the behavior expected by the original `qs` encoder.
+        """
         if val is None:
             return False
 

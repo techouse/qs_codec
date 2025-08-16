@@ -5,7 +5,7 @@ A query string encoding and decoding library for Python.
 
 Ported from `qs <https://www.npmjs.com/package/qs>`__ for JavaScript.
 
-|PyPI - Version| |PyPI - Downloads| |PyPI - Status| |PyPI - Python Version| |PyPI - Format| |Black|
+|PyPI - Version| |PyPI - Downloads| |PyPI - Status| |PyPI - Python Version| |PyPI - Format|
 |Test| |CodeQL| |Publish| |Docs| |codecov| |Codacy| |Black| |flake8| |mypy| |pylint| |isort| |bandit|
 |License| |Contributor Covenant| |GitHub Sponsors| |GitHub Repo stars|
 
@@ -29,20 +29,6 @@ Decoding
 
 dictionaries
 ^^^^^^^^^^^^
-
-.. code:: python
-
-   import qs_codec as qs
-   import typing as t
-
-   def decode(
-       value: t.Optional[t.Union[str, t.Dict[str, t.Any]]],
-       options: qs.DecodeOptions = qs.DecodeOptions(),
-   ) -> t.Dict[str, t.Any]:
-       """Decodes a query string into a Dict[str, Any].
-       
-       Providing custom DecodeOptions will override the default behavior."""
-       pass
 
 `decode <https://techouse.github.io/qs_codec/qs_codec.html#module-qs_codec.decode>`__ allows you to create nested ``dict``\ s within your query
 strings, by surrounding the name of sub-keys with square brackets
@@ -93,7 +79,7 @@ This depth can be overridden by setting the `depth <https://techouse.github.io/q
        qs.DecodeOptions(depth=1),
    ) == {'a': {'b': {'[c][d][e][f][g][h][i]': 'j'}}}
 
-You can configure `decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__ to throw an error
+You can configure `decode <https://techouse.github.io/qs_codec/qs_codec.html#module-qs_codec.decode>`__ to throw an error
 when parsing nested input beyond this depth using `strict_depth <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.strict_depth>`__ (defaults to ``False``):
 
 .. code:: python
@@ -108,11 +94,11 @@ when parsing nested input beyond this depth using `strict_depth <https://techous
    except IndexError as e:
        assert str(e) == 'Input depth exceeded depth option of 1 and strict_depth is True'
 
-The depth limit helps mitigate abuse when `decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__ is used to parse user
+The depth limit helps mitigate abuse when `decode <https://techouse.github.io/qs_codec/qs_codec.html#module-qs_codec.decode>`__ is used to parse user
 input, and it is recommended to keep it a reasonably small number. `strict_depth <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.strict_depth>`__
-adds a layer of protection by throwing a ``IndexError`` when the limit is exceeded, allowing you to catch and handle such cases.
+adds a layer of protection by throwing an ``IndexError`` when the limit is exceeded, allowing you to catch and handle such cases.
 
-For similar reasons, by default `decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__ will only parse up to 1000 parameters. This can be overridden by passing a
+For similar reasons, by default `decode <https://techouse.github.io/qs_codec/qs_codec.html#module-qs_codec.decode>`__ will only parse up to 1000 parameters. This can be overridden by passing a
 `parameter_limit <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.parameter_limit>`__ option:
 
 .. code:: python
@@ -174,7 +160,7 @@ Option `decode_dot_in_keys <https://techouse.github.io/qs_codec/qs_codec.models.
 can be used to decode dots in keys.
 
 **Note:** it implies `allow_dots <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.allow_dots>`__, so
-`decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__ will error if you set `decode_dot_in_keys <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.decode_dot_in_keys>`__
+`decode <https://techouse.github.io/qs_codec/qs_codec.html#module-qs_codec.decode>`__ will error if you set `decode_dot_in_keys <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.decode_dot_in_keys>`__
 to ``True``, and `allow_dots <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.allow_dots>`__ to ``False``.
 
 .. code:: python
@@ -242,7 +228,7 @@ the checkmark character and detect that a query string or
 e.g. if the form had an ``accept-charset`` parameter or the containing
 page had a different character set.
 
-`decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__ supports this mechanism via the
+`decode <https://techouse.github.io/qs_codec/qs_codec.html#module-qs_codec.decode>`__ supports this mechanism via the
 `charset_sentinel <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.charset_sentinel>`__ option.
 If specified, the ``utf8`` parameter will be omitted from the returned
 ``dict``. It will be used to switch to `LATIN1 <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.enums.charset.Charset.LATIN1>`__ or
@@ -281,7 +267,7 @@ option as well:
 
 .. code:: python
 
-   import qs_codec qs qs
+   import qs_codec as qs
 
    assert qs.decode(
        'a=%26%239786%3B',
@@ -297,7 +283,7 @@ It also works when the charset has been detected in
 lists
 ^^^^^
 
-`decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__ can also decode ``list``\ s using a similar ``[]`` notation:
+`decode <https://techouse.github.io/qs_codec/qs_codec.html#module-qs_codec.decode>`__ can also decode ``list``\ s using a similar ``[]`` notation:
 
 .. code:: python
 
@@ -316,7 +302,7 @@ You may specify an index as well:
 Note that the only difference between an index in a ``list`` and a key
 in a ``dict`` is that the value between the brackets must be a number to
 create a ``list``. When creating ``list``\ s with specific indices,
-`decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__ will compact a sparse ``list`` to
+`decode <https://techouse.github.io/qs_codec/qs_codec.html#module-qs_codec.decode>`__ will compact a sparse ``list`` to
 only the existing values preserving their order:
 
 .. code:: python
@@ -335,7 +321,7 @@ Note that an empty ``str``\ing is also a value, and will be preserved:
 
    assert qs.decode('a[0]=b&a[1]=&a[2]=c') == {'a': ['b', '', 'c']}
 
-`decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__ will also limit specifying indices
+`decode <https://techouse.github.io/qs_codec/qs_codec.html#module-qs_codec.decode>`__ will also limit specifying indices
 in a ``list`` to a maximum index of ``20``. Any ``list`` members with an
 index of greater than ``20`` will instead be converted to a ``dict`` with
 the index as the key. This is needed to handle cases when someone sent,
@@ -348,7 +334,7 @@ over this huge ``list``.
 
    assert qs.decode('a[100]=b') == {'a': {'100': 'b'}}
 
-This limit can be overridden by passing an `list_limit <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.list_limit>`__
+This limit can be overridden by passing a `list_limit <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.list_limit>`__
 option:
 
 .. code:: python
@@ -372,7 +358,7 @@ to ``False``.
        qs.DecodeOptions(parse_lists=False),
    ) == {'a': {'0': 'b'}}
 
-If you mix notations, `decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__ will merge the two items into a ``dict``:
+If you mix notations, `decode <https://techouse.github.io/qs_codec/qs_codec.html#module-qs_codec.decode>`__ will merge the two items into a ``dict``:
 
 .. code:: python
 
@@ -388,7 +374,7 @@ You can also create ``list``\ s of ``dict``\ s:
 
    assert qs.decode('a[][b]=c') == {'a': [{'b': 'c'}]}
 
-(`decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__ *cannot convert nested ``dict``\ s, such as ``'a={b:1},{c:d}'``*)
+(`decode <https://techouse.github.io/qs_codec/qs_codec.html#module-qs_codec.decode>`__ *cannot convert nested ``dict``\ s, such as ``'a={b:1},{c:d}'``*)
 
 primitive values (``int``, ``bool``, ``None``, etc.)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -405,20 +391,6 @@ By default, all values are parsed as ``str``\ings.
 
 Encoding
 ~~~~~~~~
-
-.. code:: python
-
-   import qs_codec as qs
-   import typing as t
-
-   def encode(
-       value: t.Any,
-       options: qs.EncodeOptions = qs.EncodeOptions()
-   ) -> str:
-       """Encodes an object into a query string.
-       
-       Providing custom EncodeOptions will override the default behavior."""
-       pass
 
 When encoding, `encode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.encode>`__ by default URI encodes output. ``dict``\ s are
 encoded as you would expect:
@@ -489,13 +461,13 @@ This encoding can also be replaced by a custom ``Callable`` in the
 `encode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encode>`__ is ``False``).
 
 Similar to `encoder <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encoder>`__ there is a
-`decoder <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.decoder>`__ option for `decode <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.decode>`__
+`decoder <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.decoder>`__ option for `decode <https://techouse.github.io/qs_codec/qs_codec.html#module-qs_codec.decode>`__
 to override decoding of properties and values:
 
 .. code:: python
 
-   import qs_codec as qs,
-   typing as t
+   import qs_codec as qs
+   import typing as t
 
    def custom_decoder(
        value: t.Any,

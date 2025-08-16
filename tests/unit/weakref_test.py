@@ -123,7 +123,7 @@ class TestWeakrefWithDictKeys:
         object.__setattr__(wrapper, "_wref", lambda: None)
 
         # Accessing value should raise ReferenceError
-        with pytest.raises(ReferenceError, match="original object has been garbage-collected"):
+        with pytest.raises(ReferenceError, match="Original object has been garbage-collected"):
             _ = wrapper.value
 
         # Restore the original weak reference to avoid affecting other tests

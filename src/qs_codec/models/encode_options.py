@@ -1,4 +1,19 @@
-"""This module contains the ``EncodeOptions`` class that configures the output of ``encode``."""
+"""Configuration object for `encode`.
+
+`EncodeOptions` mirrors the behavior and defaults of the reference `qs` implementation
+(ported across Techouse repos). It controls how Python values (dicts/lists/scalars)
+are turned into a URL-encoded query string. The options here are intentionally
+close to the Node.js library so behavior is predictable across languages.
+
+Key interactions to be aware of:
+- `allow_dots` vs `encode_dot_in_keys`: when unspecified, `allow_dots` mirrors the
+  value of `encode_dot_in_keys` (see `__post_init__`).
+- `indices` is deprecated and mapped to `list_format` for parity with newer ports.
+- `encoder` and `serialize_date` let you customize scalar/date serialization,
+  while `encode=False` short-circuits the encoder entirely.
+- `sort` may return -1/0/+1 (like `strcmp`/`NSComparisonResult.rawValue`) to
+  deterministically order keys.
+"""
 
 import typing as t
 from dataclasses import asdict, dataclass, field
@@ -12,90 +27,105 @@ from ..utils.encode_utils import EncodeUtils
 
 @dataclass
 class EncodeOptions:
-    """Options that configure the output of ``encode``."""
+    """Options that configure the output of `encode`.
+
+    Each field corresponds to a knob in the query-string encoder. Defaults aim to be
+    unsurprising and compatible with other Techouse qs ports. See per-field docs
+    below for details and caveats.
+    """
 
     allow_dots: bool = field(default=None)  # type: ignore [assignment]
-    """Set to ``True`` to use dot ``dict`` notation in the encoded output."""
+    """When `True`, interpret dotted keys as object paths during encoding (e.g. `a.b=1`). If `None`, mirrors `encode_dot_in_keys` (see `__post_init__`)."""
 
     add_query_prefix: bool = False
-    """Set to ``True`` to add a question mark ``?`` prefix to the encoded output."""
+    """When `True`, prefix the output with a `?` (useful when appending to a base URL)."""
 
     allow_empty_lists: bool = False
-    """Set to ``True`` to allow empty ``list`` s in the encoded output."""
+    """When `True`, include empty lists in the output (e.g. `a[]=` instead of omitting)."""
 
     indices: t.Optional[bool] = None
-    """Deprecated: Use ``list_format`` instead."""
+    """Deprecated: prefer `list_format`. If set, maps to `ListFormat.INDICES` when `True` or `ListFormat.REPEAT` when `False`."""
 
     list_format: ListFormat = ListFormat.INDICES
-    """The ``list`` encoding format to use."""
+    """Controls how lists are encoded (indices/brackets/repeat/comma). See `ListFormat`."""
 
     charset: Charset = Charset.UTF8
-    """The character encoding to use."""
+    """Character encoding used by the encoder (defaults to UTF‑8)."""
 
     charset_sentinel: bool = False
-    """Set to ``True`` to announce the character by including an ``utf8=✓`` parameter with the proper encoding of the
-    checkmark, similar to what Ruby on Rails and others do when submitting forms."""
+    """When `True`, include a sentinel parameter announcing the charset (e.g. `utf8=✓`)."""
 
     delimiter: str = "&"
-    """The delimiter to use when joining key-value pairs in the encoded output."""
+    """Pair delimiter between tokens (typically `&`; `;` and others are allowed)."""
 
     encode: bool = True
-    """Set to ``False`` to disable encoding."""
+    """Master switch. When `False`, values/keys are not percent‑encoded (joined as-is)."""
 
     encode_dot_in_keys: bool = field(default=None)  # type: ignore [assignment]
-    """Encode ``dict`` keys using dot notation by setting ``encode_dot_in_keys`` to ``True``.
-    Caveat: When ``encode_values_only`` is ``True`` as well as ``encode_dot_in_keys``, only dots in keys and nothing
-    else will be encoded."""
+    """When `True`, encode dots in keys literally. With `encode_values_only=True`, only key dots are encoded while values remain untouched."""
 
     encode_values_only: bool = False
-    """Encoding can be disabled for keys by setting the ``encode_values_only`` to ``True``."""
+    """When `True`, the encoder is applied to values only; keys are left unencoded."""
 
     format: Format = Format.RFC3986
-    """The encoding format to use.
-    The default ``format`` is ``Format.RFC3986`` which encodes ``' '`` to ``%20`` which is backward compatible.
-    You can also set ``format`` to ``Format.RFC1738`` which encodes ``' '`` to ``+``."""
+    """Space handling and percent‑encoding style. `RFC3986` encodes spaces as `%20`, while
+    `RFC1738` uses `+`."""
 
     filter: t.Optional[t.Union[t.Callable, t.List[t.Union[str, int]]]] = field(default=None)
-    """Use the ``filter`` option to restrict which keys will be included in the encoded output.
-    If you pass a ``Callable``, it will be called for each key to obtain the replacement value.
-    If you pass a ``list``, it will be used to select properties and ``list`` indices to be encoded."""
+    """Restrict which keys get included.
+    - If a callable is provided, it is invoked for each key and should return the
+      replacement value (or `None` to drop when `skip_nulls` applies).
+    - If a list is provided, only those keys/indices are retained.
+    """
 
     skip_nulls: bool = False
-    """Set to ``True`` to completely skip encoding keys with ``None`` values."""
+    """When `True`, omit keys whose value is `None` entirely (no trailing `=`)."""
 
     serialize_date: t.Callable[[datetime], t.Optional[str]] = EncodeUtils.serialize_date
-    """If you only want to override the serialization of ``datetime`` objects, you can provide a ``Callable``."""
+    """Hook to stringify `datetime` values before encoding; returning `None` is treated as a null value
+    (subject to null-handling options), not as a fallback to ISO-8601."""
 
     encoder: t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str] = field(  # type: ignore [assignment]
-        default_factory=EncodeUtils.encode  # type: ignore [arg-type]
+        default=EncodeUtils.encode, init=False, repr=False
     )
-    """Set an ``Encoder`` to affect the encoding of values.
-    Note: the ``encoder`` option does not apply if ``encode`` is ``False``."""
+    """Custom scalar encoder. Signature: `(value, charset|None, format|None) -> str`.
+    Note: when `encode=False`, this is bypassed and values are joined without
+    percent‑encoding."""
 
     _encoder: t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str] = field(init=False, repr=False)
 
     @property  # type: ignore [no-redef]
     def encoder(self) -> t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str]:  # noqa: F811
-        """Get the encoder function."""
+        """Return a view of the encoder bound to the current `charset` and `format`.
+
+        The returned callable has signature `(value) -> str` and internally calls the
+        underlying `_encoder(value, self.charset, self.format)`.
+        """
         return lambda v, c=self.charset, f=self.format: self._encoder(v, c, f)  # type: ignore [misc]
 
     @encoder.setter
     def encoder(self, value: t.Optional[t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str]]) -> None:
+        """Set the underlying encoder, falling back to `EncodeUtils.encode` when `None` or non‑callable."""
         self._encoder = value if callable(value) else EncodeUtils.encode
 
     strict_null_handling: bool = False
-    """Set to ``True`` to distinguish between ``null`` values and empty ``str``\\ings. This way the encoded string
-    ``None`` values will have no ``=`` sign."""
+    """When `True`, distinguish empty strings from `None`: `None` → `a` (no `=`), empty string → `a=`."""
 
     comma_round_trip: t.Optional[bool] = None
-    """When ``list_format`` is set to ``ListFormat.COMMA``, you can also set ``comma_round_trip`` option to ``True`` or
-    ``False``, to append ``[]`` on single-item ``list``\\s, so that they can round trip through a parse."""
+    """Only used with `ListFormat.COMMA`. When `True`, single‑item lists append `[]` so they round‑trip back to a list on decode."""
 
     sort: t.Optional[t.Callable[[t.Any, t.Any], int]] = field(default=None)
-    """Set a ``Callable`` to affect the order of parameter keys."""
+    """Optional comparator for deterministic key ordering. Must return -1, 0, or +1."""
 
     def __post_init__(self) -> None:
-        """Post-initialization."""
+        """Normalize interdependent options.
+
+        - If `allow_dots` is `None`, mirror `encode_dot_in_keys` (treating non‑`True` as `False`).
+        - Default `encode_dot_in_keys` to `False` when unset.
+        - Map deprecated `indices` to `list_format` for backward compatibility.
+        """
+        if not hasattr(self, "_encoder") or self._encoder is None:
+            self._encoder = EncodeUtils.encode
         if self.allow_dots is None:
             self.allow_dots = self.encode_dot_in_keys is True or False
         if self.encode_dot_in_keys is None:
@@ -104,7 +134,12 @@ class EncodeOptions:
             self.list_format = ListFormat.INDICES if self.indices else ListFormat.REPEAT
 
     def __eq__(self, other: object) -> bool:
-        """Compare two `EncodeOptions` objects."""
+        """Structural equality that treats the bound encoder consistently.
+
+        `dataclasses.asdict` would serialize the `encoder` property (a lambda bound to
+        charset/format) differently on each instance. To compare meaningfully, we swap in
+        `_encoder` (the raw callable) on both sides before comparing dictionaries.
+        """
         if not isinstance(other, EncodeOptions):
             return False
 

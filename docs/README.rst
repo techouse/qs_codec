@@ -4,20 +4,6 @@ Decoding
 dictionaries
 ^^^^^^^^^^^^
 
-.. code:: python
-
-   import qs_codec as qs
-   import typing as t
-
-   def decode(
-       value: t.Optional[t.Union[str, t.Dict[str, t.Any]]],
-       options: qs.DecodeOptions = qs.DecodeOptions(),
-   ) -> t.Dict[str, t.Any]:
-       """Decodes a query string into a Dict[str, Any].
-       
-       Providing custom DecodeOptions will override the default behavior."""
-       pass
-
 :py:attr:`decode <qs_codec.decode>` allows you to create nested ``dict``\ s within your query
 strings, by surrounding the name of sub-keys with square brackets
 ``[]``. For example, the string ``'foo[bar]=baz'`` converts to:
@@ -85,7 +71,7 @@ when parsing nested input beyond this depth using :py:attr:`strict_depth <qs_cod
 
 The depth limit helps mitigate abuse when :py:attr:`decode <qs_codec.decode>` is used to parse user input, and it is recommended
 to keep it a reasonably small number. :py:attr:`strict_depth <qs_codec.models.decode_options.DecodeOptions.strict_depth>`
-adds a layer of protection by throwing a ``IndexError`` when the limit is exceeded, allowing you to catch and handle such cases.
+adds a layer of protection by throwing an ``IndexError`` when the limit is exceeded, allowing you to catch and handle such cases.
 
 For similar reasons, by default :py:attr:`decode <qs_codec.decode>` will only parse up to 1000 parameters. This can be overridden by passing a
 :py:attr:`parameter_limit <qs_codec.models.decode_options.DecodeOptions.parameter_limit>` option:
@@ -163,7 +149,7 @@ to ``True``, and :py:attr:`allow_dots <qs_codec.models.decode_options.DecodeOpti
    ) == {'name.obj': {'first': 'John', 'last': 'Doe'}}
 
 Option :py:attr:`allow_empty_lists <qs_codec.models.decode_options.DecodeOptions.allow_empty_lists>` can
-be used to allowing empty ``list`` values in a ``dict``
+be used to allow empty ``list`` values in a ``dict``
 
 .. code:: python
 
@@ -301,7 +287,7 @@ only the existing values preserving their order:
 
    assert qs.decode('a[1]=b&a[15]=c') == {'a': ['b', 'c']}
 
-Note that an empty ``str``\ing is also a value, and will be preserved:
+Note that an empty ``str``\ing is also a value and will be preserved:
 
 .. code:: python
 
@@ -381,20 +367,6 @@ By default, all values are parsed as ``str``\ings.
 
 Encoding
 ~~~~~~~~
-
-.. code:: python
-
-   import qs_codec as qs
-   import typing as t
-
-   def encode(
-       value: t.Any,
-       options: qs.EncodeOptions = qs.EncodeOptions()
-   ) -> str:
-       """Encodes an object into a query string.
-       
-       Providing custom EncodeOptions will override the default behavior."""
-       pass
 
 When encoding, :py:attr:`encode <qs_codec.encode>` by default URI encodes output. ``dict``\ s are
 encoded as you would expect:
@@ -565,7 +537,7 @@ format of the output ``list``:
 **Note:** When using :py:attr:`list_format <qs_codec.models.encode_options.EncodeOptions.list_format>` set to
 :py:attr:`COMMA <qs_codec.enums.list_format.ListFormat.COMMA>`, you can also pass the
 :py:attr:`comma_round_trip <qs_codec.models.encode_options.EncodeOptions.comma_round_trip>` option set to ``True`` or
-``False``, to append ``[]`` on single-item ``list``\ s, so that they can round trip through a decoding.
+``False``, to append ``[]`` on single-item ``list``\ s so they can round-trip through a decoding.
 
 :py:attr:`BRACKETS <qs_codec.enums.list_format.ListFormat.BRACKETS>` notation is used for encoding ``dict``\s by default:
 
@@ -964,11 +936,6 @@ The default :py:attr:`format <qs_codec.models.encode_options.EncodeOptions.forma
 .. code:: python
 
    import qs_codec as qs
-
-   assert qs.encode(
-       {'a': 'b c'},
-       qs.EncodeOptions(format=qs.Format.RFC3986)
-   ) == 'a=b%20c'
 
    assert qs.encode(
        {'a': 'b c'},

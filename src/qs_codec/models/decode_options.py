@@ -24,11 +24,16 @@ class DecodeOptions:
     """Set to ``True`` to allow empty ``list`` values inside ``dict``\\s in the encoded input."""
 
     list_limit: int = 20
-    """``qs_codec`` will limit specifying indices in a ``list`` to a maximum index of ``20``.
-    Any ``list`` members with an index of greater than ``20`` will instead be converted to a ``dict`` with the index as
-    the key. This is needed to handle cases when someone sent, for example, ``a[999999999]`` and it will take
-    significant time to iterate over this huge ``list``.
-    This limit can be overridden by passing a ``list_limit`` option."""
+    """Maximum number of **indexed** items allowed in a single list (default: ``20``).
+
+    During decoding, keys like ``a[0]``, ``a[1]``, … are treated as list indices. If an
+    index exceeds this limit, the container is treated as a ``dict`` instead, with the
+    numeric index kept as a string key (e.g., ``{"999": "x"}``) to prevent creation of
+    massive sparse lists (e.g., ``a[999999999]``).
+
+    This limit also applies to comma–split lists when ``comma=True``. Set a larger value if
+    you explicitly need more items, or set a smaller one to harden against abuse.
+    """
 
     charset: Charset = Charset.UTF8
     """The character encoding to use when decoding the input."""
@@ -66,7 +71,12 @@ class DecodeOptions:
     passing a ``parameter_limit`` option."""
 
     duplicates: Duplicates = Duplicates.COMBINE
-    """Change the duplicate key handling strategy."""
+    """Strategy for handling duplicate keys in the input.
+
+    - ``COMBINE`` (default): merge values into a list (e.g., ``a=1&a=2`` → ``{"a": [1, 2]}``).
+    - ``FIRST``: keep the first value and ignore subsequent ones (``{"a": 1}``).
+    - ``LAST``: keep only the last value seen (``{"a": 2}``).
+    """
 
     ignore_query_prefix: bool = False
     """Set to ``True`` to ignore the leading question mark query prefix in the encoded input."""
@@ -78,16 +88,41 @@ class DecodeOptions:
     """To disable ``list`` parsing entirely, set ``parse_lists`` to ``False``."""
 
     strict_depth: bool = False
-    """Set to ``True`` to raise an error when the input exceeds the ``depth`` limit."""
+    """Enforce the ``depth`` limit when decoding nested structures.
+
+    When ``True``, the decoder will not descend beyond ``depth`` levels. Combined with
+    ``raise_on_limit_exceeded``:
+
+    - if ``raise_on_limit_exceeded=True``, exceeding the depth results in a
+      ``DecodeError.depth_exceeded``;
+    - if ``False``, the decoder stops descending and treats deeper content as a terminal
+      value, preserving the last valid container without raising.
+    """
 
     strict_null_handling: bool = False
     """Set to ``True`` to decode values without ``=`` to ``None``."""
 
     raise_on_limit_exceeded: bool = False
-    """Set to ``True`` to raise an error when the input contains more parameters than the ``list_limit``."""
+    """Raise instead of degrading gracefully when limits are exceeded.
+
+    When ``True``, the decoder raises a ``DecodeError`` in any of the following cases:
+
+    - more than ``parameter_limit`` top‑level parameters,
+    - more than ``list_limit`` items in a single list (including comma–split lists),
+    - nesting deeper than ``depth`` **when** ``strict_depth=True``.
+
+    When ``False`` (default), the decoder degrades gracefully: it slices the parameter list
+    at ``parameter_limit``, stops adding items beyond ``list_limit``, and—if
+    ``strict_depth=True``—stops descending once ``depth`` is reached without raising.
+    """
 
     decoder: t.Callable[[t.Optional[str], t.Optional[Charset]], t.Any] = DecodeUtils.decode
-    """Set a ``Callable`` to affect the decoding of the input."""
+    """Custom scalar decoder invoked for each raw token prior to interpretation.
+
+    Signature: ``Callable[[Optional[str], Optional[Charset]], Any]``. The default
+    implementation performs percent decoding (and, when enabled, numeric‑entity decoding)
+    using the current ``charset``. Override this to plug in custom decoding logic.
+    """
 
     def __post_init__(self) -> None:
         """Post-initialization."""

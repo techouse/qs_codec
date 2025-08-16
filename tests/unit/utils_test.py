@@ -735,3 +735,7 @@ class TestUtils:
     )
     def test_is_safe_char(self, char: str, format: Format, expected: bool) -> None:
         assert EncodeUtils._is_safe_char(ord(char), format) is expected
+
+    def test_encode_string(self):
+        assert EncodeUtils._encode_string("💩", Format.RFC3986) == "%F0%9F%92%A9"
+        assert EncodeUtils._encode_string("A💩B", Format.RFC3986) == "A%F0%9F%92%A9B"

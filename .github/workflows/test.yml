@@ -8,10 +8,17 @@ on:
     branches:
       - main
   workflow_call:
+
 defaults:
   run:
     shell: bash
-permissions: read-all
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   analyze:
