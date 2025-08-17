@@ -19,6 +19,7 @@ __version__ = "1.1.8"
 from .decode import decode, load, loads
 from .encode import dumps, encode
 from .enums.charset import Charset
+from .enums.decode_kind import DecodeKind
 from .enums.duplicates import Duplicates
 from .enums.format import Format
 from .enums.list_format import ListFormat
@@ -36,6 +37,7 @@ __all__ = [
     "loads",
     "load",
     "Charset",
+    "DecodeKind",
     "Duplicates",
     "Format",
     "ListFormat",
