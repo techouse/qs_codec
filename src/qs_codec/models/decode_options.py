@@ -1,9 +1,10 @@
 """This module contains the ``DecodeOptions`` class that configures the output of ``decode``."""
 
 import typing as t
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from ..enums.charset import Charset
+from ..enums.decode_kind import DecodeKind
 from ..enums.duplicates import Duplicates
 from ..utils.decode_utils import DecodeUtils
 
@@ -12,10 +13,10 @@ from ..utils.decode_utils import DecodeUtils
 class DecodeOptions:
     """Options that configure the output of ``decode``."""
 
-    allow_dots: bool = field(default=None)  # type: ignore [assignment]
+    allow_dots: t.Optional[bool] = None
     """Set to ``True`` to decode dot ``dict`` notation in the encoded input."""
 
-    decode_dot_in_keys: bool = field(default=None)  # type: ignore [assignment]
+    decode_dot_in_keys: t.Optional[bool] = None
     """Set to ``True`` to decode dots in keys.
     Note: it implies ``allow_dots``, so ``decode`` will error if you set ``decode_dot_in_keys`` to ``True``, and
     ``allow_dots`` to ``False``."""
@@ -116,12 +117,13 @@ class DecodeOptions:
     ``strict_depth=True``—stops descending once ``depth`` is reached without raising.
     """
 
-    decoder: t.Callable[[t.Optional[str], t.Optional[Charset]], t.Any] = DecodeUtils.decode
+    decoder: t.Optional[t.Callable[..., t.Optional[str]]] = DecodeUtils.decode
     """Custom scalar decoder invoked for each raw token prior to interpretation.
 
-    Signature: ``Callable[[Optional[str], Optional[Charset]], Any]``. The default
-    implementation performs percent decoding (and, when enabled, numeric‑entity decoding)
-    using the current ``charset``. Override this to plug in custom decoding logic.
+    Signature: ``Callable[[Optional[str], Optional[Charset]], Optional[str]]`` by default, but the
+    parser will prefer ``decoder(string, charset, kind=DecodeKind.KEY|VALUE)`` when available.
+    If a custom decoder does not accept ``kind``, it will be automatically adapted so existing
+    decoders continue to work.
     """
 
     def __post_init__(self) -> None:
@@ -135,3 +137,29 @@ class DecodeOptions:
         # Enforce consistency with the docs: `decode_dot_in_keys=True` implies `allow_dots=True`.
         if self.decode_dot_in_keys and not self.allow_dots:
             raise ValueError("decode_dot_in_keys=True implies allow_dots=True")
+
+        # decoder setup + compatibility wrapper
+        if self.decoder is None:
+            self.decoder = DecodeUtils.decode
+        else:
+            user_dec = self.decoder
+
+            def _adapter(
+                s: t.Optional[str],
+                charset: t.Optional[Charset] = Charset.UTF8,
+                *,
+                kind: DecodeKind = DecodeKind.VALUE,
+            ) -> t.Optional[str]:
+                # Try keyword form first (supports keyword-only `kind`), then fall back.
+                try:
+                    return user_dec(s, charset, kind=kind)  # type: ignore[misc]
+                except TypeError:
+                    try:
+                        return user_dec(s, charset, kind=kind.value)  # type: ignore[misc]
+                    except TypeError:
+                        try:
+                            return user_dec(s, charset)  # type: ignore[misc]
+                        except TypeError:
+                            return user_dec(s)  # type: ignore[misc]
+
+            self.decoder = _adapter
