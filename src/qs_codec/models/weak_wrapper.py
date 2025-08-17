@@ -30,9 +30,6 @@ class _Proxy:
 def _get_proxy(value: t.Any) -> "_Proxy":
     """Return a per-object proxy, cached by id(value)."""
     key = id(value)
-    proxy = _proxy_cache.get(key)
-    if proxy is not None:
-        return proxy
     with _proxy_cache_lock:
         proxy = _proxy_cache.get(key)
         if proxy is None:
@@ -72,14 +69,10 @@ def _deep_hash(
     if isinstance(obj, dict):
         oid = _enter(obj)
         try:
-            # Sort by repr(key) to be stable across runs
-            kv_hashes = tuple(
-                (
-                    _deep_hash(k, _seen, _depth + 1),
-                    _deep_hash(v, _seen, _depth + 1),
-                )
-                for k, v in sorted(obj.items(), key=lambda kv: repr(kv[0]))
-            )
+            # Compute key/value deep hashes once and sort pairs for determinism
+            pairs = [(_deep_hash(k, _seen, _depth + 1), _deep_hash(v, _seen, _depth + 1)) for k, v in obj.items()]
+            pairs.sort()
+            kv_hashes = tuple(pairs)
             return hash(("dict", kv_hashes))
         finally:
             _leave(oid)
@@ -146,8 +139,8 @@ class WeakWrapper:
         """Check equality by comparing the proxy identity."""
         if not isinstance(other, WeakWrapper):
             return NotImplemented
-        # Same underlying object => same wrapper identity
-        return self._proxy.value is other._proxy.value
+        # Same underlying object => same cached proxy instance
+        return self._proxy is other._proxy
 
     def __hash__(self) -> int:
         """Return a deep hash of the wrapped value."""

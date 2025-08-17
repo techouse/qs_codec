@@ -126,7 +126,12 @@ class DecodeOptions:
 
     def __post_init__(self) -> None:
         """Post-initialization."""
-        if self.allow_dots is None:
-            self.allow_dots = self.decode_dot_in_keys is True or False
+        # Default `decode_dot_in_keys` first, then mirror into `allow_dots` when unspecified.
         if self.decode_dot_in_keys is None:
             self.decode_dot_in_keys = False
+        if self.allow_dots is None:
+            self.allow_dots = bool(self.decode_dot_in_keys)
+
+        # Enforce consistency with the docs: `decode_dot_in_keys=True` implies `allow_dots=True`.
+        if self.decode_dot_in_keys and not self.allow_dots:
+            raise ValueError("decode_dot_in_keys=True implies allow_dots=True")

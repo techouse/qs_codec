@@ -12,7 +12,7 @@ Key interactions to be aware of:
 """
 
 import typing as t
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field, fields
 from datetime import datetime
 
 from ..enums.charset import Charset
@@ -122,10 +122,12 @@ class EncodeOptions:
         """
         if not hasattr(self, "_encoder") or self._encoder is None:
             self._encoder = EncodeUtils.encode
-        if self.allow_dots is None:
-            self.allow_dots = self.encode_dot_in_keys is True or False
+        # Default `encode_dot_in_keys` first, then mirror into `allow_dots` when unspecified.
         if self.encode_dot_in_keys is None:
             self.encode_dot_in_keys = False
+        if self.allow_dots is None:
+            self.allow_dots = bool(self.encode_dot_in_keys)
+        # Map deprecated `indices` to `list_format` for backward compatibility.
         if self.indices is not None:
             self.list_format = ListFormat.INDICES if self.indices else ListFormat.REPEAT
 
@@ -139,10 +141,14 @@ class EncodeOptions:
         if not isinstance(other, EncodeOptions):
             return False
 
-        self_dict = asdict(self)
-        other_dict = asdict(other)
-
-        self_dict["encoder"] = self._encoder
-        other_dict["encoder"] = other._encoder
-
-        return self_dict == other_dict
+        for f in fields(EncodeOptions):
+            name = f.name
+            if name == "encoder":
+                v1 = self._encoder
+                v2 = other._encoder
+            else:
+                v1 = getattr(self, name)
+                v2 = getattr(other, name)
+            if v1 != v2:
+                return False
+        return True

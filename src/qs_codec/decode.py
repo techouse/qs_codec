@@ -20,7 +20,7 @@ from .enums.charset import Charset
 from .enums.duplicates import Duplicates
 from .enums.sentinel import Sentinel
 from .models.decode_options import DecodeOptions
-from .models.undefined import Undefined
+from .models.undefined import UNDEFINED
 from .utils.decode_utils import DecodeUtils
 from .utils.utils import Utils
 
@@ -168,19 +168,17 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
         raise ValueError("Parameter limit must be a positive integer.")
 
     parts: t.List[str]
-    # Split using either a compiled regex or a literal string delimiter.
+    # Split using either a compiled regex or a literal string delimiter (do it once, then slice if needed).
     if isinstance(options.delimiter, re.Pattern):
-        parts = (
-            re.split(options.delimiter, clean_str)
-            if (limit is None) or not limit
-            else re.split(options.delimiter, clean_str)[: (limit + 1 if options.raise_on_limit_exceeded else limit)]
-        )
+        _all_parts = re.split(options.delimiter, clean_str)
     else:
-        parts = (
-            clean_str.split(options.delimiter)
-            if (limit is None) or not limit
-            else clean_str.split(options.delimiter)[: (limit + 1 if options.raise_on_limit_exceeded else limit)]
-        )
+        _all_parts = clean_str.split(options.delimiter)
+
+    if (limit is not None) and limit:
+        _take = limit + 1 if options.raise_on_limit_exceeded else limit
+        parts = _all_parts[:_take]
+    else:
+        parts = _all_parts
 
     # Enforce parameter count when strict mode is enabled.
     if options.raise_on_limit_exceeded and (limit is not None) and len(parts) > limit:
@@ -232,9 +230,10 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
                 val if isinstance(val, str) else ",".join(val) if isinstance(val, (list, tuple)) else str(val)
             )
 
-        # If the pair used empty brackets syntax, note that as a list marker.
-        if "[]=" in part:
-            val = [val] if isinstance(val, (list, tuple)) else val
+        # If the pair used empty brackets syntax and list parsing is enabled, force an array container.
+        # Always wrap exactly once to preserve list-of-lists semantics when comma splitting applies.
+        if options.parse_lists and "[]=" in part:
+            val = [val]
 
         existing: bool = key in obj
 
@@ -303,7 +302,10 @@ def _parse_object(
             # Optionally treat `%2E` as a literal dot (when `decode_dot_in_keys` is enabled).
             clean_root: str = root[1:-1] if root.startswith("[") and root.endswith("]") else root
 
-            decoded_root: str = clean_root.replace(r"%2E", ".") if options.decode_dot_in_keys else clean_root
+            if options.decode_dot_in_keys:
+                decoded_root: str = clean_root.replace("%2E", ".").replace("%2e", ".")
+            else:
+                decoded_root = clean_root
 
             # Parse numeric segment to decide between dict key vs. list index.
             index: t.Optional[int]
@@ -322,7 +324,7 @@ def _parse_object(
                 and options.parse_lists
                 and index <= options.list_limit
             ):
-                obj = [Undefined() for _ in range(index + 1)]
+                obj = [UNDEFINED for _ in range(index + 1)]
                 obj[index] = leaf
             else:
                 obj[str(index) if index is not None else decoded_root] = leaf

@@ -108,24 +108,35 @@ class Utils:
                     if not options.parse_lists and any(isinstance(value, Undefined) for value in target_.values()):
                         target = {str(i): target_[i] for i in target_ if not isinstance(target_[i], Undefined)}
                     else:
-                        target = list(filter(lambda el: not isinstance(el, Undefined), target_.values()))
+                        target = [el for el in target_.values() if not isinstance(el, Undefined)]
                 else:
                     if isinstance(source, (list, tuple)):
-                        if all((isinstance(el, t.Mapping) or isinstance(el, Undefined)) for el in target) and all(
-                            (isinstance(el, t.Mapping) or isinstance(el, Undefined)) for el in source
+                        if all(isinstance(el, (t.Mapping, Undefined)) for el in target) and all(
+                            isinstance(el, (t.Mapping, Undefined)) for el in source
                         ):
-                            target__: t.Dict[int, t.Any] = dict(enumerate(target))
-                            target = list(
-                                {
-                                    i: Utils.merge(target__[i], item, options) if i in target__ else item
-                                    for i, item in enumerate(source)
-                                }.values()
-                            )
+                            target_dict: t.Dict[int, t.Any] = dict(enumerate(target))
+                            source_dict: t.Dict[int, t.Any] = dict(enumerate(source))
+                            max_len = max(len(target_dict), len(source_dict))
+                            merged_list: t.List[t.Any] = []
+                            for i in range(max_len):
+                                has_t = i in target_dict
+                                has_s = i in source_dict
+                                if has_t and has_s:
+                                    merged_list.append(Utils.merge(target_dict[i], source_dict[i], options))
+                                elif has_t:
+                                    tv = target_dict[i]
+                                    if not isinstance(tv, Undefined):
+                                        merged_list.append(tv)
+                                elif has_s:
+                                    sv = source_dict[i]
+                                    if not isinstance(sv, Undefined):
+                                        merged_list.append(sv)
+                            target = merged_list
                         else:
                             # Tuples are immutable; work with a list when mutating.
                             if isinstance(target, tuple):
                                 target = list(target)
-                            target.extend(filter(lambda el: not isinstance(el, Undefined), source))
+                            target.extend(el for el in source if not isinstance(el, Undefined))
                     elif source is not None:
                         # Tuples are immutable; work with a list when mutating.
                         if isinstance(target, tuple):
@@ -134,13 +145,14 @@ class Utils:
             elif isinstance(target, t.Mapping):
                 # Target is a mapping but source is a sequence — coerce indices to string keys.
                 if isinstance(source, (list, tuple)):
-                    target = {
-                        **target,
-                        **{str(i): item for i, item in enumerate(source) if not isinstance(item, Undefined)},
-                    }
+                    _new = dict(target)
+                    for i, item in enumerate(source):
+                        if not isinstance(item, Undefined):
+                            _new[str(i)] = item
+                    target = _new
             elif source is not None:
                 if not isinstance(target, (list, tuple)) and isinstance(source, (list, tuple)):
-                    return [target, *filter(lambda el: not isinstance(el, Undefined), source)]
+                    return [target, *(el for el in source if not isinstance(el, Undefined))]
                 return [target, source]
 
             return target
@@ -154,22 +166,19 @@ class Utils:
                     **source,
                 }
 
-            return [
-                el
-                for el in (target if isinstance(target, (list, tuple)) else [target])
-                if not isinstance(el, Undefined)
-            ] + [
-                el
-                for el in (source if isinstance(source, (list, tuple)) else [source])
-                if not isinstance(el, Undefined)
-            ]
+            _res: t.List[t.Any] = []
+            _iter1 = target if isinstance(target, (list, tuple)) else [target]
+            for _el in _iter1:
+                if not isinstance(_el, Undefined):
+                    _res.append(_el)
+            _iter2 = source if isinstance(source, (list, tuple)) else [source]
+            for _el in _iter2:
+                if not isinstance(_el, Undefined):
+                    _res.append(_el)
+            return _res
 
         # Prepare a mutable copy of the target we can merge into.
-        merge_target: t.Dict[str, t.Any] = (
-            {str(i): el for i, el in enumerate(source) if not isinstance(el, Undefined)}
-            if isinstance(target, (list, tuple)) and not isinstance(source, (list, tuple))
-            else copy.deepcopy(dict(target) if not isinstance(target, dict) else target)
-        )
+        merge_target: t.Dict[str, t.Any] = copy.deepcopy(target if isinstance(target, dict) else dict(target))
 
         # For overlapping keys, merge recursively; otherwise, take the new value.
         return {

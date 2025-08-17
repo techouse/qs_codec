@@ -31,10 +31,12 @@ class DecodeUtils:
     # "a.b[c]" becomes "a[b][c]" before bracket parsing.
     DOT_TO_BRACKET: t.Pattern[str] = re.compile(r"\.([^.\[]+)")
 
+    # Precompiled pattern for %XX hex bytes (Latin-1 path fast path)
+    HEX2_PATTERN: t.Pattern[str] = re.compile(r"%([0-9A-Fa-f]{2})")
+
     @classmethod
     def unescape(cls, string: str) -> str:
-        """
-        Emulate legacy JavaScript unescape behavior.
+        """Emulate legacy JavaScript unescape behavior.
 
         Replaces both ``%XX`` and ``%uXXXX`` escape sequences with the
         corresponding code points. This function is intentionally permissive
@@ -48,6 +50,9 @@ class DecodeUtils:
         >>> DecodeUtils.unescape("%7E")
         '~'
         """
+        # Fast path: nothing to unescape
+        if "%" not in string:
+            return string
 
         def replacer(match: t.Match[str]) -> str:
             if (unicode_val := match.group("unicode")) is not None:
@@ -81,18 +86,18 @@ class DecodeUtils:
         if string is None:
             return None
 
-        # Replace '+' with ' ' before processing.
-        string_without_plus: str = string.replace("+", " ")
+        # Replace '+' with ' ' only if present to avoid allocation.
+        string_without_plus: str = string.replace("+", " ") if "+" in string else string
 
         if charset == Charset.LATIN1:
-            # Only process hex escape sequences for Latin1.
-            return re.sub(
-                r"%[0-9A-Fa-f]{2}",
-                lambda match: cls.unescape(match.group(0)),
-                string_without_plus,
-            )
+            # Only process %XX hex escape sequences for Latin-1 (no %uXXXX expansion here).
+            s = string_without_plus
+            if "%" not in s:
+                return s
+            return cls.HEX2_PATTERN.sub(lambda m: chr(int(m.group(1), 16)), s)
 
-        return unquote(string_without_plus)
+        s = string_without_plus
+        return s if "%" not in s else unquote(s)
 
     @classmethod
     def split_key_into_segments(
@@ -102,8 +107,7 @@ class DecodeUtils:
         max_depth: int,
         strict_depth: bool,
     ) -> t.List[str]:
-        """
-        Split a composite key into *balanced* bracket segments.
+        """Split a composite key into *balanced* bracket segments.
 
         - If ``allow_dots`` is True, convert dots to bracket groups first (``a.b[c]`` → ``a[b][c]``) while leaving existing brackets intact.
         - The *parent* (non‑bracket) prefix becomes the first segment, e.g. ``"a[b][c]"`` → ``["a", "[b]", "[c]"]``.
@@ -113,7 +117,10 @@ class DecodeUtils:
 
         This runs in O(n) time over the key string.
         """
-        key: str = cls.DOT_TO_BRACKET.sub(r"[\1]", original_key) if allow_dots else original_key
+        if allow_dots and "." in original_key:
+            key: str = cls.DOT_TO_BRACKET.sub(r"[\1]", original_key)
+        else:
+            key = original_key
 
         if max_depth <= 0:
             return [key]

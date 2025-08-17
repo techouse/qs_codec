@@ -31,6 +31,8 @@ class EncodeUtils:
     RFC1738_SAFE_CHARS: t.Set[int] = SAFE_CHARS | {0x28, 0x29}
     """0-9, A-Z, a-z, -, ., _, ~, (, )"""
 
+    _RE_UXXXX = re.compile(r"%u([0-9a-fA-F]{4})")
+
     @classmethod
     def escape(
         cls,
@@ -72,7 +74,7 @@ class EncodeUtils:
             if c in safe_points:
                 buffer.append(string[i])
             elif c < 256:
-                buffer.append(f"%{c:02X}")
+                buffer.append(cls.HEX_TABLE[c])
             else:
                 buffer.append(f"%u{c:04X}")
             i += 1
@@ -101,12 +103,9 @@ class EncodeUtils:
             return ""
 
         if charset == Charset.LATIN1:
-            return re.sub(
-                r"%u[0-9a-f]{4}",
-                lambda match: f"%26%23{int(match.group(0)[2:], 16)}%3B",
-                cls.escape(string, format),
-                flags=re.IGNORECASE,
-            )
+            _pat = cls._RE_UXXXX
+            _esc = cls.escape(string, format)
+            return _pat.sub(lambda m: f"%26%23{int(m.group(1), 16)}%3B", _esc)
 
         return cls._encode_string(string, format)
 
@@ -138,6 +137,8 @@ class EncodeUtils:
         """
         # Work on UTF-16 code units for JS parity.
         s = cls._to_surrogates(string)
+        safe_chars = cls.RFC1738_SAFE_CHARS if format == Format.RFC1738 else cls.SAFE_CHARS
+        hex_table = cls.HEX_TABLE
         buffer: t.List[str] = []
 
         i = 0
@@ -145,21 +146,21 @@ class EncodeUtils:
         while i < n:
             c = ord(s[i])
 
-            if cls._is_safe_char(c, format):
+            if c in safe_chars:
                 buffer.append(s[i])
                 i += 1
                 continue
             # ASCII
             if c < 0x80:
-                buffer.append(cls.HEX_TABLE[c])
+                buffer.append(hex_table[c])
                 i += 1
                 continue
             # Two-byte UTF-8
             if c < 0x800:
                 buffer.extend(
                     [
-                        cls.HEX_TABLE[0xC0 | (c >> 6)],
-                        cls.HEX_TABLE[0x80 | (c & 0x3F)],
+                        hex_table[0xC0 | (c >> 6)],
+                        hex_table[0x80 | (c & 0x3F)],
                     ]
                 )
                 i += 1
@@ -174,9 +175,9 @@ class EncodeUtils:
             # 3-byte UTF-8 (non-surrogate BMP)
             buffer.extend(
                 [
-                    cls.HEX_TABLE[0xE0 | (c >> 12)],
-                    cls.HEX_TABLE[0x80 | ((c >> 6) & 0x3F)],
-                    cls.HEX_TABLE[0x80 | (c & 0x3F)],
+                    hex_table[0xE0 | (c >> 12)],
+                    hex_table[0x80 | ((c >> 6) & 0x3F)],
+                    hex_table[0x80 | (c & 0x3F)],
                 ]
             )
             i += 1
@@ -235,6 +236,13 @@ class EncodeUtils:
         This mirrors how JavaScript strings store characters, allowing compatibility with legacy `%uXXXX` encoding paths
         and consistent behavior with the Node `qs` implementation.
         """
+        # Fast path: no non-BMP code points — return original string
+        for _ch in string:
+            if ord(_ch) > 0xFFFF:
+                break
+        else:
+            return string
+
         buffer: t.List[str] = []
 
         ch: str
