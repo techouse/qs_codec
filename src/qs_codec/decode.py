@@ -20,7 +20,7 @@ from .enums.charset import Charset
 from .enums.duplicates import Duplicates
 from .enums.sentinel import Sentinel
 from .models.decode_options import DecodeOptions
-from .models.undefined import Undefined
+from .models.undefined import UNDEFINED
 from .utils.decode_utils import DecodeUtils
 from .utils.utils import Utils
 
@@ -324,7 +324,7 @@ def _parse_object(
                 and options.parse_lists
                 and index <= options.list_limit
             ):
-                obj = [Undefined() for _ in range(index + 1)]
+                obj = [UNDEFINED for _ in range(index + 1)]
                 obj[index] = leaf
             else:
                 obj[str(index) if index is not None else decoded_root] = leaf
