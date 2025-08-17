@@ -7,6 +7,7 @@ from sys import getsizeof
 import pytest
 
 from qs_codec import Charset, DecodeOptions, Duplicates, decode, load, loads
+from qs_codec.enums.decode_kind import DecodeKind
 from qs_codec.utils.decode_utils import DecodeUtils
 
 
@@ -1350,3 +1351,82 @@ class TestListLimit:
                 decode(query, options)
         else:
             assert decode(query, options) == expected
+
+
+# --- Additional tests for decoder kind and parser state isolation ---
+
+
+class TestKeyAwareDecoderBehavior:
+    def test_decoder_receives_kind_for_keys_and_values(self) -> None:
+        calls: t.List[DecodeKind] = []
+
+        def _decoder(s: t.Optional[str], charset: t.Optional[Charset], *, kind: DecodeKind = DecodeKind.VALUE) -> t.Any:
+            calls.append(kind)
+            return DecodeUtils.decode(s, charset=charset, kind=kind)
+
+        assert decode("a=b&c=d", DecodeOptions(decoder=_decoder)) == {"a": "b", "c": "d"}
+        # Expect KEY, VALUE for each pair (order within a pair is key then value)
+        assert calls[0] is DecodeKind.KEY and calls[1] is DecodeKind.VALUE
+        assert calls[2] is DecodeKind.KEY and calls[3] is DecodeKind.VALUE
+
+    def test_preserves_percent_encoded_dot_in_keys_utf8(self) -> None:
+        # %252E → protected %2E in key; with allow_dots but decode_dot_in_keys=False, do not split
+        opts = DecodeOptions(allow_dots=True, decode_dot_in_keys=False)
+        assert decode("a%252Eb=1", opts) == {"a%2Eb": "1"}
+
+    def test_decodes_percent_encoded_dot_in_keys_when_enabled_utf8(self) -> None:
+        # When decode_dot_in_keys=True, the %2E becomes a literal dot in the *segment*; no extra split is introduced
+        # unless there are other literal dots present.
+        opts = DecodeOptions(allow_dots=True, decode_dot_in_keys=True)
+        assert decode("a%252Eb=1", opts) == {"a.b": "1"}
+
+    def test_preserves_percent_encoded_dot_in_keys_latin1(self) -> None:
+        opts = DecodeOptions(allow_dots=True, decode_dot_in_keys=False, charset=Charset.LATIN1)
+        assert decode("a%252Eb=1", opts) == {"a%2Eb": "1"}
+
+    def test_decodes_percent_encoded_dot_in_keys_when_enabled_latin1(self) -> None:
+        opts = DecodeOptions(allow_dots=True, decode_dot_in_keys=True, charset=Charset.LATIN1)
+        assert decode("a%252Eb=1", opts) == {"a.b": "1"}
+
+    def test_decoder_adapter_supports_keyword_only_kind(self) -> None:
+        calls: t.List[str] = []
+
+        def _decoder(s: t.Optional[str], charset: t.Optional[Charset], *, kind: DecodeKind = DecodeKind.VALUE) -> t.Any:
+            calls.append("KEY" if kind is DecodeKind.KEY else "VALUE")
+            return DecodeUtils.decode(s, charset=charset, kind=kind)
+
+        assert decode("x=y", DecodeOptions(decoder=_decoder)) == {"x": "y"}
+        # Ensure both KEY and VALUE were observed
+        assert calls == ["KEY", "VALUE"]
+
+    def test_decoder_adapter_falls_back_to_single_arg(self) -> None:
+        # A legacy decoder that only accepts the string and uppercases it.
+        def _decoder(s: t.Optional[str]) -> t.Any:
+            return None if s is None else s.upper()
+
+        # Applies to keys and values
+        assert decode("a=b", DecodeOptions(decoder=_decoder)) == {"A": "B"}
+
+    def test_decoder_adapter_two_arg_signature(self) -> None:
+        # A legacy decoder that accepts (s, charset) and delegates to default
+        def _decoder(s: t.Optional[str], charset: t.Optional[Charset]) -> t.Any:
+            return DecodeUtils.decode(s, charset=charset)
+
+        assert decode("he%3Dllo=th%3Dere", DecodeOptions(decoder=_decoder)) == {"he=llo": "th=ere"}
+
+
+class TestParserStateIsolation:
+    def test_parse_lists_toggle_does_not_leak_across_calls(self) -> None:
+        # Build a query with many top-level params to trigger the internal optimization
+        big_query = "&".join(f"k{i}=v{i}" for i in range(25))
+        opts = DecodeOptions(list_limit=20)
+
+        # First call may temporarily disable parse_lists internally
+        res1 = decode(big_query, opts)
+        assert isinstance(res1, dict) and len(res1) == 25
+        # The option should be restored on the options object
+        assert opts.parse_lists is True
+
+        # Second call should still parse lists as lists
+        res2 = decode("a[]=1&a[]=2", opts)
+        assert res2 == {"a": ["1", "2"]}
