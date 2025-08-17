@@ -24,7 +24,7 @@ from .enums.format import Format
 from .enums.list_format import ListFormat
 from .enums.sentinel import Sentinel
 from .models.encode_options import EncodeOptions
-from .models.undefined import Undefined
+from .models.undefined import UNDEFINED, Undefined
 from .models.weak_wrapper import WeakWrapper
 from .utils.utils import Utils
 
@@ -255,7 +255,7 @@ def _encode(
         # Normalize datetimes both for scalars and (in COMMA mode) list elements.
         if isinstance(obj, datetime):
             obj = serialize_date(obj) if callable(serialize_date) else obj.isoformat()
-        elif generate_array_prefix == ListFormat.COMMA.generator and isinstance(obj, (list, tuple)):
+        elif generate_array_prefix is ListFormat.COMMA.generator and isinstance(obj, (list, tuple)):
             if callable(serialize_date):
                 obj = [serialize_date(x) if isinstance(x, datetime) else x for x in obj]
             else:
@@ -292,7 +292,7 @@ def _encode(
             obj_keys_value = ",".join(("" if e is None else str(e)) for e in obj)
             obj_keys = [{"value": obj_keys_value if obj_keys_value else None}]
         else:
-            obj_keys = [{"value": Undefined()}]
+            obj_keys = [{"value": UNDEFINED}]
     elif isinstance(filter, (list, tuple)):
         # Iterable filter restricts traversal to a fixed key/index set.
         obj_keys = list(filter)
