@@ -60,7 +60,7 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
     if isinstance(value, t.Mapping):
         obj = deepcopy(value)
     elif isinstance(value, (list, tuple)):
-        obj = {str(key): value for key, value in enumerate(value)}
+        obj = {str(i): item for i, item in enumerate(value)}
     else:
         obj = {}
 
@@ -68,7 +68,7 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
     if not obj:
         return ""
 
-    keys: t.List[t.Any] = []
+    keys: t.List[str] = []
 
     # If an iterable filter is provided for the root, restrict emission to those keys.
     obj_keys: t.Optional[t.List[t.Any]] = None
@@ -218,14 +218,14 @@ def _encode(
 
     # Infer comma round-trip when using the COMMA generator and the flag was not explicitly provided.
     if comma_round_trip is None:
-        comma_round_trip = generate_array_prefix == ListFormat.COMMA.generator
+        comma_round_trip = generate_array_prefix is ListFormat.COMMA.generator
 
     # Choose a formatter if one wasn't provided (based on the selected format).
     if formatter is None:
         formatter = format.formatter
 
-    # Work on a copy to avoid mutating caller state during normalization.
-    obj: t.Any = deepcopy(value)
+    # Work with the original; we never mutate in place (we build new lists/maps when normalizing).
+    obj: t.Any = value
 
     # --- Cycle detection via chained side-channel -----------------------------------------
     obj_wrapper: WeakWrapper = WeakWrapper(value)
@@ -289,7 +289,7 @@ def _encode(
         if encode_values_only and callable(encoder):
             obj = Utils.apply(obj, encoder)
         if obj:
-            obj_keys_value = ",".join([str(e) if e is not None else "" for e in obj])
+            obj_keys_value = ",".join(("" if e is None else str(e)) for e in obj)
             obj_keys = [{"value": obj_keys_value if obj_keys_value else None}]
         else:
             obj_keys = [{"value": Undefined()}]
@@ -298,14 +298,13 @@ def _encode(
         obj_keys = list(filter)
     else:
         # Default: enumerate keys/indices from mappings or sequences.
-        keys: t.List[t.Any]
         if isinstance(obj, t.Mapping):
             keys = list(obj.keys())
         elif isinstance(obj, (list, tuple)):
-            keys = [index for index in range(len(obj))]
+            keys = list(range(len(obj)))
         else:
             keys = []
-        obj_keys = sorted(keys, key=cmp_to_key(sort)) if sort is not None else list(keys)
+        obj_keys = sorted(keys, key=cmp_to_key(sort)) if sort is not None else keys
 
     # Percent-encode literal dots in key names when requested.
     encoded_prefix: str = prefix.replace(".", "%2E") if encode_dot_in_keys else prefix
@@ -372,7 +371,7 @@ def _encode(
             comma_round_trip=comma_round_trip,
             encoder=(
                 None
-                if generate_array_prefix == ListFormat.COMMA.generator
+                if generate_array_prefix is ListFormat.COMMA.generator
                 and encode_values_only
                 and isinstance(obj, (list, tuple))
                 else encoder
