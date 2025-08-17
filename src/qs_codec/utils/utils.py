@@ -111,8 +111,8 @@ class Utils:
                         target = [el for el in target_.values() if not isinstance(el, Undefined)]
                 else:
                     if isinstance(source, (list, tuple)):
-                        if all((isinstance(el, t.Mapping) or isinstance(el, Undefined)) for el in target) and all(
-                            (isinstance(el, t.Mapping) or isinstance(el, Undefined)) for el in source
+                        if all(isinstance(el, (t.Mapping, Undefined)) for el in target) and all(
+                            isinstance(el, (t.Mapping, Undefined)) for el in source
                         ):
                             target_dict: t.Dict[int, t.Any] = dict(enumerate(target))
                             source_dict: t.Dict[int, t.Any] = dict(enumerate(source))
