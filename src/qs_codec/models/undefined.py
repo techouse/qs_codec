@@ -10,6 +10,7 @@ The sentinel is identity-based: every construction returns the same instance, so
 (e.g., `value is Undefined()`).
 """
 
+import threading
 import typing as t
 
 
@@ -32,6 +33,8 @@ class Undefined:
         ...     pass  # skip emitting the key
     """
 
+    __slots__ = ()
+    _lock: t.ClassVar[threading.Lock] = threading.Lock()
     _instance: t.ClassVar[t.Optional["Undefined"]] = None
 
     def __new__(cls: t.Type["Undefined"]) -> "Undefined":
@@ -40,5 +43,31 @@ class Undefined:
         Creating `Undefined()` multiple times always returns the same object reference. This ensures identity checks (``is``) are stable.
         """
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
         return cls._instance
+
+    def __repr__(self) -> str:  # pragma: no cover - trivial
+        """Return a string representation of the singleton."""
+        return "Undefined()"
+
+    def __copy__(self):  # pragma: no cover - trivial
+        """Ensure copies/pickles preserve the singleton identity."""
+        return self
+
+    def __deepcopy__(self, memo):  # pragma: no cover - trivial
+        """Ensure deep copies preserve the singleton identity."""
+        return self
+
+    def __reduce__(self):  # pragma: no cover - trivial
+        """Recreate via calling the constructor, which returns the singleton."""
+        return Undefined, ()
+
+    def __init_subclass__(cls, **kwargs):  # pragma: no cover - defensive
+        """Prevent subclassing of Undefined."""
+        raise TypeError("Undefined cannot be subclassed")
+
+
+UNDEFINED: t.Final["Undefined"] = Undefined()
+__all__ = ["Undefined", "UNDEFINED"]
