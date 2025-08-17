@@ -75,12 +75,9 @@ class DecodeUtils:
 
         Behavior:
         - Replace ``+`` with a literal space *before* decoding.
-        - If ``charset`` is :data:`~qs_codec.enums.charset.Charset.LATIN1`,
-          decode only ``%XX`` byte sequences (no ``%uXXXX``). ``%uXXXX`` sequences are left as‑is
-          to mimic older browser/JS behavior.
+        - If ``charset`` is :data:`~qs_codec.enums.charset.Charset.LATIN1`, decode only ``%XX`` byte sequences (no ``%uXXXX``). ``%uXXXX`` sequences are left as‑is to mimic older browser/JS behavior.
         - Otherwise (UTF‑8), defer to :func:`urllib.parse.unquote`.
-        - When ``kind=DecodeKind.KEY``, preserve percent-encoded dots (``%2E``/``%2e``) so key splitting honors
-          ``allow_dots``/``decode_dot_in_keys``. Values always decode fully.
+        - When ``kind=DecodeKind.KEY``, preserve percent-encoded dots (``%2E``/``%2e``) so key splitting honors ``allow_dots``/``decode_dot_in_keys``. Values always decode fully.
 
         Returns
         -------
