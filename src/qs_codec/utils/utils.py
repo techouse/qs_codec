@@ -114,11 +114,24 @@ class Utils:
                         if all((isinstance(el, t.Mapping) or isinstance(el, Undefined)) for el in target) and all(
                             (isinstance(el, t.Mapping) or isinstance(el, Undefined)) for el in source
                         ):
-                            target__: t.Dict[int, t.Any] = dict(enumerate(target))
-                            target = [
-                                Utils.merge(target__[i], item, options) if i in target__ else item
-                                for i, item in enumerate(source)
-                            ]
+                            target_dict: t.Dict[int, t.Any] = dict(enumerate(target))
+                            source_dict: t.Dict[int, t.Any] = dict(enumerate(source))
+                            max_len = max(len(target_dict), len(source_dict))
+                            merged_list: t.List[t.Any] = []
+                            for i in range(max_len):
+                                has_t = i in target_dict
+                                has_s = i in source_dict
+                                if has_t and has_s:
+                                    merged_list.append(Utils.merge(target_dict[i], source_dict[i], options))
+                                elif has_t:
+                                    tv = target_dict[i]
+                                    if not isinstance(tv, Undefined):
+                                        merged_list.append(tv)
+                                elif has_s:
+                                    sv = source_dict[i]
+                                    if not isinstance(sv, Undefined):
+                                        merged_list.append(sv)
+                            target = merged_list
                         else:
                             # Tuples are immutable; work with a list when mutating.
                             if isinstance(target, tuple):
