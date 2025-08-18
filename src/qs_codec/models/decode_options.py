@@ -19,7 +19,7 @@ class DecodeOptions:
     """Set to ``True`` to decode dot ``dict`` notation in the encoded input."""
 
     decode_dot_in_keys: t.Optional[bool] = None
-    """Set to ``True`` to decode dots in keys.
+    """Set to ``True`` to decode percent‑encoded dots in keys (e.g., ``%2E`` → ``.``).
     Note: it implies ``allow_dots``, so ``decode`` will error if you set ``decode_dot_in_keys`` to ``True``, and
     ``allow_dots`` to ``False``."""
 
@@ -106,11 +106,9 @@ class DecodeOptions:
     raise_on_limit_exceeded: bool = False
     """Raise instead of degrading gracefully when limits are exceeded.
 
-    When ``True``, the decoder raises a ``DecodeError`` in any of the following cases:
-
-    - more than ``parameter_limit`` top‑level parameters,
-    - more than ``list_limit`` items in a single list (including comma–split lists),
-    - nesting deeper than ``depth`` **when** ``strict_depth=True``.
+    When ``True``, the decoder raises:
+    - a ``DecodeError`` for parameter and list limit violations; and
+    - an ``IndexError`` when nesting deeper than ``depth`` **and** ``strict_depth=True``.
 
     When ``False`` (default), the decoder degrades gracefully: it slices the parameter list
     at ``parameter_limit``, stops adding items beyond ``list_limit``, and—if
