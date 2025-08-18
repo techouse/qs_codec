@@ -3,6 +3,7 @@
 import inspect
 import typing as t
 from dataclasses import dataclass
+from functools import wraps
 
 from ..enums.charset import Charset
 from ..enums.decode_kind import DecodeKind
@@ -143,6 +144,7 @@ class DecodeOptions:
         else:
             user_dec = self.decoder
 
+            @wraps(user_dec)
             def _adapter(
                 s: t.Optional[str],
                 charset: t.Optional[Charset] = Charset.UTF8,
