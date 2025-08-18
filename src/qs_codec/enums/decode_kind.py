@@ -23,8 +23,8 @@ class DecodeKind(Enum):
         Decode a *value*. Implementations typically perform full percent decoding.
     """
 
-    KEY = 1  # Key/segment decode; preserve encoded dots for later splitting logic
-    VALUE = 2  # Value decode; fully percent-decode
+    KEY = "key"  # Key/segment decode; preserve encoded dots for later splitting logic
+    VALUE = "value"  # Value decode; fully percent-decode
 
 
 __all__ = ["DecodeKind"]
