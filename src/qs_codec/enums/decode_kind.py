@@ -11,7 +11,7 @@ from enum import Enum
 
 
 class DecodeKind(str, Enum):
-    """Decoding context for querystring tokens.
+    """Decoding context for query string tokens.
 
     Attributes
     ----------
