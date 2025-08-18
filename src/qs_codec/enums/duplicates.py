@@ -5,7 +5,7 @@ to resolve them. The ``Duplicates`` enum is referenced by ``DecodeOptions`` to
 control that behavior.
 """
 
-from enum import Enum, auto
+from enum import Enum
 
 
 class Duplicates(Enum):
@@ -24,11 +24,11 @@ class Duplicates(Enum):
         Keep only the last occurrence, overwriting prior ones.
     """
 
-    COMBINE = auto()
+    COMBINE = 1
     """Combine duplicate keys into a single list of values (preserves order)."""
 
-    FIRST = auto()
+    FIRST = 2
     """Keep only the first value encountered for the key."""
 
-    LAST = auto()
+    LAST = 3
     """Keep only the last value encountered for the key."""
