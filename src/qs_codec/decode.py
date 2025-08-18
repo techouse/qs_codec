@@ -14,9 +14,12 @@ so that behavior across ports stays predictable and easy to verify with shared t
 
 import re
 import typing as t
+from collections.abc import Mapping
+from dataclasses import replace
 from math import isinf
 
 from .enums.charset import Charset
+from .enums.decode_kind import DecodeKind
 from .enums.duplicates import Duplicates
 from .enums.sentinel import Sentinel
 from .models.decode_options import DecodeOptions
@@ -26,8 +29,8 @@ from .utils.utils import Utils
 
 
 def decode(
-    value: t.Optional[t.Union[str, t.Mapping[str, t.Any]]],
-    options: DecodeOptions = DecodeOptions(),
+    value: t.Optional[t.Union[str, Mapping[str, t.Any]]],
+    options: t.Optional[DecodeOptions] = None,
 ) -> t.Dict[str, t.Any]:
     """
     Decode a query string (or a pre-tokenized mapping) into a nested ``Dict[str, Any]``.
@@ -60,30 +63,40 @@ def decode(
     if not value:
         return obj
 
-    if not isinstance(value, (str, dict)):
-        raise ValueError("The input must be a String or a Dict")
+    if not isinstance(value, (str, Mapping)):
+        raise ValueError("value must be a str or a Mapping[str, Any]")
 
-    temp_obj: t.Optional[t.Dict[str, t.Any]] = (
-        _parse_query_string_values(value, options) if isinstance(value, str) else value
-    )
+    # Work on a local copy so any internal toggles don't leak to caller
+    opts = replace(options) if options is not None else DecodeOptions()
 
-    # If a raw query string produced *more parts than list_limit*, turn list parsing off.
-    # This prevents O(n^2) behavior when the input is a very large flat list of tokens.
-    # We only toggle for this call (mutating the local `options` instance by design,
-    # consistent with the other ports).
-    if temp_obj is not None and options.parse_lists and 0 < options.list_limit < len(temp_obj):
-        options.parse_lists = False
+    # Temporarily toggle parse_lists for THIS call only, and only for raw strings
+    orig_parse_lists = opts.parse_lists
+    try:
+        if isinstance(value, str) and orig_parse_lists:
+            # Pre-count parameters so we can decide on toggling before tokenization/decoding
+            _s = value.replace("?", "", 1) if opts.ignore_query_prefix else value
+            if isinstance(opts.delimiter, re.Pattern):
+                _parts_count = len(re.split(opts.delimiter, _s)) if _s else 0
+            else:
+                _parts_count = (_s.count(opts.delimiter) + 1) if _s else 0
+            if 0 < opts.list_limit < _parts_count:
+                opts.parse_lists = False
+        temp_obj: t.Optional[t.Dict[str, t.Any]] = (
+            _parse_query_string_values(value, opts) if isinstance(value, str) else dict(value)
+        )
 
-    # Iterate over the keys and setup the new object
-    if temp_obj:
-        for key, val in temp_obj.items():
-            new_obj: t.Any = _parse_keys(key, val, options, isinstance(value, str))
+        # Iterate over the keys and setup the new object
+        if temp_obj:
+            for key, val in temp_obj.items():
+                new_obj: t.Any = _parse_keys(key, val, opts, isinstance(value, str))
 
-            if not obj and isinstance(new_obj, dict):
-                obj = new_obj
-                continue
+                if not obj and isinstance(new_obj, dict):
+                    obj = new_obj
+                    continue
 
-            obj = Utils.merge(obj, new_obj, options)  # type: ignore [assignment]
+                obj = Utils.merge(obj, new_obj, opts)  # type: ignore [assignment]
+    finally:
+        opts.parse_lists = orig_parse_lists
 
     return Utils.compact(obj)
 
@@ -92,7 +105,7 @@ def decode(
 load = decode
 
 
-def loads(value: t.Optional[str], options: DecodeOptions = DecodeOptions()) -> t.Dict[str, t.Any]:
+def loads(value: t.Optional[str], options: t.Optional[DecodeOptions] = None) -> t.Dict[str, t.Any]:
     """
     Alias for ``decode``. Decodes a query string into a ``Dict[str, Any]``.
 
@@ -168,21 +181,30 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
         raise ValueError("Parameter limit must be a positive integer.")
 
     parts: t.List[str]
-    # Split using either a compiled regex or a literal string delimiter (do it once, then slice if needed).
-    if isinstance(options.delimiter, re.Pattern):
-        _all_parts = re.split(options.delimiter, clean_str)
+    if limit is None:
+        # Unlimited parameters: split fully
+        if isinstance(options.delimiter, re.Pattern):
+            parts = re.split(options.delimiter, clean_str)
+        else:
+            parts = clean_str.split(options.delimiter)
     else:
-        _all_parts = clean_str.split(options.delimiter)
-
-    if (limit is not None) and limit:
-        _take = limit + 1 if options.raise_on_limit_exceeded else limit
-        parts = _all_parts[:_take]
-    else:
-        parts = _all_parts
-
-    # Enforce parameter count when strict mode is enabled.
-    if options.raise_on_limit_exceeded and (limit is not None) and len(parts) > limit:
-        raise ValueError(f"Parameter limit exceeded: Only {limit} parameter{'' if limit == 1 else 's'} allowed.")
+        if options.raise_on_limit_exceeded:
+            # Split to at most limit+1 parts so we can detect overflow
+            if isinstance(options.delimiter, re.Pattern):
+                parts = re.split(options.delimiter, clean_str, maxsplit=limit)
+            else:
+                parts = clean_str.split(options.delimiter, limit)
+            if len(parts) > limit:
+                raise ValueError(
+                    f"Parameter limit exceeded: Only {limit} parameter{'s' if limit != 1 else ''} allowed."
+                )
+        else:
+            # Silent degrade: split fully, then take the first `limit` parts
+            if isinstance(options.delimiter, re.Pattern):
+                parts = re.split(options.delimiter, clean_str)
+            else:
+                parts = clean_str.split(options.delimiter)
+            parts = parts[:limit]
 
     skip_index: int = -1  # Keep track of where the utf8 sentinel was found
     i: int
@@ -200,6 +222,9 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
                 skip_index = i
                 break
 
+    # Local, non-optional decoder reference for type-checkers
+    decoder_fn: t.Callable[..., t.Optional[str]] = options.decoder or DecodeUtils.decode
+
     # Iterate over parts and decode each key/value pair.
     for i, _ in enumerate(parts):
         if i == skip_index:
@@ -209,20 +234,25 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
         bracket_equals_pos: int = part.find("]=")
         pos: int = part.find("=") if bracket_equals_pos == -1 else (bracket_equals_pos + 1)
 
-        key: str
-        val: t.Union[t.List[t.Any], t.Tuple[t.Any], str, t.Any]
+        # Decode key and value with a key-aware decoder; skip pairs whose key decodes to None
         if pos == -1:
-            key = options.decoder(part, charset)
-            val = None if options.strict_null_handling else ""
+            key_decoded = decoder_fn(part, charset, kind=DecodeKind.KEY)
+            if key_decoded is None:
+                continue
+            key: str = key_decoded
+            val: t.Any = None if options.strict_null_handling else ""
         else:
-            key = options.decoder(part[:pos], charset)
+            key_decoded = decoder_fn(part[:pos], charset, kind=DecodeKind.KEY)
+            if key_decoded is None:
+                continue
+            key = key_decoded
             val = Utils.apply(
                 _parse_array_value(
                     part[pos + 1 :],
                     options,
                     len(obj[key]) if key in obj and isinstance(obj[key], (list, tuple)) else 0,
                 ),
-                lambda v: options.decoder(v, charset),
+                lambda v: decoder_fn(v, charset, kind=DecodeKind.VALUE),
             )
 
         if val and options.interpret_numeric_entities and charset == Charset.LATIN1:
@@ -344,7 +374,7 @@ def _parse_keys(given_key: t.Optional[str], val: t.Any, options: DecodeOptions, 
 
     keys: t.List[str] = DecodeUtils.split_key_into_segments(
         original_key=given_key,
-        allow_dots=options.allow_dots,
+        allow_dots=t.cast(bool, options.allow_dots),
         max_depth=options.depth,
         strict_depth=options.strict_depth,
     )

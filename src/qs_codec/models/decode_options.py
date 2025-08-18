@@ -1,9 +1,13 @@
 """This module contains the ``DecodeOptions`` class that configures the output of ``decode``."""
 
+import inspect
 import typing as t
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from enum import Enum
+from functools import wraps
 
 from ..enums.charset import Charset
+from ..enums.decode_kind import DecodeKind
 from ..enums.duplicates import Duplicates
 from ..utils.decode_utils import DecodeUtils
 
@@ -12,13 +16,15 @@ from ..utils.decode_utils import DecodeUtils
 class DecodeOptions:
     """Options that configure the output of ``decode``."""
 
-    allow_dots: bool = field(default=None)  # type: ignore [assignment]
-    """Set to ``True`` to decode dot ``dict`` notation in the encoded input."""
+    allow_dots: t.Optional[bool] = None
+    """Set to ``True`` to decode dot ``dict`` notation in the encoded input.
+    When ``None`` (default), it inherits the value of ``decode_dot_in_keys``."""
 
-    decode_dot_in_keys: bool = field(default=None)  # type: ignore [assignment]
-    """Set to ``True`` to decode dots in keys.
+    decode_dot_in_keys: t.Optional[bool] = None
+    """Set to ``True`` to decode percent‑encoded dots in keys (e.g., ``%2E`` → ``.``).
     Note: it implies ``allow_dots``, so ``decode`` will error if you set ``decode_dot_in_keys`` to ``True``, and
-    ``allow_dots`` to ``False``."""
+    ``allow_dots`` to ``False``.
+    When ``None`` (default), it defaults to ``False``."""
 
     allow_empty_lists: bool = False
     """Set to ``True`` to allow empty ``list`` values inside ``dict``\\s in the encoded input."""
@@ -93,10 +99,8 @@ class DecodeOptions:
     When ``True``, the decoder will not descend beyond ``depth`` levels. Combined with
     ``raise_on_limit_exceeded``:
 
-    - if ``raise_on_limit_exceeded=True``, exceeding the depth results in a
-      ``DecodeError.depth_exceeded``;
-    - if ``False``, the decoder stops descending and treats deeper content as a terminal
-      value, preserving the last valid container without raising.
+    - if ``raise_on_limit_exceeded=True``, exceeding the depth raises an ``IndexError``;
+    - if ``False``, the decoder stops descending and treats deeper content as a terminal value, preserving the last valid container without raising.
     """
 
     strict_null_handling: bool = False
@@ -105,23 +109,22 @@ class DecodeOptions:
     raise_on_limit_exceeded: bool = False
     """Raise instead of degrading gracefully when limits are exceeded.
 
-    When ``True``, the decoder raises a ``DecodeError`` in any of the following cases:
-
-    - more than ``parameter_limit`` top‑level parameters,
-    - more than ``list_limit`` items in a single list (including comma–split lists),
-    - nesting deeper than ``depth`` **when** ``strict_depth=True``.
+    When ``True``, the decoder raises:
+    - a ``DecodeError`` for parameter and list limit violations; and
+    - an ``IndexError`` when nesting deeper than ``depth`` **and** ``strict_depth=True``.
 
     When ``False`` (default), the decoder degrades gracefully: it slices the parameter list
     at ``parameter_limit``, stops adding items beyond ``list_limit``, and—if
     ``strict_depth=True``—stops descending once ``depth`` is reached without raising.
     """
 
-    decoder: t.Callable[[t.Optional[str], t.Optional[Charset]], t.Any] = DecodeUtils.decode
+    decoder: t.Optional[t.Callable[..., t.Optional[str]]] = DecodeUtils.decode
     """Custom scalar decoder invoked for each raw token prior to interpretation.
 
-    Signature: ``Callable[[Optional[str], Optional[Charset]], Any]``. The default
-    implementation performs percent decoding (and, when enabled, numeric‑entity decoding)
-    using the current ``charset``. Override this to plug in custom decoding logic.
+    The built-in decoder supports ``kind`` and is invoked as
+    ``decoder(string, charset, kind=DecodeKind.KEY|VALUE)``. Custom decoders that omit
+    ``kind`` (or ``charset``) are automatically adapted for compatibility. Returning ``None``
+    from the decoder uses ``None`` as the scalar value.
     """
 
     def __post_init__(self) -> None:
@@ -135,3 +138,110 @@ class DecodeOptions:
         # Enforce consistency with the docs: `decode_dot_in_keys=True` implies `allow_dots=True`.
         if self.decode_dot_in_keys and not self.allow_dots:
             raise ValueError("decode_dot_in_keys=True implies allow_dots=True")
+
+        # decoder setup + compatibility wrapper
+        if self.decoder is None:
+            self.decoder = DecodeUtils.decode
+        else:
+            user_dec = self.decoder
+
+            # Precompute dispatch to avoid per-call introspection.
+            try:
+                sig = inspect.signature(user_dec)
+                params = sig.parameters
+                param_list = list(params.values())
+
+                has_var_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in param_list)
+                has_var_pos = any(p.kind == inspect.Parameter.VAR_POSITIONAL for p in param_list)
+
+                accepts_charset_pos = False
+                accepts_charset_kw = False
+                if "charset" in params:
+                    p = params["charset"]
+                    if p.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD):
+                        accepts_charset_pos = True
+                    if p.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY):
+                        accepts_charset_kw = True
+                if has_var_pos:
+                    accepts_charset_pos = True
+
+                has_kind_param = "kind" in params
+                accepts_kind_kw = False
+                accepts_kind_pos = False
+                if has_kind_param:
+                    k = params["kind"]
+                    accepts_kind_kw = k.kind in (
+                        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                        inspect.Parameter.KEYWORD_ONLY,
+                    )
+                    accepts_kind_pos = k.kind in (
+                        inspect.Parameter.POSITIONAL_ONLY,
+                        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    )
+                elif has_var_kw:
+                    accepts_kind_kw = True  # can pass via **kwargs
+                    accepts_kind_pos = False
+
+                # Decide how to represent `kind`: prefer string for maximum compatibility
+                pass_kind_as_str = True
+                if has_kind_param:
+                    ann = params["kind"].annotation
+                    if ann is inspect.Signature.empty:
+                        pass_kind_as_str = True
+                    else:
+                        # If annotation is an Enum subclass (eg, DecodeKind), pass the enum.
+                        if isinstance(ann, type):
+                            pass_kind_as_str = not issubclass(ann, Enum)
+                        else:
+                            pass_kind_as_str = True
+                elif has_var_kw:
+                    # With **kwargs but no explicit parameter, safest is to pass string
+                    pass_kind_as_str = True
+
+                def dispatch(
+                    s: t.Optional[str],
+                    charset: t.Optional[Charset],
+                    kind: DecodeKind,
+                ) -> t.Optional[str]:
+                    # Choose enum or string representation for `kind`
+                    kind_arg: t.Union[DecodeKind, str] = kind.value if pass_kind_as_str else kind
+                    args: t.List[t.Any] = [s]
+                    kwargs: t.Dict[str, t.Any] = {}
+                    if accepts_charset_pos:
+                        args.append(charset)
+                    elif accepts_charset_kw or has_var_kw:
+                        kwargs["charset"] = charset
+                    if accepts_kind_kw:
+                        kwargs["kind"] = kind_arg
+                    elif accepts_kind_pos:
+                        args.append(kind_arg)
+                    return user_dec(*args, **kwargs)
+
+            except (TypeError, ValueError):
+                # Builtins/callables without retrievable signature: try the most compatible forms.
+                def dispatch(
+                    s: t.Optional[str],
+                    charset: t.Optional[Charset],
+                    kind: DecodeKind,
+                ) -> t.Optional[str]:
+                    # Mark `kind` as used to satisfy linters; legacy decoders ignore it.
+                    _ = kind
+                    try:
+                        return user_dec(s)  # type: ignore[misc]
+                    except TypeError as e1:
+                        try:
+                            return user_dec(s, charset)  # type: ignore[misc]
+                        except TypeError as exc:
+                            raise e1 from exc
+
+            @wraps(user_dec)
+            def _adapter(
+                s: t.Optional[str],
+                charset: t.Optional[Charset] = Charset.UTF8,
+                *,
+                kind: DecodeKind = DecodeKind.VALUE,
+            ) -> t.Optional[str]:
+                """Adapter that dispatches based on the user decoder's signature."""
+                return dispatch(s, charset, kind)
+
+            self.decoder = _adapter

@@ -11,6 +11,7 @@ import typing as t
 from urllib.parse import unquote
 
 from ..enums.charset import Charset
+from ..enums.decode_kind import DecodeKind
 
 
 class DecodeUtils:
@@ -68,15 +69,15 @@ class DecodeUtils:
         cls,
         string: t.Optional[str],
         charset: t.Optional[Charset] = Charset.UTF8,
+        kind: DecodeKind = DecodeKind.VALUE,
     ) -> t.Optional[str]:
         """Decode a URL‑encoded scalar.
 
         Behavior:
         - Replace ``+`` with a literal space *before* decoding.
-        - If ``charset`` is :data:`~qs_codec.enums.charset.Charset.LATIN1`,
-        replace only ``%XX`` byte sequences using :meth:`DecodeUtils.unescape`.
-        ``%uXXXX`` sequences are left as‑is here to mimic older browser/JS behavior.
+        - If ``charset`` is :data:`~qs_codec.enums.charset.Charset.LATIN1`, decode only ``%XX`` byte sequences (no ``%uXXXX``). ``%uXXXX`` sequences are left as‑is to mimic older browser/JS behavior.
         - Otherwise (UTF‑8), defer to :func:`urllib.parse.unquote`.
+        - When ``kind=DecodeKind.KEY``, preserve percent-encoded dots (``%2E``/``%2e``) so key splitting honors ``allow_dots``/``decode_dot_in_keys``. Values always decode fully.
 
         Returns
         -------
@@ -94,9 +95,22 @@ class DecodeUtils:
             s = string_without_plus
             if "%" not in s:
                 return s
-            return cls.HEX2_PATTERN.sub(lambda m: chr(int(m.group(1), 16)), s)
+            if kind is DecodeKind.KEY:
+
+                def _latin1_key_replacer(m: t.Match[str]) -> str:
+                    hx = m.group(1)
+                    if hx.lower() == "2e":  # keep %2E/%2e literal in keys
+                        return "%" + hx
+                    return chr(int(hx, 16))
+
+                return cls.HEX2_PATTERN.sub(_latin1_key_replacer, s)
+            else:
+                return cls.HEX2_PATTERN.sub(lambda m: chr(int(m.group(1), 16)), s)
 
         s = string_without_plus
+        if kind is DecodeKind.KEY and "%2" in s:
+            # Protect encoded dots so unquote does not turn them into literal '.' for keys
+            s = s.replace("%2E", "%252E").replace("%2e", "%252e")
         return s if "%" not in s else unquote(s)
 
     @classmethod
@@ -118,7 +132,7 @@ class DecodeUtils:
         This runs in O(n) time over the key string.
         """
         if allow_dots and "." in original_key:
-            key: str = cls.DOT_TO_BRACKET.sub(r"[\1]", original_key)
+            key: str = cls.DOT_TO_BRACKET.sub(r"[\g<1>]", original_key)
         else:
             key = original_key
 
