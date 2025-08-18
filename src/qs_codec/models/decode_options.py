@@ -16,12 +16,14 @@ class DecodeOptions:
     """Options that configure the output of ``decode``."""
 
     allow_dots: t.Optional[bool] = None
-    """Set to ``True`` to decode dot ``dict`` notation in the encoded input."""
+    """Set to ``True`` to decode dot ``dict`` notation in the encoded input.
+    When ``None`` (default), it inherits the value of ``decode_dot_in_keys``."""
 
     decode_dot_in_keys: t.Optional[bool] = None
     """Set to ``True`` to decode percent‑encoded dots in keys (e.g., ``%2E`` → ``.``).
     Note: it implies ``allow_dots``, so ``decode`` will error if you set ``decode_dot_in_keys`` to ``True``, and
-    ``allow_dots`` to ``False``."""
+    ``allow_dots`` to ``False``.
+    When ``None`` (default), it defaults to ``False``."""
 
     allow_empty_lists: bool = False
     """Set to ``True`` to allow empty ``list`` values inside ``dict``\\s in the encoded input."""
@@ -164,32 +166,27 @@ class DecodeOptions:
 
                 has_kind_param = "kind" in params
                 accepts_kind_kw = False
+                accepts_kind_pos = False
                 if has_kind_param:
                     k = params["kind"]
                     accepts_kind_kw = k.kind in (
                         inspect.Parameter.POSITIONAL_OR_KEYWORD,
                         inspect.Parameter.KEYWORD_ONLY,
                     )
+                    accepts_kind_pos = k.kind in (
+                        inspect.Parameter.POSITIONAL_ONLY,
+                        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    )
                 elif has_var_kw:
                     accepts_kind_kw = True  # can pass via **kwargs
-
-                prefer_enum_kind = False
-                if has_kind_param:
-                    ann = params["kind"].annotation
-                    # Direct annotation to DecodeKind
-                    prefer_enum_kind = ann is DecodeKind or getattr(ann, "__name__", None) == "DecodeKind"
-                    # Handle Optional/Union forms like Union[DecodeKind, str] or Optional[DecodeKind]
-                    if not prefer_enum_kind:
-                        origin = t.get_origin(ann)
-                        if origin is t.Union or getattr(origin, "__name__", None) == "UnionType":
-                            prefer_enum_kind = any(a is DecodeKind for a in t.get_args(ann))
+                    accepts_kind_pos = False
 
                 def dispatch(
                     s: t.Optional[str],
                     charset: t.Optional[Charset],
                     kind: DecodeKind,
                 ) -> t.Optional[str]:
-                    kind_arg: t.Union[DecodeKind, str] = kind if prefer_enum_kind else kind.value
+                    kind_arg: t.Union[DecodeKind, str] = kind
                     args: t.List[t.Any] = [s]
                     kwargs: t.Dict[str, t.Any] = {}
                     if accepts_charset_pos:
@@ -198,6 +195,8 @@ class DecodeOptions:
                         kwargs["charset"] = charset
                     if accepts_kind_kw:
                         kwargs["kind"] = kind_arg
+                    elif "accepts_kind_pos" in locals() and accepts_kind_pos:
+                        args.append(kind_arg)
                     return user_dec(*args, **kwargs)
 
             except (TypeError, ValueError):
@@ -211,8 +210,11 @@ class DecodeOptions:
                     _ = kind
                     try:
                         return user_dec(s)  # type: ignore[misc]
-                    except TypeError:
-                        return user_dec(s, charset)  # type: ignore[misc]
+                    except TypeError as e1:
+                        try:
+                            return user_dec(s, charset)  # type: ignore[misc]
+                        except TypeError as exc:
+                            raise e1 from exc
 
             @wraps(user_dec)
             def _adapter(
