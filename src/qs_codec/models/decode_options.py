@@ -95,10 +95,8 @@ class DecodeOptions:
     When ``True``, the decoder will not descend beyond ``depth`` levels. Combined with
     ``raise_on_limit_exceeded``:
 
-    - if ``raise_on_limit_exceeded=True``, exceeding the depth results in a
-      ``DecodeError.depth_exceeded``;
-    - if ``False``, the decoder stops descending and treats deeper content as a terminal
-      value, preserving the last valid container without raising.
+    - if ``raise_on_limit_exceeded=True``, exceeding the depth raises an ``IndexError``;
+    - if ``False``, the decoder stops descending and treats deeper content as a terminal value, preserving the last valid container without raising.
     """
 
     strict_null_handling: bool = False
@@ -124,7 +122,7 @@ class DecodeOptions:
     Signature: ``Callable[[Optional[str], Optional[Charset]], Optional[str]]`` by default, but the
     parser will prefer ``decoder(string, charset, kind=DecodeKind.KEY|VALUE)`` when available.
     If a custom decoder does not accept ``kind``, it will be automatically adapted so existing
-    decoders continue to work.
+    decoders continue to work. Returning ``None`` from the decoder uses ``None`` as the scalar value.
     """
 
     def __post_init__(self) -> None:
