@@ -64,20 +64,26 @@ def decode(
         return obj
 
     if not isinstance(value, (str, Mapping)):
-        raise ValueError("The input must be a String or a Mapping")
+        raise ValueError("value must be a str or a Mapping[str, Any]")
 
     # Work on a local copy so any internal toggles don't leak to caller
     opts = replace(options) if options is not None else DecodeOptions()
 
-    temp_obj: t.Optional[t.Dict[str, t.Any]] = (
-        _parse_query_string_values(value, opts) if isinstance(value, str) else dict(value)
-    )
-
     # Temporarily toggle parse_lists for THIS call only, and only for raw strings
     orig_parse_lists = opts.parse_lists
     try:
-        if isinstance(value, str) and temp_obj is not None and orig_parse_lists and 0 < opts.list_limit < len(temp_obj):
-            opts.parse_lists = False
+        if isinstance(value, str) and orig_parse_lists:
+            # Pre-count parameters so we can decide on toggling before tokenization/decoding
+            _s = value.replace("?", "", 1) if opts.ignore_query_prefix else value
+            if isinstance(opts.delimiter, re.Pattern):
+                _parts_count = len(re.split(opts.delimiter, _s)) if _s else 0
+            else:
+                _parts_count = (_s.count(opts.delimiter) + 1) if _s else 0
+            if 0 < opts.list_limit < _parts_count:
+                opts.parse_lists = False
+        temp_obj: t.Optional[t.Dict[str, t.Any]] = (
+            _parse_query_string_values(value, opts) if isinstance(value, str) else dict(value)
+        )
 
         # Iterate over the keys and setup the new object
         if temp_obj:
