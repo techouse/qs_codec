@@ -3,6 +3,7 @@
 import inspect
 import typing as t
 from dataclasses import dataclass
+from enum import Enum
 from functools import wraps
 
 from ..enums.charset import Charset
@@ -181,12 +182,29 @@ class DecodeOptions:
                     accepts_kind_kw = True  # can pass via **kwargs
                     accepts_kind_pos = False
 
+                # Decide how to represent `kind`: prefer string for maximum compatibility
+                pass_kind_as_str = True
+                if has_kind_param:
+                    ann = params["kind"].annotation
+                    if ann is inspect.Signature.empty:
+                        pass_kind_as_str = True
+                    else:
+                        try:
+                            # If annotation is an Enum subclass (eg, DecodeKind), pass the enum
+                            pass_kind_as_str = not (isinstance(ann, type) and issubclass(ann, Enum))
+                        except Exception:
+                            pass_kind_as_str = True
+                elif has_var_kw:
+                    # With **kwargs but no explicit parameter, safest is to pass string
+                    pass_kind_as_str = True
+
                 def dispatch(
                     s: t.Optional[str],
                     charset: t.Optional[Charset],
                     kind: DecodeKind,
                 ) -> t.Optional[str]:
-                    kind_arg: t.Union[DecodeKind, str] = kind
+                    # Choose enum or string representation for `kind`
+                    kind_arg: t.Union[DecodeKind, str] = kind.value if pass_kind_as_str else kind
                     args: t.List[t.Any] = [s]
                     kwargs: t.Dict[str, t.Any] = {}
                     if accepts_charset_pos:
