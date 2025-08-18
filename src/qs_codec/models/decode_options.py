@@ -118,10 +118,10 @@ class DecodeOptions:
     decoder: t.Optional[t.Callable[..., t.Optional[str]]] = DecodeUtils.decode
     """Custom scalar decoder invoked for each raw token prior to interpretation.
 
-    Signature: ``Callable[[Optional[str], Optional[Charset]], Optional[str]]`` by default, but the
-    parser will prefer ``decoder(string, charset, kind=DecodeKind.KEY|VALUE)`` when available.
-    If a custom decoder does not accept ``kind``, it will be automatically adapted so existing
-    decoders continue to work. Returning ``None`` from the decoder uses ``None`` as the scalar value.
+    The built-in decoder supports ``kind`` and is invoked as
+    ``decoder(string, charset, kind=DecodeKind.KEY|VALUE)``. Custom decoders that omit
+    ``kind`` (or ``charset``) are automatically adapted for compatibility. Returning ``None``
+    from the decoder uses ``None`` as the scalar value.
     """
 
     def __post_init__(self) -> None:
@@ -176,7 +176,13 @@ class DecodeOptions:
                 prefer_enum_kind = False
                 if has_kind_param:
                     ann = params["kind"].annotation
+                    # Direct annotation to DecodeKind
                     prefer_enum_kind = ann is DecodeKind or getattr(ann, "__name__", None) == "DecodeKind"
+                    # Handle Optional/Union forms like Union[DecodeKind, str] or Optional[DecodeKind]
+                    if not prefer_enum_kind:
+                        origin = t.get_origin(ann)
+                        if origin is t.Union or getattr(origin, "__name__", None) == "UnionType":
+                            prefer_enum_kind = any(a is DecodeKind for a in t.get_args(ann))
 
                 def dispatch(
                     s: t.Optional[str],
