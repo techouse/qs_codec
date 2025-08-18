@@ -195,7 +195,7 @@ class DecodeOptions:
                         kwargs["charset"] = charset
                     if accepts_kind_kw:
                         kwargs["kind"] = kind_arg
-                    elif "accepts_kind_pos" in locals() and accepts_kind_pos:
+                    elif accepts_kind_pos:
                         args.append(kind_arg)
                     return user_dec(*args, **kwargs)
 
