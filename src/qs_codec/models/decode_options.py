@@ -1,5 +1,6 @@
 """This module contains the ``DecodeOptions`` class that configures the output of ``decode``."""
 
+import inspect
 import typing as t
 from dataclasses import dataclass
 
@@ -150,16 +151,68 @@ class DecodeOptions:
                 *,
                 kind: DecodeKind = DecodeKind.VALUE,
             ) -> t.Optional[str]:
-                # Try keyword form first (supports keyword-only `kind`), then fall back.
+                """Adapter that dispatches based on the user decoder's signature.
+
+                Supported forms:
+                - dec(s)
+                - dec(s, charset)
+                - dec(s, charset, kind)
+                - dec(s, charset, *, kind=...)
+                If **kwargs is present, we may pass `kind` as a keyword even without an explicit parameter.
+                """
                 try:
-                    return user_dec(s, charset, kind=kind)  # type: ignore[misc]
-                except TypeError:
-                    try:
-                        return user_dec(s, charset, kind=kind.value)  # type: ignore[misc]
-                    except TypeError:
-                        try:
-                            return user_dec(s, charset)  # type: ignore[misc]
-                        except TypeError:
-                            return user_dec(s)  # type: ignore[misc]
+                    sig = inspect.signature(user_dec)
+                except (TypeError, ValueError):
+                    # Builtins/callables without a retrievable signature: conservative call
+                    return user_dec(s, charset)
+
+                params = sig.parameters
+                param_list = list(params.values())
+
+                # Does it accept **kwargs?
+                has_var_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in param_list)
+
+                # Charset handling
+                accepts_charset_pos = False
+                accepts_charset_kw = False
+                if "charset" in params:
+                    p = params["charset"]
+                    if p.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD):
+                        accepts_charset_pos = True
+                    if p.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY):
+                        accepts_charset_kw = True
+
+                # Kind handling
+                has_kind_param = "kind" in params
+                accepts_kind_kw = False
+                if has_kind_param:
+                    k = params["kind"]
+                    accepts_kind_kw = k.kind in (
+                        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                        inspect.Parameter.KEYWORD_ONLY,
+                    )
+                elif has_var_kw:
+                    accepts_kind_kw = True  # can pass via **kwargs
+
+                # Choose representation for `kind` based on annotation, default to enum
+                kind_arg: t.Union[DecodeKind, str] = kind
+                if has_kind_param:
+                    ann = params["kind"].annotation
+                    if ann is str or getattr(ann, "__name__", None) == "str":
+                        kind_arg = kind.value
+
+                # Build call
+                args: t.List[t.Any] = [s]
+                kwargs: t.Dict[str, t.Any] = {}
+
+                if accepts_charset_pos:
+                    args.append(charset)
+                elif accepts_charset_kw:
+                    kwargs["charset"] = charset
+
+                if accepts_kind_kw:
+                    kwargs["kind"] = kind_arg
+
+                return user_dec(*args, **kwargs)
 
             self.decoder = _adapter
