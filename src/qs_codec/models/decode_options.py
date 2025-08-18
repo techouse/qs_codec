@@ -169,6 +169,8 @@ class DecodeOptions:
 
                 # Does it accept **kwargs?
                 has_var_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in param_list)
+                # Does it accept *args?
+                has_var_pos = any(p.kind == inspect.Parameter.VAR_POSITIONAL for p in param_list)
 
                 # Charset handling
                 accepts_charset_pos = False
@@ -179,6 +181,9 @@ class DecodeOptions:
                         accepts_charset_pos = True
                     if p.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY):
                         accepts_charset_kw = True
+                # If *args is present, we can safely pass charset positionally.
+                if has_var_pos:
+                    accepts_charset_pos = True
 
                 # Kind handling
                 has_kind_param = "kind" in params
@@ -192,12 +197,13 @@ class DecodeOptions:
                 elif has_var_kw:
                     accepts_kind_kw = True  # can pass via **kwargs
 
-                # Choose representation for `kind` based on annotation, default to enum
-                kind_arg: t.Union[DecodeKind, str] = kind
+                # Choose representation for `kind`; default to string for broader compatibility when uncertain.
+                kind_arg: t.Union[DecodeKind, str] = kind.value
                 if has_kind_param:
                     ann = params["kind"].annotation
-                    if ann is str or getattr(ann, "__name__", None) == "str":
-                        kind_arg = kind.value
+                    # Prefer enum when explicitly annotated as DecodeKind
+                    if ann is DecodeKind or getattr(ann, "__name__", None) == "DecodeKind":
+                        kind_arg = kind
 
                 # Build call
                 args: t.List[t.Any] = [s]
@@ -205,7 +211,7 @@ class DecodeOptions:
 
                 if accepts_charset_pos:
                     args.append(charset)
-                elif accepts_charset_kw:
+                elif accepts_charset_kw or has_var_kw:
                     kwargs["charset"] = charset
 
                 if accepts_kind_kw:
