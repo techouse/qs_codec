@@ -142,37 +142,15 @@ class DecodeOptions:
         else:
             user_dec = self.decoder
 
-            @wraps(user_dec)
-            def _adapter(
-                s: t.Optional[str],
-                charset: t.Optional[Charset] = Charset.UTF8,
-                *,
-                kind: DecodeKind = DecodeKind.VALUE,
-            ) -> t.Optional[str]:
-                """Adapter that dispatches based on the user decoder's signature.
-
-                Supported forms:
-                - dec(s)
-                - dec(s, charset)
-                - dec(s, charset, kind)
-                - dec(s, charset, *, kind=...)
-                If **kwargs is present, we may pass `kind` as a keyword even without an explicit parameter.
-                """
-                try:
-                    sig = inspect.signature(user_dec)
-                except (TypeError, ValueError):
-                    # Builtins/callables without a retrievable signature: conservative call
-                    return user_dec(s, charset)
-
+            # Precompute dispatch to avoid per-call introspection.
+            try:
+                sig = inspect.signature(user_dec)
                 params = sig.parameters
                 param_list = list(params.values())
 
-                # Does it accept **kwargs?
                 has_var_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in param_list)
-                # Does it accept *args?
                 has_var_pos = any(p.kind == inspect.Parameter.VAR_POSITIONAL for p in param_list)
 
-                # Charset handling
                 accepts_charset_pos = False
                 accepts_charset_kw = False
                 if "charset" in params:
@@ -181,11 +159,9 @@ class DecodeOptions:
                         accepts_charset_pos = True
                     if p.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY):
                         accepts_charset_kw = True
-                # If *args is present, we can safely pass charset positionally.
                 if has_var_pos:
                     accepts_charset_pos = True
 
-                # Kind handling
                 has_kind_param = "kind" in params
                 accepts_kind_kw = False
                 if has_kind_param:
@@ -197,26 +173,49 @@ class DecodeOptions:
                 elif has_var_kw:
                     accepts_kind_kw = True  # can pass via **kwargs
 
-                # Choose representation for `kind`; default to string for broader compatibility when uncertain.
-                kind_arg: t.Union[DecodeKind, str] = kind.value
+                prefer_enum_kind = False
                 if has_kind_param:
                     ann = params["kind"].annotation
-                    # Prefer enum when explicitly annotated as DecodeKind
-                    if ann is DecodeKind or getattr(ann, "__name__", None) == "DecodeKind":
-                        kind_arg = kind
+                    prefer_enum_kind = ann is DecodeKind or getattr(ann, "__name__", None) == "DecodeKind"
 
-                # Build call
-                args: t.List[t.Any] = [s]
-                kwargs: t.Dict[str, t.Any] = {}
+                def dispatch(
+                    s: t.Optional[str],
+                    charset: t.Optional[Charset],
+                    kind: DecodeKind,
+                ) -> t.Optional[str]:
+                    kind_arg: t.Union[DecodeKind, str] = kind if prefer_enum_kind else kind.value
+                    args: t.List[t.Any] = [s]
+                    kwargs: t.Dict[str, t.Any] = {}
+                    if accepts_charset_pos:
+                        args.append(charset)
+                    elif accepts_charset_kw or has_var_kw:
+                        kwargs["charset"] = charset
+                    if accepts_kind_kw:
+                        kwargs["kind"] = kind_arg
+                    return user_dec(*args, **kwargs)
 
-                if accepts_charset_pos:
-                    args.append(charset)
-                elif accepts_charset_kw or has_var_kw:
-                    kwargs["charset"] = charset
+            except (TypeError, ValueError):
+                # Builtins/callables without retrievable signature: try the most compatible forms.
+                def dispatch(
+                    s: t.Optional[str],
+                    charset: t.Optional[Charset],
+                    kind: DecodeKind,
+                ) -> t.Optional[str]:
+                    # Mark `kind` as used to satisfy linters; legacy decoders ignore it.
+                    _ = kind
+                    try:
+                        return user_dec(s)  # type: ignore[misc]
+                    except TypeError:
+                        return user_dec(s, charset)  # type: ignore[misc]
 
-                if accepts_kind_kw:
-                    kwargs["kind"] = kind_arg
-
-                return user_dec(*args, **kwargs)
+            @wraps(user_dec)
+            def _adapter(
+                s: t.Optional[str],
+                charset: t.Optional[Charset] = Charset.UTF8,
+                *,
+                kind: DecodeKind = DecodeKind.VALUE,
+            ) -> t.Optional[str]:
+                """Adapter that dispatches based on the user decoder's signature."""
+                return dispatch(s, charset, kind)
 
             self.decoder = _adapter
