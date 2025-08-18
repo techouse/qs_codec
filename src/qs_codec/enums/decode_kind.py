@@ -10,7 +10,7 @@ This enum indicates whether a given piece of text is being decoded as a *key*
 from enum import Enum
 
 
-class DecodeKind(Enum):
+class DecodeKind(str, Enum):
     """Decoding context for querystring tokens.
 
     Attributes
