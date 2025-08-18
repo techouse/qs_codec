@@ -189,10 +189,10 @@ class DecodeOptions:
                     if ann is inspect.Signature.empty:
                         pass_kind_as_str = True
                     else:
-                        try:
-                            # If annotation is an Enum subclass (eg, DecodeKind), pass the enum
-                            pass_kind_as_str = not (isinstance(ann, type) and issubclass(ann, Enum))
-                        except Exception:
+                        # If annotation is an Enum subclass (eg, DecodeKind), pass the enum.
+                        if isinstance(ann, type):
+                            pass_kind_as_str = not issubclass(ann, Enum)
+                        else:
                             pass_kind_as_str = True
                 elif has_var_kw:
                     # With **kwargs but no explicit parameter, safest is to pass string
