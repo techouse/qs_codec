@@ -1,3 +1,20 @@
+## 1.2.0
+
+* [FIX] preserve percent-encoded dots in keys during decoding
+* [CHORE] refactor merge logic for improved readability and performance in utils
+* [CHORE] optimize encoding logic for improved performance and clarity in encode_utils
+* [CHORE] optimize decode logic for improved performance and clarity in decode_utils
+* [CHORE] optimize key handling and object normalization for improved performance and clarity in encode.py
+* [CHORE] optimize delimiter splitting and list parsing logic for improved performance and clarity in decode.py
+* [CHORE] optimize proxy caching and dict hashing logic for improved performance and determinism in weak_wrapper
+* [CHORE] optimize Undefined singleton logic for thread safety and clarity; prevent subclassing and ensure identity preservation
+* [CHORE] optimize EncodeOptions initialization and equality logic for improved clarity and determinism
+* [CHORE] optimize DecodeOptions post-init logic for improved determinism and enforce consistency between decode_dot_in_keys and allow_dots
+* [CHORE] optimize list merging logic in Utils.merge for improved determinism and handling of Undefined values
+* [CHORE] optimize type checking in list merging logic for improved clarity and consistency in Utils.merge
+* [CHORE] optimize encode logic for improved determinism and clarity; use UNDEFINED singleton and refine ListFormat.COMMA comparison
+* [CHORE] optimize decode logic to use UNDEFINED singleton for list initialization
+
 ## 1.1.8
 
 * [FIX] fix stable hashing for mappings and sets by sorting on hashed keys and elements to prevent ordering errors
