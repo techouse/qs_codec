@@ -1,10 +1,10 @@
 """Decoding context used by the query string parser and utilities.
 
 This enum indicates whether a given piece of text is being decoded as a *key*
-(or key segment) or as a *value*. The distinction matters for encoded dots
-(``%2E``/``%2e``) in keys: when decoding keys, the default behavior is to
-*preserve* these so that higher‑level options like ``allow_dots`` and
-``decode_dot_in_keys`` can be applied consistently later in the parse.
+(or key segment) or as a *value*. Note that the built-in scalar decoder
+(`qs_codec.utils.decode_utils.decode`) ignores `kind` and fully percent-decodes
+dots; preservation of encoded dots for splitting is applied later by parser
+options (`allow_dots`, `decode_dot_in_keys`).
 """
 
 from enum import Enum
