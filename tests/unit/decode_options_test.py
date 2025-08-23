@@ -128,3 +128,86 @@ class TestParserStateIsolation:
         # Second call should still parse lists as lists
         res2 = decode("a[]=1&a[]=2", opts)
         assert res2 == {"a": ["1", "2"]}
+
+
+class TestAllowDotsDecodeDotInKeysInterplay:
+    def test_constructor_invalid_combination_throws(self) -> None:
+        import pytest
+
+        with pytest.raises((ValueError, AssertionError, TypeError)):
+            DecodeOptions(decode_dot_in_keys=True, allow_dots=False)
+
+
+class TestDefaultDecodeKeyEncodedDots:
+    def test_key_maps_2e_inside_brackets_allowdots_true(self) -> None:
+        for cs in (Charset.UTF8, Charset.LATIN1):
+            opts = DecodeOptions(allow_dots=True, charset=cs)
+            assert opts.decoder("a[%2E]", cs, kind=DecodeKind.KEY) == "a[.]"
+            assert opts.decoder("a[%2e]", cs, kind=DecodeKind.KEY) == "a[.]"
+
+    def test_key_maps_2e_outside_brackets_allowdots_true_independent_of_decodeopt(self) -> None:
+        for cs in (Charset.UTF8, Charset.LATIN1):
+            opts1 = DecodeOptions(allow_dots=True, decode_dot_in_keys=False, charset=cs)
+            opts2 = DecodeOptions(allow_dots=True, decode_dot_in_keys=True, charset=cs)
+            assert opts1.decoder("a%2Eb", cs, kind=DecodeKind.KEY) == "a.b"
+            assert opts2.decoder("a%2Eb", cs, kind=DecodeKind.KEY) == "a.b"
+
+    def test_non_key_decodes_2e_to_dot_control(self) -> None:
+        for cs in (Charset.UTF8, Charset.LATIN1):
+            opts = DecodeOptions(allow_dots=True, charset=cs)
+            assert opts.decoder("a%2Eb", cs, kind=DecodeKind.VALUE) == "a.b"
+
+    def test_key_maps_2e_inside_brackets_allowdots_false(self) -> None:
+        for cs in (Charset.UTF8, Charset.LATIN1):
+            opts = DecodeOptions(allow_dots=False, charset=cs)
+            assert opts.decoder("a[%2E]", cs, kind=DecodeKind.KEY) == "a[.]"
+            assert opts.decoder("a[%2e]", cs, kind=DecodeKind.KEY) == "a[.]"
+
+    def test_key_outside_2e_decodes_to_dot_allowdots_false(self) -> None:
+        for cs in (Charset.UTF8, Charset.LATIN1):
+            opts = DecodeOptions(allow_dots=False, charset=cs)
+            assert opts.decoder("a%2Eb", cs, kind=DecodeKind.KEY) == "a.b"
+            assert opts.decoder("a%2eb", cs, kind=DecodeKind.KEY) == "a.b"
+
+
+class TestCustomDecoderBehavior:
+    def test_decode_key_decodes_percent_sequences_like_values_when_decode_dot_in_keys_false(self) -> None:
+        opts = DecodeOptions(allow_dots=True, decode_dot_in_keys=False)
+        assert opts.decoder("a%2Eb", Charset.UTF8, kind=DecodeKind.KEY) == "a.b"
+        assert opts.decoder("a%2eb", Charset.UTF8, kind=DecodeKind.KEY) == "a.b"
+
+    def test_decode_value_decodes_percent_sequences_normally(self) -> None:
+        opts = DecodeOptions()
+        assert opts.decoder("%2E", Charset.UTF8, kind=DecodeKind.VALUE) == "."
+
+    def test_decoder_is_used_for_key_and_value(self) -> None:
+        calls: list[tuple[str | None, DecodeKind]] = []
+
+        def dec(s: str | None, charset: Charset | None, kind: DecodeKind) -> str | None:  # type: ignore[override]
+            calls.append((s, kind))
+            return s
+
+        opts = DecodeOptions(decoder=dec)
+        assert opts.decoder("x", Charset.UTF8, kind=DecodeKind.KEY) == "x"
+        assert opts.decoder("y", Charset.UTF8, kind=DecodeKind.VALUE) == "y"
+
+        assert len(calls) == 2
+        assert calls[0][1] is DecodeKind.KEY and calls[0][0] == "x"
+        assert calls[1][1] is DecodeKind.VALUE and calls[1][0] == "y"
+
+    def test_decoder_null_return_is_honored(self) -> None:
+        def dec(s: str | None, charset: Charset | None, kind: DecodeKind) -> str | None:  # type: ignore[override]
+            return None
+
+        opts = DecodeOptions(decoder=dec)
+        assert opts.decoder("foo", Charset.UTF8, kind=DecodeKind.VALUE) is None
+        assert opts.decoder("bar", Charset.UTF8, kind=DecodeKind.KEY) is None
+
+    def test_single_decoder_acts_like_legacy_when_ignoring_kind(self) -> None:
+        def dec(s: str | None, *args, **kwargs):  # type: ignore[no-untyped-def]
+            return None if s is None else s.upper()
+
+        opts = DecodeOptions(decoder=dec)
+        assert opts.decoder("abc", Charset.UTF8, kind=DecodeKind.VALUE) == "ABC"
+        # For keys, custom decoder gets the raw token; no default percent-decoding happens first.
+        assert opts.decoder("a%2Eb", Charset.UTF8, kind=DecodeKind.KEY) == "A%2EB"
