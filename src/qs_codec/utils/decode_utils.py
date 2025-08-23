@@ -4,7 +4,7 @@ This mirrors the semantics of the Node `qs` library:
 
 - Decoding handles both UTF‑8 and Latin‑1 code paths.
 - Key splitting keeps bracket groups *balanced* and optionally treats dots as path separators when ``allow_dots=True``.
-- Top‑level dot splitting uses a character‑scanner that handles degenerate cases (leading '.' starts a bracket segment; '.[' is skipped; double dots preserve the first; trailing '.' is preserved) and never splits on percent‑encoded dots.
+- Top‑level dot splitting uses a character‑scanner that handles degenerate cases (leading '.' starts a bracket segment; '.[' is skipped; double dots preserve the first; trailing '.' is preserved) and never treats literal percent‑encoded sequences (e.g., '%2E') as split points; only actual '.' characters at depth 0 are split.
 """
 
 import re
