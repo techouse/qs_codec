@@ -4,6 +4,7 @@ This mirrors the semantics of the Node `qs` library:
 
 - Decoding handles both UTF‑8 and Latin‑1 code paths.
 - Key splitting keeps bracket groups *balanced* and optionally treats dots as path separators when ``allow_dots=True``.
+- Top‑level dot splitting uses a character‑scanner that preserves leading/trailing dots, `.[]` degenerates, and never splits on percent‑encoded dots.
 """
 
 import re
@@ -31,6 +32,77 @@ class DecodeUtils:
     # When `allow_dots=True`, convert ".foo" segments into "[foo]" so that
     # "a.b[c]" becomes "a[b][c]" before bracket parsing.
     DOT_TO_BRACKET: t.Pattern[str] = re.compile(r"\.([^.\[]+)")
+
+    @classmethod
+    def dot_to_bracket_top_level(cls, s: str) -> str:
+        """Convert top‑level dot segments into bracket groups, preserving dots inside brackets and handling degenerate top‑level dots.
+
+        Rules:
+        - Only dots at depth == 0 split. Dots inside '[]' are preserved.
+        - Percent-encoded dots ('%2E'/'%2e') never split here.
+        - Degenerate cases:
+          * leading '.' is preserved ('.a' stays '.a')
+          * '.[' is skipped so 'a.[b]' behaves like 'a[b]'
+          * 'a..b' preserves the first dot → 'a.[b]'
+          * trailing '.' is preserved and ignored by the splitter
+
+        Examples:
+            'user.email.name' -> 'user[email][name]'
+            'a[b].c' -> 'a[b][c]'
+            'a[.].c' -> 'a[.][c]'
+            'a%2E[b]' -> 'a%2E[b]'
+        """
+        if "." not in s:
+            return s
+        sb: t.List[str] = []
+        depth = 0
+        i = 0
+        n = len(s)
+        while i < n:
+            ch = s[i]
+            if ch == "[":
+                depth += 1
+                sb.append(ch)
+                i += 1
+            elif ch == "]":
+                if depth > 0:
+                    depth -= 1
+                sb.append(ch)
+                i += 1
+            elif ch == ".":
+                if depth == 0:
+                    has_next = i + 1 < n
+                    next_ch = s[i + 1] if has_next else "\0"
+                    if i == 0:
+                        # leading '.' is preserved
+                        sb.append(".")
+                        i += 1
+                    elif next_ch == "[":
+                        # skip the dot so 'a.[b]' acts like 'a[b]'
+                        i += 1
+                    elif (not has_next) or next_ch == ".":
+                        # trailing dot, or first of a double dot
+                        sb.append(".")
+                        i += 1
+                    else:
+                        # normal split: take token until next '.' or '['
+                        start = i + 1
+                        j = start
+                        while j < n and s[j] != "." and s[j] != "[":
+                            j += 1
+                        sb.append("[")
+                        sb.append(s[start:j])
+                        sb.append("]")
+                        i = j
+                else:
+                    sb.append(".")
+                    i += 1
+            else:
+                # also preserve percent sequences verbatim at top level;
+                # we don't split on '%2E' here
+                sb.append(ch)
+                i += 1
+        return "".join(sb)
 
     # Precompiled pattern for %XX hex bytes (Latin-1 path fast path)
     HEX2_PATTERN: t.Pattern[str] = re.compile(r"%([0-9A-Fa-f]{2})")
@@ -69,7 +141,7 @@ class DecodeUtils:
         cls,
         string: t.Optional[str],
         charset: t.Optional[Charset] = Charset.UTF8,
-        kind: DecodeKind = DecodeKind.VALUE,
+        kind: DecodeKind = DecodeKind.VALUE,  # pylint: disable=unused-argument
     ) -> t.Optional[str]:
         """Decode a URL‑encoded scalar.
 
@@ -77,7 +149,7 @@ class DecodeUtils:
         - Replace ``+`` with a literal space *before* decoding.
         - If ``charset`` is :data:`~qs_codec.enums.charset.Charset.LATIN1`, decode only ``%XX`` byte sequences (no ``%uXXXX``). ``%uXXXX`` sequences are left as‑is to mimic older browser/JS behavior.
         - Otherwise (UTF‑8), defer to :func:`urllib.parse.unquote`.
-        - When ``kind=DecodeKind.KEY``, preserve percent-encoded dots (``%2E``/``%2e``) so key splitting honors ``allow_dots``/``decode_dot_in_keys``. Values always decode fully.
+        - Keys and values are decoded identically; whether a literal ``.`` acts as a key separator is decided later by the key‑splitting logic.
 
         Returns
         -------
@@ -95,22 +167,9 @@ class DecodeUtils:
             s = string_without_plus
             if "%" not in s:
                 return s
-            if kind is DecodeKind.KEY:
-
-                def _latin1_key_replacer(m: t.Match[str]) -> str:
-                    hx = m.group(1)
-                    if hx.lower() == "2e":  # keep %2E/%2e literal in keys
-                        return "%" + hx
-                    return chr(int(hx, 16))
-
-                return cls.HEX2_PATTERN.sub(_latin1_key_replacer, s)
-            else:
-                return cls.HEX2_PATTERN.sub(lambda m: chr(int(m.group(1), 16)), s)
+            return cls.HEX2_PATTERN.sub(lambda m: chr(int(m.group(1), 16)), s)
 
         s = string_without_plus
-        if kind is DecodeKind.KEY and "%2" in s:
-            # Protect encoded dots so unquote does not turn them into literal '.' for keys
-            s = s.replace("%2E", "%252E").replace("%2e", "%252e")
         return s if "%" not in s else unquote(s)
 
     @classmethod
@@ -123,7 +182,7 @@ class DecodeUtils:
     ) -> t.List[str]:
         """Split a composite key into *balanced* bracket segments.
 
-        - If ``allow_dots`` is True, convert dots to bracket groups first (``a.b[c]`` → ``a[b][c]``) while leaving existing brackets intact.
+        - If ``allow_dots`` is True, convert **top‑level** dots to bracket groups using a character‑scanner (``a.b[c]`` → ``a[b][c]``), preserving dots inside brackets and degenerate cases.
         - The *parent* (non‑bracket) prefix becomes the first segment, e.g. ``"a[b][c]"`` → ``["a", "[b]", "[c]"]``.
         - Bracket groups are *balanced* using a counter so nested brackets within a single group (e.g. ``"[with[inner]]"``) are treated as one segment.
         - When ``max_depth <= 0``, no splitting occurs; the key is returned as a single segment (qs semantics).
@@ -131,13 +190,10 @@ class DecodeUtils:
 
         This runs in O(n) time over the key string.
         """
-        if allow_dots and "." in original_key:
-            key: str = cls.DOT_TO_BRACKET.sub(r"[\g<1>]", original_key)
-        else:
-            key = original_key
-
         if max_depth <= 0:
-            return [key]
+            return [original_key]
+
+        key: str = cls.dot_to_bracket_top_level(original_key) if allow_dots else original_key
 
         segments: t.List[str] = []
 
@@ -170,7 +226,7 @@ class DecodeUtils:
                 i += 1
 
             if close < 0:
-                break  # unterminated group; stop collecting
+                break  # unterminated group; stop collecting; remainder handled below
 
             # Append the full balanced group, including the surrounding brackets.
             segments.append(key[open_idx : close + 1])  # includes the surrounding [ ]
@@ -180,7 +236,7 @@ class DecodeUtils:
         if open_idx >= 0:
             if strict_depth:
                 raise IndexError(f"Input depth exceeded depth option of {max_depth} and strict_depth is True")
-            # Stash the remainder as a single segment (qs behavior)
+            # Stash the remainder as a single segment (qs/Kotlin parity)
             segments.append("[" + key[open_idx:] + "]")
 
         return segments
