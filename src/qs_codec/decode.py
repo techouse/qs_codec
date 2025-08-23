@@ -173,7 +173,7 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
         * Decode key/value via ``options.decoder`` (default: percent-decoding using the selected ``charset``).
           Keys are passed with ``kind=DecodeKind.KEY`` and values with ``kind=DecodeKind.VALUE``; a custom decoder
           may return the raw token or ``None``.
-        * Apply list/comma logic to values.
+        * Apply comma-split list logic to values (handled here). Index-based list growth from bracket segments is applied later in ``_parse_object``. When ``list_limit < 0`` and ``raise_on_limit_exceeded=True``, any comma-split that would increase the list length raises immediately; otherwise the split proceeds.
         * Interpret numeric entities for Latin-1 when requested.
         * Handle empty brackets ``[]`` as list markers (wrapping exactly once).
         * Merge duplicate keys according to ``duplicates`` policy.
