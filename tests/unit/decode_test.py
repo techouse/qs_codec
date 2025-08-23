@@ -1619,3 +1619,30 @@ class TestAdditionalDotEncodingParity:
         # Double dots: only the second dot (before a token) causes a split; the empty middle segment is preserved
         # as a literal dot in the parent key (no [] is created)
         assert decode("a..b=x", DecodeOptions(allow_dots=True, decode_dot_in_keys=False)) == {"a.": {"b": "x"}}
+
+
+class TestSplitKeySegmentationRemainder:
+    def test_no_remainder_when_within_depth(self) -> None:
+        segs = DecodeUtils.split_key_into_segments("a[b][c]", allow_dots=False, max_depth=3, strict_depth=False)
+        assert segs == ["a", "[b]", "[c]"]
+
+    def test_double_bracket_remainder_allowdots_depth1(self) -> None:
+        # Dot → bracket happens first; with max_depth=1, the remainder is wrapped as a single
+        # synthetic segment using double brackets (opaque to downstream consumers).
+        segs = DecodeUtils.split_key_into_segments("a.b.c", allow_dots=True, max_depth=1, strict_depth=False)
+        assert segs == ["a", "[b]", "[[c]]"]
+
+    def test_double_bracket_remainder_for_bracket_input(self) -> None:
+        # For bracketed input, the remainder beyond depth is also wrapped as one segment
+        # (e.g. "a[b][c][d]" with max_depth=2 → ["a", "[b]", "[[c][d]]"]).
+        segs = DecodeUtils.split_key_into_segments("a[b][c][d]", allow_dots=False, max_depth=2, strict_depth=False)
+        assert segs == ["a", "[b]", "[c]", "[[d]]"]
+
+    def test_strict_depth_overflow_raises_for_well_formed(self) -> None:
+        # Well-formed keys that exceed max_depth should raise when strict_depth=True.
+        with pytest.raises(IndexError):
+            DecodeUtils.split_key_into_segments("a[b][c][d]", allow_dots=False, max_depth=1, strict_depth=True)
+
+    def test_unterminated_group_does_not_raise_under_strict_depth(self) -> None:
+        segs = DecodeUtils.split_key_into_segments("a[b[c", allow_dots=False, max_depth=5, strict_depth=True)
+        assert segs == ["a", "[[b[c]"]
