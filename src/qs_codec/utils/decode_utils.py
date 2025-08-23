@@ -85,6 +85,11 @@ class DecodeUtils:
                         # skip the dot so 'a.[b]' acts like 'a[b]'
                         i += 1
                     elif i == 0:
+                        # If input starts with '..', preserve the first dot like the 'a..b' case.
+                        if has_next and next_ch == ".":
+                            sb.append(".")
+                            i += 1
+                            continue
                         # leading '.' starts a bracket segment: ".a" -> "[a]"
                         start = i + 1
                         j = start
