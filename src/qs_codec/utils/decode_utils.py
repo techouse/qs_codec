@@ -29,10 +29,6 @@ class DecodeUtils:
         re.IGNORECASE,
     )
 
-    # When `allow_dots=True`, convert ".foo" segments into "[foo]" so that
-    # "a.b[c]" becomes "a[b][c]" before bracket parsing.
-    DOT_TO_BRACKET: t.Pattern[str] = re.compile(r"\.([^.\[]+)")
-
     @classmethod
     def dot_to_bracket_top_level(cls, s: str) -> str:
         """Convert top‑level dot segments into bracket groups, preserving dots inside brackets and handling degenerate top‑level dots.
@@ -41,7 +37,7 @@ class DecodeUtils:
         - Only dots at depth == 0 split. Dots inside '[]' are preserved.
         - Percent-encoded dots ('%2E'/'%2e') never split here.
         - Degenerate cases:
-          * leading '.' is preserved ('.a' stays '.a')
+          * leading '.' starts a bracket segment ('.a' behaves like '[a]')
           * '.[' is skipped so 'a.[b]' behaves like 'a[b]'
           * 'a..b' preserves the first dot → 'a.[b]'
           * trailing '.' is preserved and ignored by the splitter
@@ -73,19 +69,26 @@ class DecodeUtils:
                 if depth == 0:
                     has_next = i + 1 < n
                     next_ch = s[i + 1] if has_next else "\0"
-                    if i == 0:
-                        # leading '.' is preserved
-                        sb.append(".")
-                        i += 1
-                    elif next_ch == "[":
+                    if next_ch == "[":
                         # skip the dot so 'a.[b]' acts like 'a[b]'
                         i += 1
+                    elif i == 0:
+                        # leading '.' starts a bracket segment: ".a" -> "[a]"
+                        start = i + 1
+                        j = start
+                        while j < n and s[j] != "." and s[j] != "[":
+                            j += 1
+                        sb.append("[")
+                        sb.append(s[start:j])
+                        sb.append("]")
+                        i = j
                     elif (not has_next) or next_ch == ".":
                         # trailing dot, or first of a double dot
                         sb.append(".")
                         i += 1
                     else:
-                        # normal split: take token until next '.' or '['
+                        # normal split (also handles leading '.'): convert a.b → a[b]
+                        # and '.a' → '[a]' at top level
                         start = i + 1
                         j = start
                         while j < n and s[j] != "." and s[j] != "[":
