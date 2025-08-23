@@ -1,3 +1,21 @@
+## 1.2.1
+
+* [FIX] fix top-level dot splitting in keys to preserve encoded dots and handle degenerate cases
+* [FIX] normalize percent-encoded dots in bracketed keys when `decode_dot_in_keys` is enabled
+* [FIX] handle leading dot in keys by converting to bracket segment in `dot_to_bracket_top_level`
+* [FIX] fix strict_depth enforcement to avoid raising on unterminated bracket groups in decode logic
+* [FIX] fix dot-to-bracket decoding to preserve leading dots in consecutive dot sequences
+* [FIX] fix percent-decoding to handle dot in keys and clarify top-level percent sequence handling
+* [FIX] handle ambiguous '.]' in key decoding and prevent bracket segment overrun on closing brackets
+* [CHORE]️ refactor `DecodeOptions` to support legacy decoders and add unified decode methods
+* [CHORE]️ update type annotations in `decode_options_test` for decoder and `legacy_decoder` signatures
+* [CHORE] add tests for `DecodeOptions` dot-in-keys and custom decoder behaviors
+* [CHORE] add C# port (QsNet) parity tests for encoded dot behavior in `DecodeOptions`
+* [CHORE] add tests for decoder precedence over `legacy_decoder` and non-string `decoder` results in `DecodeOptions`
+* [CHORE] add tests for dot encoding and decoding parity across `DecodeOptions` configurations
+* [CHORE] revise decode test to avoid duplicate dict key assertion and ensure decoder invocation for dot-encoded and bracketed keys
+* [CHORE] add tests for `split_key_into_segments` remainder handling and strict depth enforcement
+
 ## 1.2.0
 
 * [FIX] preserve percent-encoded dots in keys during decoding
