@@ -211,3 +211,33 @@ class TestCustomDecoderBehavior:
         assert opts.decoder("abc", Charset.UTF8, kind=DecodeKind.VALUE) == "ABC"
         # For keys, custom decoder gets the raw token; no default percent-decoding happens first.
         assert opts.decoder("a%2Eb", Charset.UTF8, kind=DecodeKind.KEY) == "A%2EB"
+
+    def test_decoder_wins_over_legacy_decoder_when_both_provided(self) -> None:
+        # decoder must take precedence over legacy_decoder (parity with Kotlin/C#)
+        def legacy(v: str | None, charset: Charset | None = None) -> str | None:
+            return f"L:{'null' if v is None else v}"
+
+        def dec(
+            v: str | None,
+            charset: Charset | None = None,
+            *,
+            kind: DecodeKind = DecodeKind.VALUE,
+        ) -> str | None:
+            return f"K:{kind.name}:{'null' if v is None else v}"
+
+        opts = DecodeOptions(decoder=dec, legacy_decoder=legacy)
+        assert opts.decode_key("x") == "K:KEY:x"
+        assert opts.decode_value("y") == "K:VALUE:y"
+
+    def test_decode_key_coerces_non_string_decoder_result(self) -> None:
+        # When the decoder returns a non-string scalar, decode_key coerces it via str()
+        def dec(
+            v: str | None,
+            charset: Charset | None = None,
+            *,
+            kind: DecodeKind = DecodeKind.VALUE,
+        ) -> object | None:
+            return 42 if v is not None else None
+
+        opts = DecodeOptions(decoder=dec)
+        assert opts.decode_key("anything") == "42"
