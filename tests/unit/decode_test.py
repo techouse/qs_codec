@@ -1552,11 +1552,8 @@ class TestCSharpParityEncodedDotBehavior:
             return s
 
         opt = DecodeOptions(allow_dots=True, decode_dot_in_keys=True, decoder=_decoder)
-        assert (
-            decode("a%2Eb=c&a[b]=d", opt) == {"a": {"b": "c"}, "a": {"b": "d"}}
-            if False
-            else decode("a%2Eb=c&a[b]=d", opt)
-        )  # no-op, ensure call
+        # Ensure the decoder is invoked for both key forms without tripping F601 on duplicate dict keys.
+        assert bool(decode("a%2Eb=c&a[b]=d", opt))  # no-op: just ensure the call executes
 
         # Confirm both KEY invocations observed: raw top-level key and raw bracketed key
         assert any(k == DecodeKind.KEY and (s == "a%2Eb" or s == "a[b]") for (s, k) in calls)
