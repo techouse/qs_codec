@@ -326,6 +326,19 @@ def _parse_object(
     current_list_length: int = 0
 
     # If the chain ends with an empty list marker, compute current list length for limit checks.
+    # Best-effort note:
+    #   This is a conservative heuristic intended to help when we see patterns like `a[0][]=`,
+    #   so `_parse_array_value` can enforce the list limit for the final `[]` push. The segments
+    #   we receive in `chain` include bracket markers (e.g., `["a", "[0]", "[]"]`), so
+    #   `"".join(chain[:-1])` is rarely a pure integer (e.g., `"a[0]"` raises `ValueError`),
+    #   and we typically fall back to `0`. That’s fine: it remains safe and conservative.
+    #   We still:
+    #     • enforce per-list length for already-allocated containers during tokenization in
+    #       `_parse_query_string_values` (where we know the current length), and
+    #     • enforce index-based growth limits inside this function when converting bracketed
+    #       numeric segments into list indices.
+    #   Keeping this lightweight probe matches the other ports and avoids costly look-ahead into
+    #   parent structures while maintaining correct limit behavior.
     if bool(chain) and chain[-1] == "[]":
         parent_key: t.Optional[int]
 
