@@ -164,6 +164,12 @@ class DecodeUtils:
     ) -> t.Optional[str]:
         """Decode a URL‑encoded scalar.
 
+        Notes
+        -----
+        The `kind` parameter is accepted for API compatibility but is currently
+        ignored; keys and values are decoded identically. It may be removed in
+        a future major release.
+
         Behavior:
         - Replace ``+`` with a literal space *before* decoding.
         - If ``charset`` is :data:`~qs_codec.enums.charset.Charset.LATIN1`, decode only ``%XX`` byte sequences (no ``%uXXXX``). ``%uXXXX`` sequences are left as‑is to mimic older browser/JS behavior.
