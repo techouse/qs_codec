@@ -181,9 +181,9 @@ class TestCustomDecoderBehavior:
         assert opts.decoder("%2E", Charset.UTF8, kind=DecodeKind.VALUE) == "."
 
     def test_decoder_is_used_for_key_and_value(self) -> None:
-        calls: list[tuple[str | None, DecodeKind]] = []
+        calls: t.List[t.Tuple[t.Optional[str], DecodeKind]] = []
 
-        def dec(s: str | None, charset: Charset | None, kind: DecodeKind) -> str | None:  # type: ignore[override]
+        def dec(s: t.Optional[str], charset: t.Optional[Charset], kind: DecodeKind) -> t.Optional[str]:  # type: ignore[override]
             calls.append((s, kind))
             return s
 
@@ -196,7 +196,7 @@ class TestCustomDecoderBehavior:
         assert calls[1][1] is DecodeKind.VALUE and calls[1][0] == "y"
 
     def test_decoder_null_return_is_honored(self) -> None:
-        def dec(s: str | None, charset: Charset | None, kind: DecodeKind) -> str | None:  # type: ignore[override]
+        def dec(s: t.Optional[str], charset: t.Optional[Charset], kind: DecodeKind) -> t.Optional[str]:  # type: ignore[override]
             return None
 
         opts = DecodeOptions(decoder=dec)
@@ -204,7 +204,7 @@ class TestCustomDecoderBehavior:
         assert opts.decoder("bar", Charset.UTF8, kind=DecodeKind.KEY) is None
 
     def test_single_decoder_acts_like_legacy_when_ignoring_kind(self) -> None:
-        def dec(s: str | None, *args, **kwargs):  # type: ignore[no-untyped-def]
+        def dec(s: t.Optional[str], *args, **kwargs):  # type: ignore[no-untyped-def]
             return None if s is None else s.upper()
 
         opts = DecodeOptions(decoder=dec)
@@ -214,15 +214,15 @@ class TestCustomDecoderBehavior:
 
     def test_decoder_wins_over_legacy_decoder_when_both_provided(self) -> None:
         # decoder must take precedence over legacy_decoder (parity with Kotlin/C#)
-        def legacy(v: str | None, charset: Charset | None = None) -> str | None:
+        def legacy(v: t.Optional[str], charset: t.Optional[Charset] = None) -> t.Optional[str]:
             return f"L:{'null' if v is None else v}"
 
         def dec(
-            v: str | None,
-            charset: Charset | None = None,
+            v: t.Optional[str],
+            charset: t.Optional[Charset] = None,
             *,
             kind: DecodeKind = DecodeKind.VALUE,
-        ) -> str | None:
+        ) -> t.Optional[str]:
             return f"K:{kind.name}:{'null' if v is None else v}"
 
         opts = DecodeOptions(decoder=dec, legacy_decoder=legacy)
@@ -232,11 +232,11 @@ class TestCustomDecoderBehavior:
     def test_decode_key_coerces_non_string_decoder_result(self) -> None:
         # When the decoder returns a non-string scalar, decode_key coerces it via str()
         def dec(
-            v: str | None,
-            charset: Charset | None = None,
+            v: t.Optional[str],
+            charset: t.Optional[Charset] = None,
             *,
             kind: DecodeKind = DecodeKind.VALUE,
-        ) -> object | None:
+        ) -> t.Any:
             return 42 if v is not None else None
 
         opts = DecodeOptions(decoder=dec)
