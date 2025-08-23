@@ -1561,3 +1561,64 @@ class TestCSharpParityEncodedDotBehavior:
         # Confirm both KEY invocations observed: raw top-level key and raw bracketed key
         assert any(k == DecodeKind.KEY and (s == "a%2Eb" or s == "a[b]") for (s, k) in calls)
         assert any(k == DecodeKind.VALUE and (s == "c" or s == "d") for (s, k) in calls)
+
+
+class TestAdditionalDotEncodingParity:
+    def test_allowdots_false_decodedot_false_encoded_dots_decode_to_literal_no_split(self) -> None:
+        # allowDots=false, decodeDotInKeys=false: encoded dots decode to literal '.'; no dot-splitting
+        opt = DecodeOptions(allow_dots=False, decode_dot_in_keys=False)
+        assert decode("a%2Eb=c", opt) == {"a.b": "c"}
+        assert decode("a%2eb=c", opt) == {"a.b": "c"}
+
+    def test_allowdots_true_decodedot_false_double_encoded_preserved_inside_segments(self) -> None:
+        # allowDots=true, decodeDotInKeys=false: double-encoded dots are preserved inside segments; encoded and plain dots split
+        opt = DecodeOptions(allow_dots=True, decode_dot_in_keys=False)
+        # Plain dot splits
+        assert decode("a.b=c", opt) == {"a": {"b": "c"}}
+        # Encoded dot stays encoded inside first segment (no extra split)
+        assert decode("name%252Eobj.first=John", opt) == {"name%2Eobj": {"first": "John"}}
+        # Lowercase variant inside first segment ("a%2eb.c=d")
+        assert decode("a%2eb.c=d", opt) == {"a": {"b": {"c": "d"}}}
+
+    def test_allowdots_true_decodedot_true_encoded_dots_become_literal_inside_segment(self) -> None:
+        # allowDots=true, decodeDotInKeys=true: encoded dots become literal '.' inside a segment (no extra split)
+        opt = DecodeOptions(allow_dots=True, decode_dot_in_keys=True)
+        assert decode("name%252Eobj.first=John", opt) == {"name.obj": {"first": "John"}}
+        # Double-encoded single segment becomes a literal dot after post-split mapping
+        assert decode("a%252Eb=c", opt) == {"a.b": "c"}
+        # Lowercase mapping as well in a bracket segment
+        assert decode("a[%2e]=x", opt) == {"a": {".": "x"}}
+
+    def test_bracket_segment_percent2e_mapped_based_on_decodedotinkeys_case_insensitive(self) -> None:
+        # When disabled, percent-decoding inside brackets yields '.' (no extra split)
+        assert decode("a[%2E]=x", DecodeOptions(allow_dots=False, decode_dot_in_keys=False)) == {"a": {".": "x"}}
+        assert decode("a[%2e]=x", DecodeOptions(allow_dots=True, decode_dot_in_keys=False)) == {"a": {".": "x"}}
+        # When enabled, convert to '.' regardless of case
+        assert decode("a[%2E]=x", DecodeOptions(allow_dots=True, decode_dot_in_keys=True)) == {"a": {".": "x"}}
+        # Inconsistent options should raise at construction; mirrored here via the call
+        with pytest.raises(ValueError):
+            decode("a[%2e]=x", DecodeOptions(allow_dots=False, decode_dot_in_keys=True))
+
+    def test_bare_key_behavior_matches_key_decoding_path(self) -> None:
+        # allowDots=false → %2E decodes to '.'; no splitting because allowDots=false; strict null → None
+        opt1 = DecodeOptions(allow_dots=False, decode_dot_in_keys=False, strict_null_handling=True)
+        assert decode("a%2Eb", opt1) == {"a.b": None}
+        # allowDots=true & decodeDotInKeys=false → keep %2E inside key segment (no extra split); empty value default
+        opt2 = DecodeOptions(allow_dots=True, decode_dot_in_keys=False)
+        assert decode("a%2Eb", opt2) == {"a": {"b": ""}}
+
+    def test_depth_zero_with_allowdots_true_does_not_split_key(self) -> None:
+        # depth=0 with allowDots=true: do not split key
+        opt = DecodeOptions(allow_dots=True, depth=0)
+        assert decode("a.b=c", opt) == {"a.b": "c"}
+
+    def test_top_level_dot_to_bracket_guardrails_leading_trailing_double(self) -> None:
+        # Leading dot: ".a" should yield {"a": ...} when allowDots=true
+        assert decode(".a=x", DecodeOptions(allow_dots=True, decode_dot_in_keys=False)) == {"a": "x"}
+
+        # Trailing dot: "a." should NOT create an empty bracket segment; remains literal
+        assert decode("a.=x", DecodeOptions(allow_dots=True, decode_dot_in_keys=False)) == {"a.": "x"}
+
+        # Double dots: only the second dot (before a token) causes a split; the empty middle segment is preserved
+        # as a literal dot in the parent key (no [] is created)
+        assert decode("a..b=x", DecodeOptions(allow_dots=True, decode_dot_in_keys=False)) == {"a.": {"b": "x"}}
