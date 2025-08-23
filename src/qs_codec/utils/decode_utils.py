@@ -31,22 +31,34 @@ class DecodeUtils:
 
     @classmethod
     def dot_to_bracket_top_level(cls, s: str) -> str:
-        """Convert top‑level dot segments into bracket groups, preserving dots inside brackets and handling degenerate top‑level dots.
+        """Convert top-level dot segments into bracket groups *after* percent-decoding.
 
-        Rules:
-        - Only dots at depth == 0 split. Dots inside '[]' are preserved.
-        - Percent-encoded dots ('%2E'/'%2e') never split here.
+        Notes
+        -----
+        - In the normal decode path, the key has already been percent-decoded by the upstream
+          scanner, so sequences like ``%2E``/``%2e`` are already literal ``.`` when this function
+          runs. As a result, with ``allow_dots=True``, any top-level ``.`` will be treated as a
+          separator here. This is independent of ``decode_dot_in_keys`` (which only affects how
+          encoded dots *inside bracket segments* are normalized later during object folding).
+        - If a custom decoder returns raw tokens (i.e., bypasses percent-decoding), ``%2E``/``%2e``
+          may still appear here; those percent sequences are preserved verbatim and are **not**
+          used as separators.
+
+        Rules
+        -----
+        - Only dots at depth == 0 split. Dots inside ``[]`` are preserved.
         - Degenerate cases:
-          * leading '.' starts a bracket segment ('.a' behaves like '[a]')
-          * '.[' is skipped so 'a.[b]' behaves like 'a[b]'
-          * 'a..b' preserves the first dot → 'a.[b]'
-          * trailing '.' is preserved and ignored by the splitter
+          * leading ``.`` starts a bracket segment (``.a`` behaves like ``[a]``)
+          * ``.[`` is skipped so ``a.[b]`` behaves like ``a[b]``
+          * ``a..b`` preserves the first dot → ``a.[b]``
+          * trailing ``.`` is preserved and ignored by the splitter
 
-        Examples:
-            'user.email.name' -> 'user[email][name]'
-            'a[b].c' -> 'a[b][c]'
-            'a[.].c' -> 'a[.][c]'
-            'a%2E[b]' -> 'a%2E[b]'
+        Examples
+        --------
+        'user.email.name' -> 'user[email][name]'
+        'a[b].c' -> 'a[b][c]'
+        'a[.].c' -> 'a[.][c]'
+        'a%2E[b]' -> 'a%2E[b]' (only if a custom decoder left it encoded)
         """
         if "." not in s:
             return s
