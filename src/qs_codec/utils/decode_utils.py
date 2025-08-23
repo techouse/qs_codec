@@ -208,6 +208,11 @@ class DecodeUtils:
         - If there are more groups beyond ``max_depth`` and ``strict_depth`` is True, an ``IndexError`` is raised. Otherwise, the remainder is added as one final segment (again mirroring qs).
         - Unterminated '[': the remainder after the first unmatched '[' is captured as a single synthetic bracket segment (qs/Kotlin parity).
 
+        Examples
+        --------
+        max_depth=2: "a[b][c][d]" -> ["a", "[b]", "[c]", "[[d]]"]
+        unterminated: "a[b" -> ["a", "[[b]"]
+
         This runs in O(n) time over the key string.
         """
         if max_depth <= 0:
