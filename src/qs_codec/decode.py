@@ -124,14 +124,24 @@ def _interpret_numeric_entities(value: str) -> str:
 
 
 def _parse_array_value(value: t.Any, options: DecodeOptions, current_list_length: int) -> t.Any:
-    """Post-process a raw scalar for list semantics and enforce `list_limit`.
+    """Post-process a raw scalar for list semantics and enforce ``list_limit``.
 
     Behavior
     --------
-    - If `comma=True` and `value` is a string that contains commas, split into a list.
-    - Otherwise, enforce the per-list length limit by comparing `current_list_length` to `options.list_limit`. When `raise_on_limit_exceeded=True`, violations raise `ValueError`.
+    - If ``comma=True`` and ``value`` is a string that contains commas, split into a list.
+    - Otherwise, enforce the per-list length limit by comparing ``current_list_length`` to ``options.list_limit``.
+      When ``raise_on_limit_exceeded=True``, violations raise ``ValueError``.
+    - When ``list_limit`` is negative:
+        * if ``raise_on_limit_exceeded=True``, **any** list-growth operation here (e.g., comma-splitting)
+          raises immediately;
+        * if ``raise_on_limit_exceeded=False`` (default), comma-splitting still returns a list; numeric
+          bracket indices are handled later by ``_parse_object`` (where negative ``list_limit`` disables
+          numeric-index parsing only).
 
-    Returns either the original value or a list of values, without decoding (that happens later).
+    Returns
+    -------
+    Any
+        Either the original value or a list of values, without decoding (that happens later).
     """
     if isinstance(value, str) and value and options.comma and "," in value:
         split_val: t.List[str] = value.split(",")
@@ -155,18 +165,21 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
     Responsibilities
     ----------------
     - Strip a leading '?' if ``ignore_query_prefix`` is True.
-    - Normalize percent-encoded square brackets (``%5B/%5D``) so the key splitter can operate.
+    - Normalize percent-encoded square brackets (``%5B/%5D``) (case-insensitive) so the key splitter can operate.
     - Split into parts using either a string delimiter or a regex delimiter.
     - Enforce ``parameter_limit`` (optionally raising).
-    - Detect the UTF-8/Latin-1 charset via the `utf8=…` sentinel when enabled.
+    - Detect the UTF-8/Latin-1 charset via the ``utf8=…`` sentinel when enabled.
     - For each ``key=value`` pair:
-        * Percent-decode key/value using the selected charset.
+        * Decode key/value via ``options.decoder`` (default: percent-decoding using the selected ``charset``).
+          Keys are passed with ``kind=DecodeKind.KEY`` and values with ``kind=DecodeKind.VALUE``; a custom decoder
+          may return the raw token or ``None``.
         * Apply list/comma logic to values.
         * Interpret numeric entities for Latin-1 when requested.
-        * Handle empty brackets ``[]`` as list markers.
+        * Handle empty brackets ``[]`` as list markers (wrapping exactly once).
         * Merge duplicate keys according to ``duplicates`` policy.
 
-    The output is a *flat* dict (keys are full key-path strings). Higher-level structure is constructed later by ``_parse_keys`` / ``_parse_object``.
+    The output is a *flat* dict (keys are full key-path strings). Higher-level structure is constructed later by
+    ``_parse_keys`` / ``_parse_object``.
     """
     obj: t.Dict[str, t.Any] = {}
 
@@ -296,14 +309,14 @@ def _parse_object(
     Notes
     -----
     - Builds lists when encountering ``[]`` (respecting ``allow_empty_lists`` and null handling).
-    - Converts bracketed numeric segments into list indices when allowed and within ``list_limit``.
-    - When ``list_limit`` is negative, numeric bracket indices are treated as
-      *map keys* (list growth is disabled). If ``raise_on_limit_exceeded`` is
-      True, any list-growth operation (empty brackets, comma-split, nested pushes)
-      will raise immediately.
-    - Inside bracket segments, a custom key decoder may leave percent-encoded dots
-      (``%2E/%2e``). When ``decode_dot_in_keys`` is True, these are normalized to
-      ``.`` here. Top‑level dot splitting is already handled by the splitter.
+    - Converts bracketed **numeric** segments into list indices when allowed and within ``list_limit``.
+    - When ``list_limit`` is negative, **numeric-indexed bracket segments** are treated as map keys
+      (i.e., index-based list growth is disabled). Empty brackets (``[]``) still create lists unless
+      ``raise_on_limit_exceeded`` is True; with ``raise_on_limit_exceeded=True``, any list-growth operation
+      (empty brackets, comma-split, nested pushes) raises immediately.
+    - Inside bracket segments, a custom key decoder may leave percent-encoded dots (``%2E/%2e``). When
+      ``decode_dot_in_keys`` is True, these are normalized to ``.`` here. Top‑level dot splitting is already
+      handled by the splitter.
     - When list parsing is disabled and an empty segment is encountered, coerces to ``{"0": leaf}`` to preserve round-trippability with other ports.
     """
     current_list_length: int = 0
