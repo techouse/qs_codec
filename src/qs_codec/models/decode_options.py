@@ -281,7 +281,10 @@ class DecodeOptions:
         return d(value, charset or self.charset, kind=kind)
 
     def decode_key(self, value: t.Optional[str], charset: t.Optional[Charset] = None) -> t.Optional[str]:
-        """Decode a key (or key segment). Always returns a string or ``None``."""
+        """Decode a key (or key segment). Always returns a string or ``None``.
+
+        Note: custom decoders returning non-strings for keys are coerced via ``str()``.
+        """
         out = self.decode(value, charset, kind=DecodeKind.KEY)
         return None if out is None else str(out)
 
