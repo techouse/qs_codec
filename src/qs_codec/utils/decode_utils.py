@@ -117,8 +117,8 @@ class DecodeUtils:
                     sb.append(".")
                     i += 1
             else:
-                # also preserve percent sequences verbatim at top level;
-                # we don't split on '%2E' here
+                # No special handling for percent sequences here; characters are appended as-is.
+                # We never split on '%2E' at this stage.
                 sb.append(ch)
                 i += 1
         return "".join(sb)
@@ -192,7 +192,8 @@ class DecodeUtils:
             s = string_without_plus
             if "%" not in s:
                 return s
-            return cls.HEX2_PATTERN.sub(lambda m: chr(int(m.group(1), 16)), s)
+            _int, _chr = int, chr
+            return cls.HEX2_PATTERN.sub(lambda m: _chr(_int(m.group(1), 16)), s)
 
         s = string_without_plus
         return s if "%" not in s else unquote(s)
