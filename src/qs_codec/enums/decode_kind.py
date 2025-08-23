@@ -16,9 +16,10 @@ class DecodeKind(str, Enum):
     Attributes
     ----------
     KEY
-        Decode a *key* (or key segment). Implementations typically preserve
-        percent‑encoded dots (``%2E``/``%2e``) so that dot‑splitting semantics can
-        be applied later according to parser options.
+        Decode a *key* (or key segment). Note that the default scalar decoder
+        (``qs_codec.utils.decode_utils.decode``) ignores `kind` and fully
+        decodes percent-encoded dots (``%2E``/``%2e``). Dot-splitting behavior is
+        applied later by higher-level parser options.
     VALUE
         Decode a *value*. Implementations typically perform full percent decoding.
     """
