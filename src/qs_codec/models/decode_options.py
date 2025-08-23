@@ -203,6 +203,10 @@ class DecodeOptions:
             pass_kind_as_str = True
             if has_kind_param:
                 ann = params["kind"].annotation
+                # NOTE: If a user annotates `kind` as a typing.Literal (e.g., Literal["key", "value"]),
+                # `ann` will NOT be a `type`, so we fall back to passing strings (the default path below).
+                # This is intentional: it preserves compatibility with callables that prefer plain strings
+                # while still supporting Enum-typed signatures where we pass the Enum instance instead.
                 if ann is inspect.Signature.empty:
                     pass_kind_as_str = True
                 else:
