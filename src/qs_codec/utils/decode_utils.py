@@ -222,6 +222,7 @@ class DecodeUtils:
         open_idx: int = first
         depth: int = 0
 
+        unterminated = False
         while open_idx >= 0 and depth < max_depth:
             level = 1
             i = open_idx + 1
@@ -241,7 +242,8 @@ class DecodeUtils:
                 i += 1
 
             if close < 0:
-                break  # unterminated group; stop collecting; remainder handled below
+                unterminated = True  # unterminated group; stop collecting; remainder handled below
+                break
 
             # Append the full balanced group, including the surrounding brackets.
             segments.append(key[open_idx : close + 1])  # includes the surrounding [ ]
@@ -249,7 +251,10 @@ class DecodeUtils:
             open_idx = key.find("[", close + 1)
 
         if open_idx >= 0:
-            if strict_depth:
+            # We only want to raise for true depth overflow under strict_depth,
+            # not for unterminated bracket groups.
+            depth_overflow = (depth >= max_depth) and not unterminated
+            if strict_depth and depth_overflow:
                 raise IndexError(f"Input depth exceeded depth option of {max_depth} and strict_depth is True")
             # Stash the remainder as a single segment (qs/Kotlin parity)
             segments.append("[" + key[open_idx:] + "]")
