@@ -4,7 +4,7 @@ This mirrors the semantics of the Node `qs` library:
 
 - Decoding handles both UTF‑8 and Latin‑1 code paths.
 - Key splitting keeps bracket groups *balanced* and optionally treats dots as path separators when ``allow_dots=True``.
-- Top‑level dot splitting uses a character‑scanner that preserves leading/trailing dots, `.[]` degenerates, and never splits on percent‑encoded dots.
+- Top‑level dot splitting uses a character‑scanner that handles degenerate cases (leading '.' starts a bracket segment; '.[' is skipped; double dots preserve the first; trailing '.' is preserved) and never splits on percent‑encoded dots.
 """
 
 import re
@@ -190,6 +190,7 @@ class DecodeUtils:
         - Bracket groups are *balanced* using a counter so nested brackets within a single group (e.g. ``"[with[inner]]"``) are treated as one segment.
         - When ``max_depth <= 0``, no splitting occurs; the key is returned as a single segment (qs semantics).
         - If there are more groups beyond ``max_depth`` and ``strict_depth`` is True, an ``IndexError`` is raised. Otherwise, the remainder is added as one final segment (again mirroring qs).
+        - Unterminated '[': the remainder after the first unmatched '[' is captured as a single synthetic bracket segment (qs/Kotlin parity).
 
         This runs in O(n) time over the key string.
         """
