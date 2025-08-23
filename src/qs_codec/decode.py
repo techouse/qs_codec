@@ -184,6 +184,10 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
     obj: t.Dict[str, t.Any] = {}
 
     clean_str: str = value.replace("?", "", 1) if options.ignore_query_prefix else value
+    # Normalize %5B/%5D to literal brackets before splitting (case-insensitive).
+    # Note: this operates on the entire query string (keys *and* values). That’s
+    # intentional: it keeps the splitter simple, and value tokens are subsequently
+    # passed through the scalar decoder, so this replacement is safe.
     clean_str = clean_str.replace("%5B", "[").replace("%5b", "[").replace("%5D", "]").replace("%5d", "]")
 
     # Compute an effective parameter limit (None means "no limit").
