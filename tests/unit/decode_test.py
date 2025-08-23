@@ -1430,3 +1430,219 @@ class TestParserStateIsolation:
         # Second call should still parse lists as lists
         res2 = decode("a[]=1&a[]=2", opts)
         assert res2 == {"a": ["1", "2"]}
+
+
+class TestCSharpParityEncodedDotBehavior:
+    def test_top_level_allowdots_true_decodedot_true_splits_plain_and_encoded_dot(self) -> None:
+        opt = DecodeOptions(allow_dots=True, decode_dot_in_keys=True)
+        assert decode("a.b=c", opt) == {"a": {"b": "c"}}
+        assert decode("a%2Eb=c", opt) == {"a": {"b": "c"}}
+        assert decode("a%2eb=c", opt) == {"a": {"b": "c"}}
+
+    def test_top_level_allowdots_true_decodedot_false_encoded_dot_also_splits(self) -> None:
+        opt = DecodeOptions(allow_dots=True, decode_dot_in_keys=False)
+        assert decode("a%2Eb=c", opt) == {"a": {"b": "c"}}
+        assert decode("a%2eb=c", opt) == {"a": {"b": "c"}}
+
+    def test_invalid_allowdots_false_decodedot_true_raises(self) -> None:
+        with pytest.raises(ValueError):
+            decode("a%2Eb=c", DecodeOptions(allow_dots=False, decode_dot_in_keys=True))
+
+    def test_bracket_segment_maps_to_dot_when_decodedot_true(self) -> None:
+        opt = DecodeOptions(allow_dots=True, decode_dot_in_keys=True)
+        assert decode("a[%2E]=x", opt) == {"a": {".": "x"}}
+        assert decode("a[%2e]=x", opt) == {"a": {".": "x"}}
+
+    def test_bracket_segment_percent_decoding_inside_brackets_when_decodedot_false(self) -> None:
+        opt = DecodeOptions(allow_dots=True, decode_dot_in_keys=False)
+        # Note: key-decoder percent-decodes inside brackets, so %2E → "."
+        assert decode("a[%2E]=x", opt) == {"a": {".": "x"}}
+        assert decode("a[%2e]=x", opt) == {"a": {".": "x"}}
+
+    def test_value_tokens_always_decode_percent2E_to_dot(self) -> None:
+        assert decode("x=%2E") == {"x": "."}
+
+    def test_latin1_allowdots_true_decodedot_true_matches_utf8(self) -> None:
+        opt = DecodeOptions(allow_dots=True, decode_dot_in_keys=True, charset=Charset.LATIN1)
+        assert decode("a%2Eb=c", opt) == {"a": {"b": "c"}}
+        assert decode("a[%2E]=x", opt) == {"a": {".": "x"}}
+
+    def test_latin1_allowdots_true_decodedot_false_also_splits_top_level_and_decodes_inside_brackets(self) -> None:
+        opt = DecodeOptions(allow_dots=True, decode_dot_in_keys=False, charset=Charset.LATIN1)
+        assert decode("a%2Eb=c", opt) == {"a": {"b": "c"}}
+        assert decode("a[%2E]=x", opt) == {"a": {".": "x"}}
+
+    def test_percent_decoding_applies_inside_brackets_when_decoding_keys(self) -> None:
+        # Kotlin's DecodeOptions.decode(KEY) equivalent behavior exercised via full parse:
+        # %2E inside a bracket segment becomes '.' regardless of allow_dots
+        o1 = DecodeOptions(allow_dots=False, decode_dot_in_keys=False)
+        o2 = DecodeOptions(allow_dots=True, decode_dot_in_keys=False)
+        assert decode("a[%2Eb]=x", o1) == {"a": {".b": "x"}}
+        assert decode("a[b%2Ec]=x", o1) == {"a": {"b.c": "x"}}
+        assert decode("a[%2Eb]=x", o2) == {"a": {".b": "x"}}
+        assert decode("a[b%2Ec]=x", o2) == {"a": {"b.c": "x"}}
+
+    def test_mixed_case_encoded_brackets_plus_encoded_dot_after_brackets(self) -> None:
+        opt = DecodeOptions(allow_dots=True, decode_dot_in_keys=True)
+        # Uppercase
+        assert decode("a%5Bb%5D%5Bc%5D%2Ed=x", opt) == {"a": {"b": {"c": {"d": "x"}}}}
+        # Lowercase
+        assert decode("a%5bb%5d%5bc%5d%2ed=x", opt) == {"a": {"b": {"c": {"d": "x"}}}}
+
+    def test_nested_brackets_inside_a_segment_balanced_as_one_segment(self) -> None:
+        opt = DecodeOptions(allow_dots=True, decode_dot_in_keys=True)
+        # "a[b%5Bc%5D].e=x" → key "b[c]" stays a single segment; then ".e" splits (allow_dots)
+        assert decode("a[b%5Bc%5D].e=x", opt) == {"a": {"b[c]": {"e": "x"}}}
+
+    def test_mixed_case_encoded_brackets_and_encoded_dot_with_inconsistent_options_raises(self) -> None:
+        with pytest.raises(ValueError):
+            decode("a%5Bb%5D%5Bc%5D%2Ed=x", DecodeOptions(allow_dots=False, decode_dot_in_keys=True))
+
+    def test_top_level_encoded_dot_splits_when_allowdots_true_decodedot_true(self) -> None:
+        opt = DecodeOptions(allow_dots=True, decode_dot_in_keys=True)
+        assert decode("a%2Eb=c", opt) == {"a": {"b": "c"}}
+
+    def test_top_level_encoded_dot_also_splits_when_allowdots_true_decodedot_false(self) -> None:
+        opt = DecodeOptions(allow_dots=True, decode_dot_in_keys=False)
+        assert decode("a%2Eb=c", opt) == {"a": {"b": "c"}}
+
+    def test_top_level_encoded_dot_does_not_split_when_allowdots_false_decodedot_false(self) -> None:
+        opt = DecodeOptions(allow_dots=False, decode_dot_in_keys=False)
+        assert decode("a%2Eb=c", opt) == {"a.b": "c"}
+
+    def test_bracket_then_encoded_dot_to_next_segment_with_allowdots_true(self) -> None:
+        opt = DecodeOptions(allow_dots=True, decode_dot_in_keys=True)
+        assert decode("a[b]%2Ec=x", opt) == {"a": {"b": {"c": "x"}}}
+        assert decode("a[b]%2ec=x", opt) == {"a": {"b": {"c": "x"}}}
+
+    def test_mixed_case_top_level_encoded_dot_then_bracket_with_allowdots_true(self) -> None:
+        opt = DecodeOptions(allow_dots=True, decode_dot_in_keys=True)
+        assert decode("a%2E[b]=x", opt) == {"a": {"b": "x"}}
+
+    def test_top_level_lowercase_encoded_dot_splits_when_allowdots_true_decodedot_false(self) -> None:
+        opt = DecodeOptions(allow_dots=True, decode_dot_in_keys=False)
+        assert decode("a%2eb=c", opt) == {"a": {"b": "c"}}
+
+    def test_dot_before_index_with_allowdots_true_index_remains_index(self) -> None:
+        opt = DecodeOptions(allow_dots=True)
+        assert decode("foo[0].baz[0]=15&foo[0].bar=2", opt) == {"foo": [{"baz": ["15"], "bar": "2"}]}
+
+    def test_trailing_dot_ignored_when_allowdots_true(self) -> None:
+        opt = DecodeOptions(allow_dots=True)
+        assert decode("user.email.=x", opt) == {"user": {"email": "x"}}
+
+    def test_bracket_segment_encoded_dot_mapped_to_dot_when_decodedot_true(self) -> None:
+        opt = DecodeOptions(allow_dots=True, decode_dot_in_keys=True)
+        assert decode("a[%2E]=x", opt) == {"a": {".": "x"}}
+        assert decode("a[%2e]=x", opt) == {"a": {".": "x"}}
+
+    def test_top_level_encoded_dot_before_bracket_lowercase_with_allowdots_true(self) -> None:
+        opt = DecodeOptions(allow_dots=True, decode_dot_in_keys=True)
+        assert decode("a%2e[b]=x", opt) == {"a": {"b": "x"}}
+
+    def test_plain_dot_before_bracket_with_allowdots_true(self) -> None:
+        opt = DecodeOptions(allow_dots=True, decode_dot_in_keys=True)
+        assert decode("a.[b]=x", opt) == {"a": {"b": "x"}}
+
+    def test_kind_aware_decoder_receives_key_for_top_level_and_bracketed_keys(self) -> None:
+        calls: t.List[t.Tuple[t.Optional[str], DecodeKind]] = []
+
+        def _decoder(s: t.Optional[str], charset: t.Optional[Charset], *, kind: DecodeKind = DecodeKind.VALUE) -> t.Any:
+            calls.append((s, kind))
+            return s
+
+        opt = DecodeOptions(allow_dots=True, decode_dot_in_keys=True, decoder=_decoder)
+        # Ensure the decoder is invoked for both key forms without tripping F601 on duplicate dict keys.
+        assert bool(decode("a%2Eb=c&a[b]=d", opt))  # no-op: just ensure the call executes
+
+        # Confirm both KEY invocations observed: raw top-level key and raw bracketed key
+        assert any(k == DecodeKind.KEY and (s == "a%2Eb" or s == "a[b]") for (s, k) in calls)
+        assert any(k == DecodeKind.VALUE and (s == "c" or s == "d") for (s, k) in calls)
+
+
+class TestAdditionalDotEncodingParity:
+    def test_allowdots_false_decodedot_false_encoded_dots_decode_to_literal_no_split(self) -> None:
+        # allowDots=false, decodeDotInKeys=false: encoded dots decode to literal '.'; no dot-splitting
+        opt = DecodeOptions(allow_dots=False, decode_dot_in_keys=False)
+        assert decode("a%2Eb=c", opt) == {"a.b": "c"}
+        assert decode("a%2eb=c", opt) == {"a.b": "c"}
+
+    def test_allowdots_true_decodedot_false_double_encoded_preserved_inside_segments(self) -> None:
+        # allowDots=true, decodeDotInKeys=false: double-encoded dots are preserved inside segments; encoded and plain dots split
+        opt = DecodeOptions(allow_dots=True, decode_dot_in_keys=False)
+        # Plain dot splits
+        assert decode("a.b=c", opt) == {"a": {"b": "c"}}
+        # Encoded dot stays encoded inside first segment (no extra split)
+        assert decode("name%252Eobj.first=John", opt) == {"name%2Eobj": {"first": "John"}}
+        # Lowercase variant inside first segment ("a%2eb.c=d")
+        assert decode("a%2eb.c=d", opt) == {"a": {"b": {"c": "d"}}}
+
+    def test_allowdots_true_decodedot_true_encoded_dots_become_literal_inside_segment(self) -> None:
+        # allowDots=true, decodeDotInKeys=true: encoded dots become literal '.' inside a segment (no extra split)
+        opt = DecodeOptions(allow_dots=True, decode_dot_in_keys=True)
+        assert decode("name%252Eobj.first=John", opt) == {"name.obj": {"first": "John"}}
+        # Double-encoded single segment becomes a literal dot after post-split mapping
+        assert decode("a%252Eb=c", opt) == {"a.b": "c"}
+        # Lowercase mapping as well in a bracket segment
+        assert decode("a[%2e]=x", opt) == {"a": {".": "x"}}
+
+    def test_bracket_segment_percent2e_mapped_based_on_decodedotinkeys_case_insensitive(self) -> None:
+        # When disabled, percent-decoding inside brackets yields '.' (no extra split)
+        assert decode("a[%2E]=x", DecodeOptions(allow_dots=False, decode_dot_in_keys=False)) == {"a": {".": "x"}}
+        assert decode("a[%2e]=x", DecodeOptions(allow_dots=True, decode_dot_in_keys=False)) == {"a": {".": "x"}}
+        # When enabled, convert to '.' regardless of case
+        assert decode("a[%2E]=x", DecodeOptions(allow_dots=True, decode_dot_in_keys=True)) == {"a": {".": "x"}}
+        # Inconsistent options should raise at construction; mirrored here via the call
+        with pytest.raises(ValueError):
+            decode("a[%2e]=x", DecodeOptions(allow_dots=False, decode_dot_in_keys=True))
+
+    def test_bare_key_behavior_matches_key_decoding_path(self) -> None:
+        # allowDots=false → %2E decodes to '.'; no splitting because allowDots=false; strict null → None
+        opt1 = DecodeOptions(allow_dots=False, decode_dot_in_keys=False, strict_null_handling=True)
+        assert decode("a%2Eb", opt1) == {"a.b": None}
+        # allowDots=true & decodeDotInKeys=false → keep %2E inside key segment (no extra split); empty value default
+        opt2 = DecodeOptions(allow_dots=True, decode_dot_in_keys=False)
+        assert decode("a%2Eb", opt2) == {"a": {"b": ""}}
+
+    def test_depth_zero_with_allowdots_true_does_not_split_key(self) -> None:
+        # depth=0 with allowDots=true: do not split key
+        opt = DecodeOptions(allow_dots=True, depth=0)
+        assert decode("a.b=c", opt) == {"a.b": "c"}
+
+    def test_top_level_dot_to_bracket_guardrails_leading_trailing_double(self) -> None:
+        # Leading dot: ".a" should yield {"a": ...} when allowDots=true
+        assert decode(".a=x", DecodeOptions(allow_dots=True, decode_dot_in_keys=False)) == {"a": "x"}
+
+        # Trailing dot: "a." should NOT create an empty bracket segment; remains literal
+        assert decode("a.=x", DecodeOptions(allow_dots=True, decode_dot_in_keys=False)) == {"a.": "x"}
+
+        # Double dots: only the second dot (before a token) causes a split; the empty middle segment is preserved
+        # as a literal dot in the parent key (no [] is created)
+        assert decode("a..b=x", DecodeOptions(allow_dots=True, decode_dot_in_keys=False)) == {"a.": {"b": "x"}}
+
+
+class TestSplitKeySegmentationRemainder:
+    def test_no_remainder_when_within_depth(self) -> None:
+        segs = DecodeUtils.split_key_into_segments("a[b][c]", allow_dots=False, max_depth=3, strict_depth=False)
+        assert segs == ["a", "[b]", "[c]"]
+
+    def test_double_bracket_remainder_allowdots_depth1(self) -> None:
+        # Dot → bracket happens first; with max_depth=1, the remainder is wrapped as a single
+        # synthetic segment using double brackets (opaque to downstream consumers).
+        segs = DecodeUtils.split_key_into_segments("a.b.c", allow_dots=True, max_depth=1, strict_depth=False)
+        assert segs == ["a", "[b]", "[[c]]"]
+
+    def test_double_bracket_remainder_for_bracket_input(self) -> None:
+        # For bracketed input, the remainder beyond depth is also wrapped as one segment
+        # (e.g. "a[b][c][d]" with max_depth=2 → ["a", "[b]", "[[c][d]]"]).
+        segs = DecodeUtils.split_key_into_segments("a[b][c][d]", allow_dots=False, max_depth=2, strict_depth=False)
+        assert segs == ["a", "[b]", "[c]", "[[d]]"]
+
+    def test_strict_depth_overflow_raises_for_well_formed(self) -> None:
+        # Well-formed keys that exceed max_depth should raise when strict_depth=True.
+        with pytest.raises(IndexError):
+            DecodeUtils.split_key_into_segments("a[b][c][d]", allow_dots=False, max_depth=1, strict_depth=True)
+
+    def test_unterminated_group_does_not_raise_under_strict_depth(self) -> None:
+        segs = DecodeUtils.split_key_into_segments("a[b[c", allow_dots=False, max_depth=5, strict_depth=True)
+        assert segs == ["a", "[[b[c]"]

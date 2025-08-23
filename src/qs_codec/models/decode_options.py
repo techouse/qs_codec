@@ -1,9 +1,13 @@
-"""This module contains the ``DecodeOptions`` class that configures the output of ``decode``."""
+"""This module contains the ``DecodeOptions`` class that configures the output of ``decode``.
+
+Keys are decoded identically to values by the default decoder; whether a decoded ``.`` splits
+segments is controlled by parsing options (``allow_dots`` / ``decode_dot_in_keys``) elsewhere.
+"""
 
 import inspect
 import typing as t
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum as _EnumBase
 from functools import wraps
 
 from ..enums.charset import Charset
@@ -24,7 +28,11 @@ class DecodeOptions:
     """Set to ``True`` to decode percent‑encoded dots in keys (e.g., ``%2E`` → ``.``).
     Note: it implies ``allow_dots``, so ``decode`` will error if you set ``decode_dot_in_keys`` to ``True``, and
     ``allow_dots`` to ``False``.
-    When ``None`` (default), it defaults to ``False``."""
+    When ``None`` (default), it defaults to ``False``.
+
+    Inside bracket segments, percent-decoding naturally yields ``.`` from ``%2E/%2e``. This option controls whether
+    **top‑level** encoded dots are treated as additional split points; it does **not** affect the literal ``.`` produced
+    by percent-decoding inside bracket segments."""
 
     allow_empty_lists: bool = False
     """Set to ``True`` to allow empty ``list`` values inside ``dict``\\s in the encoded input."""
@@ -127,6 +135,11 @@ class DecodeOptions:
     from the decoder uses ``None`` as the scalar value.
     """
 
+    legacy_decoder: t.Optional[t.Callable[..., t.Optional[str]]] = None
+    """Back‑compat adapter for legacy decoders of the form ``decoder(value, charset)``.
+    Prefer ``decoder`` which may optionally accept a ``kind`` argument. When both are supplied,
+    ``decoder`` takes precedence (mirroring Kotlin/C# behavior)."""
+
     def __post_init__(self) -> None:
         """Post-initialization."""
         # Default `decode_dot_in_keys` first, then mirror into `allow_dots` when unspecified.
@@ -139,109 +152,142 @@ class DecodeOptions:
         if self.decode_dot_in_keys and not self.allow_dots:
             raise ValueError("decode_dot_in_keys=True implies allow_dots=True")
 
-        # decoder setup + compatibility wrapper
-        if self.decoder is None:
-            self.decoder = DecodeUtils.decode
-        else:
-            user_dec = self.decoder
+        # decoder setup + compatibility wrapper (parity with Kotlin/C#):
+        # precedence is: user `decoder` > `legacy_decoder` > library default.
+        raw_dec = self.decoder
+        if raw_dec is None and self.legacy_decoder is not None:
+            raw_dec = self.legacy_decoder  # legacy two-arg form; no kind
+        if raw_dec is None:
+            raw_dec = DecodeUtils.decode
 
-            # Precompute dispatch to avoid per-call introspection.
-            try:
-                sig = inspect.signature(user_dec)
-                params = sig.parameters
-                param_list = list(params.values())
+        user_dec = raw_dec
 
-                has_var_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in param_list)
-                has_var_pos = any(p.kind == inspect.Parameter.VAR_POSITIONAL for p in param_list)
+        # Precompute dispatch to avoid per-call introspection.
+        try:
+            sig = inspect.signature(user_dec)
+            params = sig.parameters
+            param_list = list(params.values())
 
-                accepts_charset_pos = False
-                accepts_charset_kw = False
-                if "charset" in params:
-                    p = params["charset"]
-                    if p.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD):
-                        accepts_charset_pos = True
-                    if p.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY):
-                        accepts_charset_kw = True
-                if has_var_pos:
+            has_var_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in param_list)
+            has_var_pos = any(p.kind == inspect.Parameter.VAR_POSITIONAL for p in param_list)
+
+            accepts_charset_pos = False
+            accepts_charset_kw = False
+            if "charset" in params:
+                p = params["charset"]
+                if p.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD):
                     accepts_charset_pos = True
+                if p.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY):
+                    accepts_charset_kw = True
+            if has_var_pos:
+                accepts_charset_pos = True
 
-                has_kind_param = "kind" in params
-                accepts_kind_kw = False
+            has_kind_param = "kind" in params
+            accepts_kind_kw = False
+            accepts_kind_pos = False
+            if has_kind_param:
+                k = params["kind"]
+                accepts_kind_kw = k.kind in (
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    inspect.Parameter.KEYWORD_ONLY,
+                )
+                accepts_kind_pos = k.kind in (
+                    inspect.Parameter.POSITIONAL_ONLY,
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                )
+            elif has_var_kw:
+                accepts_kind_kw = True  # can pass via **kwargs
                 accepts_kind_pos = False
-                if has_kind_param:
-                    k = params["kind"]
-                    accepts_kind_kw = k.kind in (
-                        inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                        inspect.Parameter.KEYWORD_ONLY,
-                    )
-                    accepts_kind_pos = k.kind in (
-                        inspect.Parameter.POSITIONAL_ONLY,
-                        inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                    )
-                elif has_var_kw:
-                    accepts_kind_kw = True  # can pass via **kwargs
-                    accepts_kind_pos = False
 
-                # Decide how to represent `kind`: prefer string for maximum compatibility
-                pass_kind_as_str = True
-                if has_kind_param:
-                    ann = params["kind"].annotation
-                    if ann is inspect.Signature.empty:
-                        pass_kind_as_str = True
-                    else:
-                        # If annotation is an Enum subclass (eg, DecodeKind), pass the enum.
-                        if isinstance(ann, type):
-                            pass_kind_as_str = not issubclass(ann, Enum)
-                        else:
-                            pass_kind_as_str = True
-                elif has_var_kw:
-                    # With **kwargs but no explicit parameter, safest is to pass string
+            # Decide how to represent `kind`: prefer string for maximum compatibility
+            pass_kind_as_str = True
+            if has_kind_param:
+                ann = params["kind"].annotation
+                # NOTE: If a user annotates `kind` as a typing.Literal (e.g., Literal["key", "value"]),
+                # `ann` will NOT be a `type`, so we fall back to passing strings (the default path below).
+                # This is intentional: it preserves compatibility with callables that prefer plain strings
+                # while still supporting Enum-typed signatures where we pass the Enum instance instead.
+                if ann is inspect.Signature.empty:
                     pass_kind_as_str = True
+                else:
+                    if isinstance(ann, type):
+                        pass_kind_as_str = not issubclass(ann, _EnumBase)
+                    else:
+                        pass_kind_as_str = True
+            elif has_var_kw:
+                pass_kind_as_str = True
 
-                def dispatch(
-                    s: t.Optional[str],
-                    charset: t.Optional[Charset],
-                    kind: DecodeKind,
-                ) -> t.Optional[str]:
-                    # Choose enum or string representation for `kind`
-                    kind_arg: t.Union[DecodeKind, str] = kind.value if pass_kind_as_str else kind
-                    args: t.List[t.Any] = [s]
-                    kwargs: t.Dict[str, t.Any] = {}
-                    if accepts_charset_pos:
-                        args.append(charset)
-                    elif accepts_charset_kw or has_var_kw:
-                        kwargs["charset"] = charset
-                    if accepts_kind_kw:
-                        kwargs["kind"] = kind_arg
-                    elif accepts_kind_pos:
-                        args.append(kind_arg)
-                    return user_dec(*args, **kwargs)
-
-            except (TypeError, ValueError):
-                # Builtins/callables without retrievable signature: try the most compatible forms.
-                def dispatch(
-                    s: t.Optional[str],
-                    charset: t.Optional[Charset],
-                    kind: DecodeKind,
-                ) -> t.Optional[str]:
-                    # Mark `kind` as used to satisfy linters; legacy decoders ignore it.
-                    _ = kind
-                    try:
-                        return user_dec(s)  # type: ignore[misc]
-                    except TypeError as e1:
-                        try:
-                            return user_dec(s, charset)  # type: ignore[misc]
-                        except TypeError as exc:
-                            raise e1 from exc
-
-            @wraps(user_dec)
-            def _adapter(
+            def dispatch(
                 s: t.Optional[str],
-                charset: t.Optional[Charset] = Charset.UTF8,
-                *,
-                kind: DecodeKind = DecodeKind.VALUE,
+                charset: t.Optional[Charset],
+                kind: DecodeKind,
             ) -> t.Optional[str]:
-                """Adapter that dispatches based on the user decoder's signature."""
-                return dispatch(s, charset, kind)
+                kind_arg: t.Union[DecodeKind, str] = kind.value if pass_kind_as_str else kind
+                args: t.List[t.Any] = [s]
+                kwargs: t.Dict[str, t.Any] = {}
+                if accepts_charset_pos:
+                    args.append(charset)
+                elif accepts_charset_kw or has_var_kw:
+                    kwargs["charset"] = charset
+                if accepts_kind_kw:
+                    kwargs["kind"] = kind_arg
+                elif accepts_kind_pos:
+                    args.append(kind_arg)
+                return user_dec(*args, **kwargs)
 
-            self.decoder = _adapter
+        except (TypeError, ValueError):
+            # Builtins/callables without retrievable signature: try the most compatible forms.
+            def dispatch(
+                s: t.Optional[str],
+                charset: t.Optional[Charset],
+                kind: DecodeKind,
+            ) -> t.Optional[str]:
+                _ = kind  # ignored by legacy decoders
+                try:
+                    return user_dec(s)  # type: ignore[misc]
+                except TypeError as e1:
+                    try:
+                        return user_dec(s, charset)  # type: ignore[misc]
+                    except TypeError as exc:
+                        raise e1 from exc
+
+        @wraps(user_dec)
+        def _adapter(
+            s: t.Optional[str],
+            charset: t.Optional[Charset] = Charset.UTF8,
+            *,
+            kind: DecodeKind = DecodeKind.VALUE,
+        ) -> t.Optional[str]:
+            """Adapter that dispatches based on the user decoder's signature."""
+            return dispatch(s, charset, kind)
+
+        self.decoder = _adapter
+
+    # --- Convenience methods (parity with Kotlin) ---
+    def decode(
+        self, value: t.Optional[str], charset: t.Optional[Charset] = None, *, kind: DecodeKind = DecodeKind.VALUE
+    ) -> t.Optional[t.Any]:
+        """Unified scalar decode with key/value context.
+
+        Uses the configured ``decoder`` (or ``legacy_decoder``) when provided; otherwise falls back
+        to :meth:`DecodeUtils.decode`. The default library behavior decodes keys identically to
+        values; whether a ``.`` participates in key splitting is decided later by the parser.
+        """
+        # ``self.decoder`` has been normalized to accept (s, charset, *, kind)
+        d = self.decoder
+        if d is None:
+            # Should not happen because we always set an adapter, but keep a safe fallback.
+            return DecodeUtils.decode(value, charset or self.charset)
+        return d(value, charset or self.charset, kind=kind)
+
+    def decode_key(self, value: t.Optional[str], charset: t.Optional[Charset] = None) -> t.Optional[str]:
+        """Decode a key (or key segment). Always returns a string or ``None``.
+
+        Note: custom decoders returning non-strings for keys are coerced via ``str()``.
+        """
+        out = self.decode(value, charset, kind=DecodeKind.KEY)
+        return None if out is None else str(out)
+
+    def decode_value(self, value: t.Optional[str], charset: t.Optional[Charset] = None) -> t.Optional[t.Any]:
+        """Decode a value token. Returns any scalar or ``None``."""
+        return self.decode(value, charset, kind=DecodeKind.VALUE)

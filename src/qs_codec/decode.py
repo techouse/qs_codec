@@ -124,14 +124,24 @@ def _interpret_numeric_entities(value: str) -> str:
 
 
 def _parse_array_value(value: t.Any, options: DecodeOptions, current_list_length: int) -> t.Any:
-    """Post-process a raw scalar for list semantics and enforce `list_limit`.
+    """Post-process a raw scalar for list semantics and enforce ``list_limit``.
 
     Behavior
     --------
-    - If `comma=True` and `value` is a string that contains commas, split into a list.
-    - Otherwise, enforce the per-list length limit by comparing `current_list_length` to `options.list_limit`. When `raise_on_limit_exceeded=True`, violations raise `ValueError`.
+    - If ``comma=True`` and ``value`` is a string that contains commas, split into a list.
+    - Otherwise, enforce the per-list length limit by comparing ``current_list_length`` to ``options.list_limit``.
+      When ``raise_on_limit_exceeded=True``, violations raise ``ValueError``.
+    - When ``list_limit`` is negative:
+        * if ``raise_on_limit_exceeded=True``, **any** list-growth operation here (e.g., comma-splitting)
+          raises immediately;
+        * if ``raise_on_limit_exceeded=False`` (default), comma-splitting still returns a list; numeric
+          bracket indices are handled later by ``_parse_object`` (where negative ``list_limit`` disables
+          numeric-index parsing only).
 
-    Returns either the original value or a list of values, without decoding (that happens later).
+    Returns
+    -------
+    Any
+        Either the original value or a list of values, without decoding (that happens later).
     """
     if isinstance(value, str) and value and options.comma and "," in value:
         split_val: t.List[str] = value.split(",")
@@ -155,22 +165,29 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
     Responsibilities
     ----------------
     - Strip a leading '?' if ``ignore_query_prefix`` is True.
-    - Normalize percent-encoded square brackets (``%5B/%5D``) so the key splitter can operate.
+    - Normalize percent-encoded square brackets (``%5B/%5D``) (case-insensitive) so the key splitter can operate.
     - Split into parts using either a string delimiter or a regex delimiter.
     - Enforce ``parameter_limit`` (optionally raising).
-    - Detect the UTF-8/Latin-1 charset via the `utf8=…` sentinel when enabled.
+    - Detect the UTF-8/Latin-1 charset via the ``utf8=…`` sentinel when enabled.
     - For each ``key=value`` pair:
-        * Percent-decode key/value using the selected charset.
-        * Apply list/comma logic to values.
+        * Decode key/value via ``options.decoder`` (default: percent-decoding using the selected ``charset``).
+          Keys are passed with ``kind=DecodeKind.KEY`` and values with ``kind=DecodeKind.VALUE``; a custom decoder
+          may return the raw token or ``None``.
+        * Apply comma-split list logic to values (handled here). Index-based list growth from bracket segments is applied later in ``_parse_object``. When ``list_limit < 0`` and ``raise_on_limit_exceeded=True``, any comma-split that would increase the list length raises immediately; otherwise the split proceeds.
         * Interpret numeric entities for Latin-1 when requested.
-        * Handle empty brackets ``[]`` as list markers.
+        * Handle empty brackets ``[]`` as list markers (wrapping exactly once).
         * Merge duplicate keys according to ``duplicates`` policy.
 
-    The output is a *flat* dict (keys are full key-path strings). Higher-level structure is constructed later by ``_parse_keys`` / ``_parse_object``.
+    The output is a *flat* dict (keys are full key-path strings). Higher-level structure is constructed later by
+    ``_parse_keys`` / ``_parse_object``.
     """
     obj: t.Dict[str, t.Any] = {}
 
     clean_str: str = value.replace("?", "", 1) if options.ignore_query_prefix else value
+    # Normalize %5B/%5D to literal brackets before splitting (case-insensitive).
+    # Note: this operates on the entire query string (keys *and* values). That’s
+    # intentional: it keeps the splitter simple, and value tokens are subsequently
+    # passed through the scalar decoder, so this replacement is safe.
     clean_str = clean_str.replace("%5B", "[").replace("%5b", "[").replace("%5D", "]").replace("%5d", "]")
 
     # Compute an effective parameter limit (None means "no limit").
@@ -296,12 +313,32 @@ def _parse_object(
     Notes
     -----
     - Builds lists when encountering ``[]`` (respecting ``allow_empty_lists`` and null handling).
-    - Converts bracketed numeric segments into list indices when allowed and within ``list_limit``.
+    - Converts bracketed **numeric** segments into list indices when allowed and within ``list_limit``.
+    - When ``list_limit`` is negative, **numeric-indexed bracket segments** are treated as map keys
+      (i.e., index-based list growth is disabled). Empty brackets (``[]``) still create lists unless
+      ``raise_on_limit_exceeded`` is True; with ``raise_on_limit_exceeded=True``, any list-growth operation
+      (empty brackets, comma-split, nested pushes) raises immediately.
+    - Inside bracket segments, a custom key decoder may leave percent-encoded dots (``%2E/%2e``). When
+      ``decode_dot_in_keys`` is True, these are normalized to ``.`` here. Top‑level dot splitting is already
+      handled by the splitter.
     - When list parsing is disabled and an empty segment is encountered, coerces to ``{"0": leaf}`` to preserve round-trippability with other ports.
     """
     current_list_length: int = 0
 
     # If the chain ends with an empty list marker, compute current list length for limit checks.
+    # Best-effort note:
+    #   This is a conservative heuristic intended to help when we see patterns like `a[0][]=`,
+    #   so `_parse_array_value` can enforce the list limit for the final `[]` push. The segments
+    #   we receive in `chain` include bracket markers (e.g., `["a", "[0]", "[]"]`), so
+    #   `"".join(chain[:-1])` is rarely a pure integer (e.g., `"a[0]"` raises `ValueError`),
+    #   and we typically fall back to `0`. That’s fine: it remains safe and conservative.
+    #   We still:
+    #     • enforce per-list length for already-allocated containers during tokenization in
+    #       `_parse_query_string_values` (where we know the current length), and
+    #     • enforce index-based growth limits inside this function when converting bracketed
+    #       numeric segments into list indices.
+    #   Keeping this lightweight probe matches the other ports and avoids costly look-ahead into
+    #   parent structures while maintaining correct limit behavior.
     if bool(chain) and chain[-1] == "[]":
         parent_key: t.Optional[int]
 
@@ -329,7 +366,12 @@ def _parse_object(
         else:
             obj = dict()
 
-            # Optionally treat `%2E` as a literal dot (when `decode_dot_in_keys` is enabled).
+            # Map `%2E`/`%2e` to a literal dot *inside bracket segments* when
+            # `decode_dot_in_keys` is enabled. Even though `_parse_query_string_values`
+            # typically percent‑decodes the key (default decoder), a custom
+            # `DecodeOptions.decoder` may return the raw token. In that case, `%2E` can
+            # still appear here and must be normalized for parity with the Kotlin/C# ports.
+            # (Top‑level dot splitting is performed earlier by the key splitter.)
             clean_root: str = root[1:-1] if root.startswith("[") and root.endswith("]") else root
 
             if options.decode_dot_in_keys:
