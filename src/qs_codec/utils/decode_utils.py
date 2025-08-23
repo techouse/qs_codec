@@ -84,6 +84,10 @@ class DecodeUtils:
                     if next_ch == "[":
                         # skip the dot so 'a.[b]' acts like 'a[b]'
                         i += 1
+                    elif next_ch == "]":
+                        # preserve ambiguous '.]' as a literal to avoid constructing '[]]'
+                        sb.append(".")
+                        i += 1
                     elif i == 0:
                         # If input starts with '..', preserve the first dot like the 'a..b' case.
                         if has_next and next_ch == ".":
@@ -93,7 +97,7 @@ class DecodeUtils:
                         # leading '.' starts a bracket segment: ".a" -> "[a]"
                         start = i + 1
                         j = start
-                        while j < n and s[j] != "." and s[j] != "[":
+                        while j < n and s[j] != "." and s[j] != "[" and s[j] != "]":
                             j += 1
                         sb.append("[")
                         sb.append(s[start:j])
@@ -107,7 +111,7 @@ class DecodeUtils:
                         # normal split at top level: convert a.b → a[b]
                         start = i + 1
                         j = start
-                        while j < n and s[j] != "." and s[j] != "[":
+                        while j < n and s[j] != "." and s[j] != "[" and s[j] != "]":
                             j += 1
                         sb.append("[")
                         sb.append(s[start:j])
