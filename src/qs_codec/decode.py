@@ -297,6 +297,13 @@ def _parse_object(
     -----
     - Builds lists when encountering ``[]`` (respecting ``allow_empty_lists`` and null handling).
     - Converts bracketed numeric segments into list indices when allowed and within ``list_limit``.
+    - When ``list_limit`` is negative, numeric bracket indices are treated as
+      *map keys* (list growth is disabled). If ``raise_on_limit_exceeded`` is
+      True, any list-growth operation (empty brackets, comma-split, nested pushes)
+      will raise immediately.
+    - Inside bracket segments, a custom key decoder may leave percent-encoded dots
+      (``%2E/%2e``). When ``decode_dot_in_keys`` is True, these are normalized to
+      ``.`` here. Top‑level dot splitting is already handled by the splitter.
     - When list parsing is disabled and an empty segment is encountered, coerces to ``{"0": leaf}`` to preserve round-trippability with other ports.
     """
     current_list_length: int = 0
@@ -329,7 +336,12 @@ def _parse_object(
         else:
             obj = dict()
 
-            # Optionally treat `%2E` as a literal dot (when `decode_dot_in_keys` is enabled).
+            # Map `%2E`/`%2e` to a literal dot *inside bracket segments* when
+            # `decode_dot_in_keys` is enabled. Even though `_parse_query_string_values`
+            # typically percent‑decodes the key (default decoder), a custom
+            # `DecodeOptions.decoder` may return the raw token. In that case, `%2E` can
+            # still appear here and must be normalized for parity with the Kotlin/C# ports.
+            # (Top‑level dot splitting is performed earlier by the key splitter.)
             clean_root: str = root[1:-1] if root.startswith("[") and root.endswith("]") else root
 
             if options.decode_dot_in_keys:
