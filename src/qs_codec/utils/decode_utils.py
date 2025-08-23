@@ -87,8 +87,7 @@ class DecodeUtils:
                         sb.append(".")
                         i += 1
                     else:
-                        # normal split (also handles leading '.'): convert a.b → a[b]
-                        # and '.a' → '[a]' at top level
+                        # normal split at top level: convert a.b → a[b]
                         start = i + 1
                         j = start
                         while j < n and s[j] != "." and s[j] != "[":
