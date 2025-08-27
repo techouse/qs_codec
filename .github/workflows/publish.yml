@@ -19,9 +19,11 @@ jobs:
     needs: test
     name: "Publish"
     runs-on: ubuntu-latest
+    env:
+      NAME: qs_codec
     environment:
       name: pypi
-      url: https://pypi.org/p/qs_codec
+      url: https://pypi.org/p/${{ env.NAME }}
     permissions:
       id-token: write
       contents: write
@@ -30,19 +32,19 @@ jobs:
       - name: Compare package version with ref/tag
         id: compare
         run: |
-          set -e
-          VERSION=$(awk -F'"' '/__version__/ {print $2}' src/qs_codec/__init__.py)
+          set -euo pipefail
+          VERSION=$(awk -F'"' '/__version__/ {print $2}' src/${{ env.NAME }}/__init__.py)
           TAG=${GITHUB_REF_NAME#v}
           if [[ "$VERSION" != "$TAG" ]]; then
-            echo "Version in src/qs_codec/__version__.py ($VERSION) does not match tag ($TAG)"
+            echo "Version in src/$NAME/__init__.py ($VERSION) does not match tag ($TAG)"
             exit 1
           fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
       - name: Check CHANGELOG.md
         id: check_changelog
         run: |
-          set -e
-          if ! grep -q "## $VERSION" CHANGELOG.md; then
+          set -euo pipefail
+          if ! grep -Eq "^##[[:space:]]+${VERSION}([[:space:]]|$)" CHANGELOG.md; then
             echo "CHANGELOG.md does not contain a section for $VERSION"
             exit 1
           fi
@@ -52,34 +54,33 @@ jobs:
         with:
           python-version: "3.x"
           cache: "pip"
+          cache-dependency-path: pyproject.toml
       - name: Install build dependencies
         id: install_build_dependencies
-        run: pip install build setuptools wheel
+        run: pip install build setuptools wheel twine
       - name: Build a binary wheel and a source tarball
         id: build
         run: python -m build --sdist --wheel --outdir dist/ .
+      - name: Check built artifacts metadata (twine)
+        id: twine_check
+        run: python -m twine check dist/*
       - name: Publish distribution package to PyPI
         id: publish
         if: startsWith(github.ref, 'refs/tags')
         uses: pypa/gh-action-pypi-publish@release/v1
-      - name: Install pyproject-parser
-        id: install_pyproject_parser
-        run: |
-          pip install pyproject-parser[cli]
-      - name: Read project name from pyproject.toml
-        id: read_project_name
-        run: |
-          set -e
-          NAME=$(pyproject-parser info project.name -r | tr -d '"')
-          echo "NAME=$NAME" >> $GITHUB_ENV
       - name: Create tag-specific CHANGELOG
         id: create_changelog
         run: |
-          set -e
+          set -euo pipefail
           CHANGELOG_PATH=$RUNNER_TEMP/CHANGELOG.md
-          awk '/^##[[:space:]].*/ { if (count == 1) exit; count++; print } count == 1 && !/^##[[:space:]].*/ { print }' CHANGELOG.md | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' > $CHANGELOG_PATH
-          echo -en "\n[https://pypi.org/project/$NAME/$VERSION/](https://pypi.org/project/$NAME/$VERSION/)" >> $CHANGELOG_PATH
-          echo "CHANGELOG_PATH=$CHANGELOG_PATH" >> $GITHUB_ENV
+          # Extract the section that matches exactly this tag version (from its header down to, but not including, the next header)
+          awk -v ver="$VERSION" '
+            $0 ~ "^##[[:space:]]+" ver "([[:space:]]|$)" {print; insec=1; next}
+            insec && /^##[[:space:]]/ {exit}
+            insec {print}
+          ' CHANGELOG.md | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' > "$CHANGELOG_PATH"
+          printf "\n**PyPI:** https://pypi.org/project/%s/%s/\n" "$NAME" "$VERSION" >> "$CHANGELOG_PATH"
+          echo "CHANGELOG_PATH=$CHANGELOG_PATH" >> "$GITHUB_ENV"
       - name: Github Release
         id: github_release
         uses: softprops/action-gh-release@v2
