@@ -1,3 +1,8 @@
+## 1.2.2
+
+* [CHORE] update pyproject.toml with improved metadata, optional dev dependencies, and wheel build config
+* [CHORE] add project logo to README and documentation
+
 ## 1.2.1
 
 * [FIX] fix top-level dot splitting in keys to preserve encoded dots and handle degenerate cases
