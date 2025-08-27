@@ -6,6 +6,11 @@
 qs-codec
 ========
 
+.. image:: https://raw.githubusercontent.com/techouse/qs_codec/main/logo.png
+   :alt: qs-codec
+   :width: 256
+   :align: center
+
 A query string encoding and decoding library for Python.
 
 Ported from `qs <https://www.npmjs.com/package/qs>`__ for JavaScript.
