@@ -1052,7 +1052,7 @@ Holowaychuk <https://github.com/visionmedia/node-querystring>`__
 .. |maven-central| image:: https://img.shields.io/maven-central/v/io.github.techouse/qs-kotlin?logo=kotlin&label=Maven%20Central
    :target: https://central.sonatype.com/artifact/io.github.techouse/qs-kotlin
    :alt: Maven Central version
-.. |spm| image:: https://img.shields.io/github/v/release/techouse/qs-swift?logo=swift&label=SPM
+.. |spm| image:: https://img.shields.io/github/v/release/techouse/qs-swift?logo=swift&label=SwiftPM
    :target: https://swiftpackageindex.com/techouse/qs-swift
    :alt: Swift Package Manager version
 .. |nuget| image:: https://img.shields.io/nuget/v/QsNet?logo=dotnet&label=NuGet
