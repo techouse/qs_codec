@@ -982,6 +982,25 @@ The default `format <https://techouse.github.io/qs_codec/qs_codec.models.html#qs
 
 --------------
 
+Other ports
+-----------
+
++----------------------------+---------------------------------------------------------------+-----------------+
+| Port                       | Repository                                                    | Package         |
++============================+===============================================================+=================+
+| Dart                       | `techouse/qs <https://github.com/techouse/qs>`__              | |pubdev|        |
++----------------------------+---------------------------------------------------------------+-----------------+
+| Kotlin / JVM + Android AAR | `techouse/qs-kotlin <https://github.com/techouse/qs-kotlin>`__| |maven-central| |
++----------------------------+---------------------------------------------------------------+-----------------+
+| Swift / Objective-C        | `techouse/qs-swift <https://github.com/techouse/qs-swift>`__  | |spm|           |
++----------------------------+---------------------------------------------------------------+-----------------+
+| .NET / C#                  | `techouse/qs-net <https://github.com/techouse/qs-net>`__      | |nuget|         |
++----------------------------+---------------------------------------------------------------+-----------------+
+| Node.js (original)         | `ljharb/qs <https://github.com/ljharb/qs>`__                  | |npm|           |
++----------------------------+---------------------------------------------------------------+-----------------+
+
+--------------
+
 Special thanks to the authors of
 `qs <https://www.npmjs.com/package/qs>`__ for JavaScript: - `Jordan
 Harband <https://github.com/ljharb>`__ - `TJ
@@ -1027,3 +1046,18 @@ Holowaychuk <https://github.com/visionmedia/node-querystring>`__
 .. |bandit| image:: https://img.shields.io/badge/security-bandit-blue.svg
    :target: https://github.com/PyCQA/bandit
    :alt: Security Status
+.. |pubdev| image:: https://img.shields.io/pub/v/qs_dart?logo=dart&label=pub.dev
+   :target: https://pub.dev/packages/qs_dart
+   :alt: pub.dev version
+.. |maven-central| image:: https://img.shields.io/maven-central/v/io.github.techouse/qs-kotlin?logo=kotlin&label=Maven%20Central
+   :target: https://central.sonatype.com/artifact/io.github.techouse/qs-kotlin
+   :alt: Maven Central version
+.. |spm| image:: https://img.shields.io/github/v/release/techouse/qs-swift?logo=swift&label=SPM
+   :target: https://swiftpackageindex.com/techouse/qs-swift
+   :alt: Swift Package Manager version
+.. |nuget| image:: https://img.shields.io/nuget/v/QsNet?logo=dotnet&label=NuGet
+   :target: https://www.nuget.org/packages/QsNet
+   :alt: NuGet version
+.. |npm| image:: https://img.shields.io/npm/v/qs?logo=javascript&label=npm
+   :target: https://www.npmjs.com/package/qs
+   :alt: npm version
