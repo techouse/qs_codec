@@ -15,6 +15,19 @@ Ported from `qs <https://www.npmjs.com/package/qs>`__ for JavaScript.
 |Test| |CodeQL| |Publish| |Docs| |codecov| |Codacy| |Black| |flake8| |mypy| |pylint| |isort| |bandit|
 |License| |Contributor Covenant| |GitHub Sponsors| |GitHub Repo stars|
 
+Highlights
+----------
+
+- Nested dictionaries & lists: ``foo[bar][baz]=qux`` ⇄ ``{'foo': {'bar': {'baz': 'qux'}}}``.
+- Multiple list formats: INDICES (``a[0]=x``), BRACKETS (``a[]=x``), REPEAT (``a=x&a=y``), COMMA (``a=x,y``) with optional comma round-trip.
+- Dot-notation: parse/encode keys like ``a.b=c`` as nested; option to **encode dots in keys** when using dot notation.
+- Charset handling: UTF-8 (default) and Latin-1; optional **charset sentinel** (``utf8=✓``) to auto-detect encoding.
+- Pluggable hooks: custom ``encoder``/``decoder`` callables; options to sort keys, filter output, and control percent-encoding (keys-only, values-only).
+- Nulls & empties: ``strict_null_handling`` and ``skip_nulls``; support for empty lists/arrays when desired.
+- Dates: ``serialize_date`` for ISO 8601 or custom (e.g., UNIX timestamp).
+- Safety limits: configurable nesting depth, parameter limit, and list index limit; optional strict-depth errors; duplicate-key strategies (combine/first/last).
+- Extras: numeric entity decoding (e.g. ``&#9786;`` → ☺), alternate delimiters/regex, and query-prefix helpers.
+
 Usage
 -----
 
