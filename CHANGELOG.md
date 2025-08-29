@@ -1,3 +1,7 @@
+## 1.2.3
+
+* [CHORE] add highlights section to README and docs with key features and usage notes
+
 ## 1.2.2
 
 * [CHORE] update pyproject.toml with improved metadata, optional dev dependencies, and wheel build config
