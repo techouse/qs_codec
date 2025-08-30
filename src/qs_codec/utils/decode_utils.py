@@ -277,7 +277,7 @@ class DecodeUtils:
             depth_overflow = (depth >= max_depth) and not unterminated
             if strict_depth and depth_overflow:
                 raise IndexError(f"Input depth exceeded depth option of {max_depth} and strict_depth is True")
-            # Stash the remainder as a single segment (qs/Kotlin parity)
+            # Stash the remainder as a single segment (qs parity)
             segments.append("[" + key[open_idx:] + "]")
 
         return segments

@@ -138,7 +138,7 @@ class DecodeOptions:
     legacy_decoder: t.Optional[t.Callable[..., t.Optional[str]]] = None
     """Back‑compat adapter for legacy decoders of the form ``decoder(value, charset)``.
     Prefer ``decoder`` which may optionally accept a ``kind`` argument. When both are supplied,
-    ``decoder`` takes precedence (mirroring Kotlin/C# behavior)."""
+    ``decoder`` takes precedence (mirroring Kotlin/C#/Swift/Dart behavior)."""
 
     def __post_init__(self) -> None:
         """Post-initialization."""
@@ -152,7 +152,7 @@ class DecodeOptions:
         if self.decode_dot_in_keys and not self.allow_dots:
             raise ValueError("decode_dot_in_keys=True implies allow_dots=True")
 
-        # decoder setup + compatibility wrapper (parity with Kotlin/C#):
+        # decoder setup + compatibility wrapper:
         # precedence is: user `decoder` > `legacy_decoder` > library default.
         raw_dec = self.decoder
         if raw_dec is None and self.legacy_decoder is not None:
@@ -263,7 +263,7 @@ class DecodeOptions:
 
         self.decoder = _adapter
 
-    # --- Convenience methods (parity with Kotlin) ---
+    # --- Convenience methods ---
     def decode(
         self, value: t.Optional[str], charset: t.Optional[Charset] = None, *, kind: DecodeKind = DecodeKind.VALUE
     ) -> t.Optional[t.Any]:

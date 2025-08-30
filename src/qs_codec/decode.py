@@ -370,7 +370,7 @@ def _parse_object(
             # `decode_dot_in_keys` is enabled. Even though `_parse_query_string_values`
             # typically percent‑decodes the key (default decoder), a custom
             # `DecodeOptions.decoder` may return the raw token. In that case, `%2E` can
-            # still appear here and must be normalized for parity with the Kotlin/C# ports.
+            # still appear here and must be normalized for parity with the Kotlin/C#/Swift/Dart ports.
             # (Top‑level dot splitting is performed earlier by the key splitter.)
             clean_root: str = root[1:-1] if root.startswith("[") and root.endswith("]") else root
 
