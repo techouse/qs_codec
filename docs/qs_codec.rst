@@ -21,7 +21,6 @@ qs\_codec.decode module
    :members:
    :undoc-members:
    :show-inheritance:
-   :noindex:
 
 qs\_codec.encode module
 -----------------------
@@ -30,7 +29,6 @@ qs\_codec.encode module
    :members:
    :undoc-members:
    :show-inheritance:
-   :noindex:
 
 Module contents
 ---------------
@@ -39,3 +37,4 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
+   :noindex:
