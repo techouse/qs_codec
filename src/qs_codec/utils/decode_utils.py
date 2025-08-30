@@ -217,7 +217,7 @@ class DecodeUtils:
         - Bracket groups are *balanced* using a counter so nested brackets within a single group (e.g. ``"[with[inner]]"``) are treated as one segment.
         - When ``max_depth <= 0``, no splitting occurs; the key is returned as a single segment (qs semantics).
         - If there are more groups beyond ``max_depth`` and ``strict_depth`` is True, an ``IndexError`` is raised. Otherwise, the remainder is added as one final segment (again mirroring qs).
-        - Unterminated '[': the remainder after the first unmatched '[' is captured as a single synthetic bracket segment (qs/Kotlin parity).
+        - Unterminated '[': the remainder after the first unmatched '[' is captured as a single synthetic bracket segment.
 
         Examples
         --------
