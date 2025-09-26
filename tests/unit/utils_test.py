@@ -628,6 +628,65 @@ class TestUtils:
         assert b is not combined
         assert combined == [1, 2]
 
+    def test_compact_removes_undefined_entries_and_avoids_cycles(self) -> None:
+        root: t.Dict[str, t.Any] = {
+            "keep": 1,
+            "drop": Undefined(),
+            "nested": [
+                Undefined(),
+                {"inner": Undefined(), "keep": "ok"},
+            ],
+        }
+        root["self"] = root
+
+        Utils.compact(root)
+
+        assert "drop" not in root
+        assert root["nested"][0] == {"keep": "ok"}
+
+    def test_remove_undefined_from_list_handles_nested_structures(self) -> None:
+        data: t.List[t.Any] = [
+            Undefined(),
+            {"inner": Undefined(), "tuple": (Undefined(), 3)},
+            [Undefined(), 4],
+        ]
+
+        Utils._remove_undefined_from_list(data)
+
+        assert data == [{"tuple": [3]}, [4]]
+
+    def test_dicts_are_equal_short_circuits_on_cycles(self) -> None:
+        a: t.Dict[str, t.Any] = {}
+        a["self"] = a
+
+        assert Utils._dicts_are_equal(a, a) is True
+
+    def test_dicts_are_equal_detects_missing_keys(self) -> None:
+        left: t.Dict[str, t.Any] = {"a": 1}
+        right: t.Dict[str, t.Any] = {"b": 1}
+
+        assert Utils._dicts_are_equal(left, right) is False
+
+    def test_dicts_are_equal_detects_nested_value_mismatch(self) -> None:
+        left: t.Dict[str, t.Any] = {"a": {"b": 1}}
+        right: t.Dict[str, t.Any] = {"a": {"b": 2}}
+
+        assert Utils._dicts_are_equal(left, right) is False
+
+    def test_is_non_nullish_primitive_falls_back_when_object_check_false(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        import builtins
+
+        original_isinstance = builtins.isinstance
+
+        def fake_isinstance(obj: t.Any, typ: t.Any) -> bool:
+            if typ is object:
+                return False
+            return original_isinstance(obj, typ)
+
+        monkeypatch.setitem(Utils.is_non_nullish_primitive.__globals__, "isinstance", fake_isinstance)
+
+        assert Utils.is_non_nullish_primitive(object()) is False
+
     def test_remove_undefined_from_list(self) -> None:
         map_with_undefined: t.Dict[str, t.Any] = {
             "a": [
