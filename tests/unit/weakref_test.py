@@ -52,6 +52,11 @@ class TestWeakrefWithDictKeys:
         # hashes match because contents match
         assert hash(w1) == hash(w2)
 
+    def test_repr_includes_value_when_proxy_alive(self) -> None:
+        wrapper = WeakWrapper({"k": "v"})
+        text = repr(wrapper)
+        assert text.startswith("WeakWrapper(") and "'v'" in text
+
     def test_hash_handles_sets(self) -> None:
         s1 = {"a", "b"}
         s2 = {"b", "a"}
