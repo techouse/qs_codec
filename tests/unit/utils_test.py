@@ -5,6 +5,7 @@ import pytest
 
 from qs_codec.enums.charset import Charset
 from qs_codec.enums.format import Format
+from qs_codec.models.decode_options import DecodeOptions
 from qs_codec.models.undefined import Undefined
 from qs_codec.utils.decode_utils import DecodeUtils
 from qs_codec.utils.encode_utils import EncodeUtils
@@ -529,6 +530,12 @@ class TestUtils:
     def test_merge_null_into_array(self) -> None:
         assert Utils.merge(None, [42]) == [None, 42]
 
+    def test_merge_promotes_list_with_undefined_when_lists_disabled(self) -> None:
+        options = DecodeOptions(parse_lists=False)
+        target = [Undefined(), "keep"]
+        result = Utils.merge(target, [Undefined()], options)
+        assert result == {"1": "keep"}
+
     def test_merges_two_dicts_with_same_key(self) -> None:
         assert Utils.merge({"a": "b"}, {"a": "c"}) == {"a": ["b", "c"]}
 
@@ -547,6 +554,18 @@ class TestUtils:
 
     def test_merges_two_arrays_into_an_array(self) -> None:
         assert Utils.merge({"foo": ["baz"]}, {"foo": ["bar", "xyzzy"]}) == {"foo": ["baz", "bar", "xyzzy"]}
+
+    def test_merge_preserves_target_only_slots_in_structured_lists(self) -> None:
+        options = DecodeOptions()
+        target = [{"a": 1}, {"orphan": 2}]
+        source = [{"b": 3}]
+        assert Utils.merge(target, source, options) == [{"a": 1, "b": 3}, {"orphan": 2}]
+
+    def test_merge_appends_source_only_slots_in_structured_lists(self) -> None:
+        options = DecodeOptions()
+        target = [{"a": 1}]
+        source = [{"b": 2}, {"extra": 3}]
+        assert Utils.merge(target, source, options) == [{"a": 1, "b": 2}, {"extra": 3}]
 
     def test_merges_with_tuples(self) -> None:
         # Test for lines 59 and 63 in utils.py
@@ -736,6 +755,35 @@ class TestUtils:
     def test_is_safe_char(self, char: str, format: Format, expected: bool) -> None:
         assert EncodeUtils._is_safe_char(ord(char), format) is expected
 
+    @pytest.mark.parametrize(
+        "char, expected",
+        [
+            ("A", ["%41"]),
+            ("\u07ff", ["%DF", "%BF"]),
+            ("\u20ac", ["%E2", "%82", "%AC"]),
+        ],
+    )
+    def test_encode_char_handles_various_code_units(self, char: str, expected: t.List[str]) -> None:
+        s = EncodeUtils._to_surrogates(char)
+        result = EncodeUtils._encode_char(s, 0, ord(s[0]))
+        assert result == expected
+
+    def test_encode_char_handles_surrogate_pair(self) -> None:
+        s = EncodeUtils._to_surrogates("💩")
+        result = EncodeUtils._encode_char(s, 0, ord(s[0]))
+        assert result == ["%F0", "%9F", "%92", "%A9"]
+
     def test_encode_string(self):
         assert EncodeUtils._encode_string("💩", Format.RFC3986) == "%F0%9F%92%A9"
         assert EncodeUtils._encode_string("A💩B", Format.RFC3986) == "A%F0%9F%92%A9B"
+
+
+class TestDecodeUtilsHelpers:
+    def test_dot_to_bracket_preserves_ambiguous_dot_before_closing_bracket(self) -> None:
+        assert DecodeUtils.dot_to_bracket_top_level("a.]") == "a.]"
+
+    def test_dot_to_bracket_handles_leading_double_dot(self) -> None:
+        assert DecodeUtils.dot_to_bracket_top_level("..a") == ".[a]"
+
+    def test_decode_returns_none_for_none_input(self) -> None:
+        assert DecodeUtils.decode(None) is None
