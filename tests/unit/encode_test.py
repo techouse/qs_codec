@@ -5,12 +5,16 @@ from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from urllib.parse import quote
+from weakref import WeakKeyDictionary
 
 import pytest
 
 from qs_codec import Charset, EncodeOptions, Format, ListFormat, dumps, encode
+from qs_codec.encode import _encode, _sentinel
 from qs_codec.models.undefined import Undefined
+from qs_codec.models.weak_wrapper import WeakWrapper
 from qs_codec.utils.encode_utils import EncodeUtils
+from qs_codec.utils.utils import Utils
 
 
 class TestEncode:
@@ -1691,3 +1695,113 @@ class TestEncodeNonStrings:
             )
             == "a=b"
         )
+
+
+class TestEncodeInternals:
+    def test_encode_cycle_detection_raises_on_same_step(self) -> None:
+        value: t.Dict[str, t.Any] = {"loop": {}}
+        side_channel: WeakKeyDictionary = WeakKeyDictionary()
+        parent_channel: WeakKeyDictionary = WeakKeyDictionary()
+        wrapper = WeakWrapper(value)
+        parent_channel[wrapper] = 1
+        side_channel[_sentinel] = parent_channel
+
+        with pytest.raises(ValueError, match="Circular reference detected"):
+            _encode(
+                value=value,
+                is_undefined=False,
+                side_channel=side_channel,
+                prefix="root",
+                comma_round_trip=False,
+                encoder=EncodeUtils.encode,
+                serialize_date=EncodeUtils.serialize_date,
+                sort=None,
+                filter=None,
+                formatter=Format.RFC3986.formatter,
+                format=Format.RFC3986,
+                generate_array_prefix=ListFormat.INDICES.generator,
+                allow_empty_lists=False,
+                strict_null_handling=False,
+                skip_nulls=False,
+                encode_dot_in_keys=False,
+                allow_dots=False,
+                encode_values_only=False,
+                charset=Charset.UTF8,
+            )
+
+    def test_encode_cycle_detection_marks_prior_visit_without_raising(self) -> None:
+        value: t.Dict[str, t.Any] = {"child": "value"}
+        side_channel: WeakKeyDictionary = WeakKeyDictionary()
+        parent_channel: WeakKeyDictionary = WeakKeyDictionary()
+        wrapper = WeakWrapper(value)
+        parent_channel[wrapper] = 99
+        side_channel[_sentinel] = parent_channel
+
+        tokens = _encode(
+            value=value,
+            is_undefined=False,
+            side_channel=side_channel,
+            prefix="root",
+            comma_round_trip=False,
+            encoder=EncodeUtils.encode,
+            serialize_date=EncodeUtils.serialize_date,
+            sort=None,
+            filter=None,
+            formatter=Format.RFC3986.formatter,
+            format=Format.RFC3986,
+            generate_array_prefix=ListFormat.INDICES.generator,
+            allow_empty_lists=False,
+            strict_null_handling=False,
+            skip_nulls=False,
+            encode_dot_in_keys=False,
+            allow_dots=False,
+            encode_values_only=False,
+            charset=Charset.UTF8,
+        )
+
+        assert tokens == ["root%5Bchild%5D=value"]
+
+    def test_encode_handles_iterable_filter_for_indexable_object(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        class Indexable:
+            def __getitem__(self, key: str) -> str:
+                if key != "foo":
+                    raise KeyError(key)
+                return "bar"
+
+        original = Utils.is_non_nullish_primitive
+
+        def fake_is_non_nullish_primitive(val: t.Any, skip_nulls: bool = False) -> bool:
+            if isinstance(val, Indexable):
+                return False
+            return original(val, skip_nulls)
+
+        monkeypatch.setattr(Utils, "is_non_nullish_primitive", staticmethod(fake_is_non_nullish_primitive))
+
+        tokens = _encode(
+            value=Indexable(),
+            is_undefined=False,
+            side_channel=WeakKeyDictionary(),
+            prefix="root",
+            comma_round_trip=False,
+            encoder=EncodeUtils.encode,
+            serialize_date=EncodeUtils.serialize_date,
+            sort=None,
+            filter=["foo"],
+            formatter=Format.RFC3986.formatter,
+            format=Format.RFC3986,
+            generate_array_prefix=ListFormat.INDICES.generator,
+            allow_empty_lists=False,
+            strict_null_handling=False,
+            skip_nulls=False,
+            encode_dot_in_keys=False,
+            allow_dots=False,
+            encode_values_only=False,
+            charset=Charset.UTF8,
+        )
+
+        assert tokens == ["root%5Bfoo%5D=bar"]
+
+    def test_encode_comma_format_serializes_datetime_without_custom_callable(self) -> None:
+        dt = datetime(2024, 1, 1)
+        options = EncodeOptions(list_format=ListFormat.COMMA, serialize_date="iso")
+        assert encode({"a": [dt]}, options) == f"a={dt.isoformat().replace(':', '%3A')}"
