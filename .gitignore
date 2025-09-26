@@ -111,6 +111,6 @@ venv.bak/
 # macOS specific
 .DS_Store
 
-# Potential leftovers
-tests/db_credentials.json
-test.db
+# AI related
+.junie
+AGENTS.md
