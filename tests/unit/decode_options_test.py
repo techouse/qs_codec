@@ -1,3 +1,4 @@
+import math
 import typing as t
 
 import pytest
@@ -109,6 +110,88 @@ class TestDecoderAdapterSignatures:
         opts = DecodeOptions(decoder=dec)
         with pytest.raises(TypeError):
             _ = opts.decoder("oops", Charset.UTF8, kind=DecodeKind.KEY)
+
+    def test_kwonly_charset_receives_keyword_argument(self) -> None:
+        calls: t.List[t.Dict[str, t.Any]] = []
+
+        def dec(s: t.Optional[str], *, charset: t.Optional[Charset], kind: str) -> t.Optional[str]:
+            calls.append({"charset": charset, "kind": kind})
+            return s
+
+        opts = DecodeOptions(decoder=dec)
+        assert opts.decoder("x", Charset.LATIN1, kind=DecodeKind.KEY) == "x"
+        assert calls == [{"charset": Charset.LATIN1, "kind": "key"}]
+
+    def test_positional_only_kind_receives_string(self) -> None:
+        seen: t.List[t.Any] = []
+
+        def dec(
+            s: t.Optional[str],
+            kind,  # type: ignore[no-untyped-def]
+            /,
+            *,
+            charset: t.Optional[Charset] = None,
+        ) -> t.Optional[str]:
+            seen.append((kind, charset))
+            return s
+
+        opts = DecodeOptions(decoder=dec)
+        assert opts.decoder("value", Charset.UTF8, kind=DecodeKind.VALUE) == "value"
+        assert seen == [("value", Charset.UTF8)]
+
+    def test_unannotated_kind_parameter_receives_string(self) -> None:
+        seen: t.List[t.Any] = []
+
+        def dec(s: t.Optional[str], charset: t.Optional[Charset], kind) -> t.Optional[str]:  # type: ignore[no-untyped-def]
+            seen.append(kind)
+            return s
+
+        opts = DecodeOptions(decoder=dec)
+        assert opts.decoder("q", Charset.UTF8, kind=DecodeKind.KEY) == "q"
+        assert seen == ["key"]
+
+    def test_literal_kind_annotation_prefers_string(self) -> None:
+        seen: t.List[t.Any] = []
+
+        def dec(
+            s: t.Optional[str],
+            charset: t.Optional[Charset],
+            kind: t.Literal["key", "value"],
+        ) -> t.Optional[str]:
+            seen.append(kind)
+            return s
+
+        opts = DecodeOptions(decoder=dec)
+        assert opts.decoder("ok", Charset.UTF8, kind=DecodeKind.VALUE) == "ok"
+        assert seen == ["value"]
+
+    def test_builtin_without_signature_raises_original_typeerror(self) -> None:
+        opts = DecodeOptions(decoder=math.hypot)  # type: ignore[arg-type]
+
+        with pytest.raises(TypeError):
+            _ = opts.decode_value("10")
+
+
+class TestDecodeOptionsFallbacks:
+    def test_legacy_decoder_selected_when_decoder_none(self) -> None:
+        calls: t.List[t.Tuple[t.Optional[str], t.Optional[Charset]]] = []
+
+        def legacy(value: t.Optional[str], charset: t.Optional[Charset]) -> t.Optional[str]:
+            calls.append((value, charset))
+            return "LEGACY" if value else None
+
+        opts = DecodeOptions(decoder=None, legacy_decoder=legacy)
+        assert opts.decode_value("foo", Charset.LATIN1) == "LEGACY"
+        assert calls == [("foo", Charset.LATIN1)]
+
+    def test_default_decoder_selected_when_all_none(self) -> None:
+        opts = DecodeOptions(decoder=None, legacy_decoder=None)
+        assert opts.decode_key("a%2Eb") == "a.b"
+
+    def test_decode_method_falls_back_when_decoder_missing(self) -> None:
+        opts = DecodeOptions()
+        opts.decoder = None
+        assert opts.decode_value("a%20b") == "a b"
 
 
 class TestParserStateIsolation:

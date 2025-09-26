@@ -52,6 +52,37 @@ class TestWeakrefWithDictKeys:
         # hashes match because contents match
         assert hash(w1) == hash(w2)
 
+    def test_repr_includes_value_when_proxy_alive(self) -> None:
+        wrapper = WeakWrapper({"k": "v"})
+        text = repr(wrapper)
+        assert text.startswith("WeakWrapper(") and "'v'" in text
+
+    def test_hash_handles_sets(self) -> None:
+        s1 = {"a", "b"}
+        s2 = {"b", "a"}
+        w1 = WeakWrapper(s1)
+        w2 = WeakWrapper(s2)
+        assert hash(w1) == hash(w2)
+
+    def test_hash_fallback_uses_repr_for_unhashable_object(self) -> None:
+        class Unhashable:
+            __hash__ = None
+
+            def __repr__(self) -> str:  # pragma: no cover - trivial repr
+                return "<Unhashable>"
+
+        wrapper = WeakWrapper(Unhashable())
+        assert isinstance(hash(wrapper), int)
+
+    def test_repr_after_proxy_collected_returns_placeholder(self) -> None:
+        wrapper = WeakWrapper({"k": "v"})
+        object.__setattr__(wrapper, "_wref", lambda: None)
+        assert repr(wrapper) == "WeakWrapper(<gc'd>)"
+
+    def test_eq_non_wrapper_returns_notimplemented(self) -> None:
+        wrapper = WeakWrapper({})
+        assert wrapper.__eq__(object()) is NotImplemented
+
     def test_hash_detects_circular_references(self) -> None:
         a: t.Dict[str, t.Any] = {}
         a["self"] = a

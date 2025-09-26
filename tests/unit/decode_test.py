@@ -7,6 +7,7 @@ from sys import getsizeof
 import pytest
 
 from qs_codec import Charset, DecodeOptions, Duplicates, decode, load, loads
+from qs_codec.decode import _parse_object
 from qs_codec.enums.decode_kind import DecodeKind
 from qs_codec.utils.decode_utils import DecodeUtils
 
@@ -1619,6 +1620,31 @@ class TestAdditionalDotEncodingParity:
         # Double dots: only the second dot (before a token) causes a split; the empty middle segment is preserved
         # as a literal dot in the parent key (no [] is created)
         assert decode("a..b=x", DecodeOptions(allow_dots=True, decode_dot_in_keys=False)) == {"a.": {"b": "x"}}
+
+    def test_regex_delimiter_without_limit_uses_regex_split(self) -> None:
+        options = DecodeOptions(parameter_limit=float("inf"), delimiter=re.compile(r"[;&]"))
+        assert decode("a=1;b=2", options) == {"a": "1", "b": "2"}
+
+    def test_regex_delimiter_with_limit_raises_when_exceeded(self) -> None:
+        options = DecodeOptions(parameter_limit=1, raise_on_limit_exceeded=True, delimiter=re.compile(r"[;&]"))
+        with pytest.raises(ValueError, match="Parameter limit exceeded"):
+            decode("a=1&b=2", options)
+
+    def test_decoder_skips_pairs_when_key_decode_returns_none(self) -> None:
+        def dropping_decoder(token: t.Optional[str], charset: t.Optional[Charset]) -> t.Optional[str]:
+            if token in {"dropNoEquals", "drop"}:
+                return None
+            return token
+
+        opts = DecodeOptions(decoder=None, legacy_decoder=dropping_decoder)
+        assert decode("dropNoEquals&drop=1&keep=2", opts) == {"keep": "2"}
+
+    def test_parse_object_estimates_list_length_for_numeric_parent(self) -> None:
+        options = DecodeOptions()
+        chain = ["0", "[]"]
+        val = [["x", "y"]]
+        result = _parse_object(chain, val, options, True)
+        assert result == {"0": [["x", "y"]]}
 
 
 class TestSplitKeySegmentationRemainder:
