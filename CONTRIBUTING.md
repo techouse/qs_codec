@@ -11,7 +11,7 @@ related to the project.
 
 ## Python version support
 
-Currently, the package supports Python versions 3.8 and above. Once a new Python version is released, we will aim to 
+Currently, the package supports Python versions 3.9 and above. Once a new Python version is released, we will aim to 
 support it as soon as possible. If you encounter any issues with a new Python version, please create an issue in the 
 repository.
 
