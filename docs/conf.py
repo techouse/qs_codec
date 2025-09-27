@@ -15,7 +15,7 @@ from qs_codec import __version__
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "qs-codec"
-copyright = "2024, Klemen Tusar"
+copyright = "2025, Klemen Tusar"
 author = "Klemen Tusar"
 release = __version__
 
