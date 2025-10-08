@@ -380,3 +380,12 @@ class Utils:
             return True
 
         return False
+
+    @staticmethod
+    def normalize_comma_elem(e: t.Any) -> str:
+        """Normalize a value for inclusion in a comma‑joined list."""
+        if e is None:
+            return ""
+        if isinstance(e, bool):
+            return "true" if e else "false"
+        return str(e)

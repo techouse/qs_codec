@@ -271,10 +271,20 @@ def _encode(
 
     # --- Fast path for primitives/bytes ---------------------------------------------------
     if Utils.is_non_nullish_primitive(obj, skip_nulls) or isinstance(obj, bytes):
+        # When a custom encoder is provided, still coerce Python bools to lowercase JSON style
         if callable(encoder):
             key_value = prefix if encode_values_only else encoder(prefix, charset, format)
-            return [f"{formatter(key_value)}={formatter(encoder(obj, charset, format))}"]
-        return [f"{formatter(prefix)}={formatter(str(obj))}"]
+            if isinstance(obj, bool):
+                value_part = "true" if obj else "false"
+            else:
+                value_part = encoder(obj, charset, format)
+            return [f"{formatter(key_value)}={formatter(value_part)}"]
+        # Default fallback (no custom encoder): ensure lowercase boolean literals
+        if isinstance(obj, bool):
+            value_str = "true" if obj else "false"
+        else:
+            value_str = str(obj)
+        return [f"{formatter(prefix)}={formatter(value_str)}"]
 
     values: t.List[t.Any] = []
 
@@ -288,8 +298,10 @@ def _encode(
         # In COMMA mode we join the elements into a single token at this level.
         if encode_values_only and callable(encoder):
             obj = Utils.apply(obj, encoder)
-        if obj:
             obj_keys_value = ",".join(("" if e is None else str(e)) for e in obj)
+        else:
+            obj_keys_value = ",".join(Utils.normalize_comma_elem(e) for e in obj)
+        if obj:
             obj_keys = [{"value": obj_keys_value if obj_keys_value else None}]
         else:
             obj_keys = [{"value": UNDEFINED}]
