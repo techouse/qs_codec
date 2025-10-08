@@ -708,6 +708,12 @@ class TestEncode:
             pytest.param({"a": {"b": True}}, "a%5Bb%5D=true", id="nested-true"),
             pytest.param({"b": False}, "b=false", id="top-level-false"),
             pytest.param({"b": {"c": False}}, "b%5Bc%5D=false", id="nested-false"),
+            pytest.param({"a": {"b": [True, False]}}, "a%5Bb%5D%5B0%5D=true&a%5Bb%5D%5B1%5D=false", id="list-boolean"),
+            pytest.param(
+                {"a": {"b": [True, False, None, True]}},
+                "a%5Bb%5D%5B0%5D=true&a%5Bb%5D%5B1%5D=false&a%5Bb%5D%5B2%5D=&a%5Bb%5D%5B3%5D=true",
+                id="list-boolean-with-null",
+            ),
         ],
     )
     def test_encodes_boolean_values(self, data: t.Mapping[str, t.Any], expected: str) -> None:
@@ -1805,3 +1811,73 @@ class TestEncodeInternals:
         dt = datetime(2024, 1, 1)
         options = EncodeOptions(list_format=ListFormat.COMMA, serialize_date="iso")
         assert encode({"a": [dt]}, options) == f"a={dt.isoformat().replace(':', '%3A')}"
+
+    @pytest.mark.parametrize(
+        "data, list_format, expected",
+        [
+            # ListFormat.COMMA
+            pytest.param({"a": [True]}, ListFormat.COMMA, "a=true", id="bool-comma"),
+            pytest.param({"a": [True, False]}, ListFormat.COMMA, "a=true,false", id="bools-comma"),
+            pytest.param(
+                {"a": {"b": [True, False]}},
+                ListFormat.COMMA,
+                "a[b]=true,false",
+                id="nested-bools-comma",
+            ),
+            pytest.param(
+                {"a": {"b": [True, False, None, True]}},
+                ListFormat.COMMA,
+                "a[b]=true,false,,true",
+                id="nested-bools-with-null-comma",
+            ),
+            # ListFormat.BRACKETS
+            pytest.param({"a": [True]}, ListFormat.BRACKETS, "a[]=true", id="bool-brackets"),
+            pytest.param({"a": [True, False]}, ListFormat.BRACKETS, "a[]=true&a[]=false", id="bools-brackets"),
+            pytest.param(
+                {"a": {"b": [True, False]}},
+                ListFormat.BRACKETS,
+                "a[b][]=true&a[b][]=false",
+                id="nested-bools-brackets",
+            ),
+            pytest.param(
+                {"a": {"b": [True, False, None, True]}},
+                ListFormat.BRACKETS,
+                "a[b][]=true&a[b][]=false&a[b][]=&a[b][]=true",
+                id="nested-bools-with-null-brackets",
+            ),
+            # ListFormat.INDICES
+            pytest.param({"a": [True]}, ListFormat.INDICES, "a[0]=true", id="bool-indices"),
+            pytest.param({"a": [True, False]}, ListFormat.INDICES, "a[0]=true&a[1]=false", id="bools-indices"),
+            pytest.param(
+                {"a": {"b": [True, False]}},
+                ListFormat.INDICES,
+                "a[b][0]=true&a[b][1]=false",
+                id="nested-bools-indices",
+            ),
+            pytest.param(
+                {"a": {"b": [True, False, None, True]}},
+                ListFormat.INDICES,
+                "a[b][0]=true&a[b][1]=false&a[b][2]=&a[b][3]=true",
+                id="nested-bools-with-null-indices",
+            ),
+            # ListFormat.REPEAT
+            pytest.param({"a": [True]}, ListFormat.REPEAT, "a=true", id="bool-repeat"),
+            pytest.param({"a": [True, False]}, ListFormat.REPEAT, "a=true&a=false", id="bools-repeat"),
+            pytest.param(
+                {"a": {"b": [True, False]}},
+                ListFormat.REPEAT,
+                "a[b]=true&a[b]=false",
+                id="nested-bools-repeat",
+            ),
+            pytest.param(
+                {"a": {"b": [True, False, None, True]}},
+                ListFormat.REPEAT,
+                "a[b]=true&a[b]=false&a[b]=&a[b]=true",
+                id="nested-bools-with-null-repeat",
+            ),
+        ],
+    )
+    def test_encode_serializes_booleans(
+        self, data: t.Mapping[str, t.Any], list_format: ListFormat, expected: str
+    ) -> None:
+        assert encode(data, EncodeOptions(list_format=list_format, encode=False)) == expected
