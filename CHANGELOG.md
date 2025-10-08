@@ -1,3 +1,8 @@
+## 1.2.4
+
+* [FIX] encode booleans in lowercase to match JavaScript behavior
+* [CHORE] add tests for boolean encoding and decoding parity
+
 ## 1.2.3
 
 * [CHORE] add highlights section to README and docs with key features and usage notes
