@@ -1,3 +1,8 @@
+## 1.2.5
+
+* [CHORE] add support for Python 3.14
+* [CHORE] reinstate Python 3.8 support
+
 ## 1.2.4
 
 * [FIX] encode booleans in lowercase to match JavaScript behavior
