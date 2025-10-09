@@ -51,9 +51,9 @@ PayPal = "https://paypal.me/ktusar"
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.3.5",
-    "pytest-cov>=6.0.0",
-    "mypy>=1.15.0",
+    "pytest>=8.1.2",
+    "pytest-cov>=5.0.0",
+    "mypy>=1.10.0",
     "toml>=0.10.2",
     "tox",
     "black",
