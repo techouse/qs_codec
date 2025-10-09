@@ -1,5 +1,7 @@
 """Weakly wrap *any* object with identity equality and deep content hashing."""
 
+from __future__ import annotations
+
 import reprlib
 import typing as t
 from threading import RLock
