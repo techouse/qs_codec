@@ -12,6 +12,8 @@ This module intentionally keeps the control flow close to the original reference
 so that behavior across ports stays predictable and easy to verify with shared test vectors.
 """
 
+from __future__ import annotations
+
 import re
 import typing as t
 from collections.abc import Mapping
