@@ -42,6 +42,8 @@ jobs:
     strategy:
       matrix:
         include:
+          - toxenv: "python3.7"
+            py: "3.7"
           - toxenv: "python3.8"
             py: "3.8"
           - toxenv: "python3.9"

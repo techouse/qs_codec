@@ -974,10 +974,11 @@ class TestDecode:
 
             reg: re.Pattern = re.compile(r"%([0-9A-F]{2})", re.IGNORECASE)
             result: t.List[int] = []
-            parts: t.Optional[re.Match]
-            while (parts := reg.search(s)) is not None:
+            parts: t.Optional[re.Match] = reg.search(s)
+            while parts is not None:
                 result.append(int(parts.group(1), 16))
                 s = s[parts.end() :]
+                parts = reg.search(s)
             return bytes(result).decode("shift-jis")
 
         assert decode("%8c%a7=%91%e5%8d%e3%95%7b", DecodeOptions(decoder=_decode)) == {"県": "大阪府"}

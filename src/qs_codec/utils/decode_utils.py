@@ -151,9 +151,11 @@ class DecodeUtils:
             return string
 
         def replacer(match: t.Match[str]) -> str:
-            if (unicode_val := match.group("unicode")) is not None:
+            unicode_val = match.group("unicode")
+            if unicode_val is not None:
                 return chr(int(unicode_val, 16))
-            elif (hex_val := match.group("hex")) is not None:
+            hex_val = match.group("hex")
+            if hex_val is not None:
                 return chr(int(hex_val, 16))
             return match.group(0)
 

@@ -235,7 +235,8 @@ def _encode(
 
     # Walk up the chain looking for `obj_wrapper`. If we see it at the same "step"
     # again we've closed a loop.
-    while (tmp_sc := tmp_sc.get(_sentinel)) and not find_flag:  # type: ignore [union-attr]
+    tmp_sc = tmp_sc.get(_sentinel)  # type: ignore [union-attr]
+    while tmp_sc and not find_flag:
         # Where `value` last appeared in the ref tree
         pos: t.Optional[int] = tmp_sc.get(obj_wrapper)
         step += 1
@@ -246,6 +247,7 @@ def _encode(
                 find_flag = True  # Break while
         if tmp_sc.get(_sentinel) is None:
             step = 0
+        tmp_sc = tmp_sc.get(_sentinel)  # type: ignore [union-attr]
 
     # --- Pre-processing: filter & datetime handling ---------------------------------------
     if callable(filter):
