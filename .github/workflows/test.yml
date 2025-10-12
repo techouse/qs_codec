@@ -9,6 +9,12 @@ on:
       - main
   workflow_call:
 
+# NOTE: Python 3.7 Testing Support
+# Python 3.7 reached end-of-life in June 2023 and is no longer available
+# in GitHub's ubuntu-latest runners. We use ubuntu-20.04 specifically for
+# Python 3.7 testing to maintain backward compatibility. Consider removing
+# Python 3.7 support in future major releases.
+
 defaults:
   run:
     shell: bash
@@ -38,26 +44,35 @@ jobs:
   test:
     name: "Test"
     needs: analyze
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
+          # Python 3.7 requires ubuntu-20.04 as it's no longer available on ubuntu-latest
           - toxenv: "python3.7"
             py: "3.7"
+            os: "ubuntu-20.04"
           - toxenv: "python3.8"
             py: "3.8"
+            os: "ubuntu-latest"
           - toxenv: "python3.9"
             py: "3.9"
+            os: "ubuntu-latest"
           - toxenv: "python3.10"
             py: "3.10"
+            os: "ubuntu-latest"
           - toxenv: "python3.11"
             py: "3.11"
+            os: "ubuntu-latest"
           - toxenv: "python3.12"
             py: "3.12"
+            os: "ubuntu-latest"
           - toxenv: "python3.13"
             py: "3.13"
+            os: "ubuntu-latest"
           - toxenv: "python3.14"
             py: "3.14"
+            os: "ubuntu-latest"
     steps:
       - uses: actions/checkout@v5
       - name: Set up Python ${{ matrix.py }}
