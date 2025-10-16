@@ -109,6 +109,7 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
             prefix=_key,
             generate_array_prefix=options.list_format.generator,
             comma_round_trip=comma_round_trip,
+            comma_compact_nulls=options.list_format == ListFormat.COMMA and options.comma_compact_nulls,
             encoder=options.encoder if options.encode else None,
             serialize_date=options.serialize_date,
             sort=options.sort,
@@ -162,6 +163,7 @@ def _encode(
     side_channel: WeakKeyDictionary,
     prefix: t.Optional[str],
     comma_round_trip: t.Optional[bool],
+    comma_compact_nulls: bool,
     encoder: t.Optional[t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str]],
     serialize_date: t.Callable[[datetime], t.Optional[str]],
     sort: t.Optional[t.Callable[[t.Any, t.Any], int]],
@@ -193,6 +195,7 @@ def _encode(
         side_channel: Cycle-detection chain; child frames point to their parent via `_sentinel`.
         prefix: The key path accumulated so far (unencoded except for dot-encoding when requested).
         comma_round_trip: Whether a single-element list should emit `[]` to ensure round-trip with comma format.
+        comma_compact_nulls: When True (and using comma list format), drop `None` entries before joining.
         encoder: Custom per-scalar encoder; if None, falls back to `str(value)` for primitives.
         serialize_date: Optional `datetime` serializer hook.
         sort: Optional comparator for object/array key ordering.
@@ -293,15 +296,22 @@ def _encode(
         return values
 
     # --- Determine which keys/indices to traverse ----------------------------------------
+    comma_effective_length: t.Optional[int] = None
     obj_keys: t.List[t.Any]
     if generate_array_prefix == ListFormat.COMMA.generator and isinstance(obj, (list, tuple)):
         # In COMMA mode we join the elements into a single token at this level.
+        comma_items: t.List[t.Any] = list(obj)
+        if comma_compact_nulls:
+            comma_items = [item for item in comma_items if item is not None]
+        comma_effective_length = len(comma_items)
+
         if encode_values_only and callable(encoder):
-            obj = Utils.apply(obj, encoder)
-            obj_keys_value = ",".join(("" if e is None else str(e)) for e in obj)
+            encoded_items = Utils.apply(comma_items, encoder)
+            obj_keys_value = ",".join(("" if e is None else str(e)) for e in encoded_items)
         else:
-            obj_keys_value = ",".join(Utils.normalize_comma_elem(e) for e in obj)
-        if obj:
+            obj_keys_value = ",".join(Utils.normalize_comma_elem(e) for e in comma_items)
+
+        if comma_items:
             obj_keys = [{"value": obj_keys_value if obj_keys_value else None}]
         else:
             obj_keys = [{"value": UNDEFINED}]
@@ -322,11 +332,13 @@ def _encode(
     encoded_prefix: str = prefix.replace(".", "%2E") if encode_dot_in_keys else prefix
 
     # In comma round-trip mode, ensure a single-element list appends `[]` to preserve type on decode.
-    adjusted_prefix: str = (
-        f"{encoded_prefix}[]"
-        if comma_round_trip and isinstance(obj, (list, tuple)) and len(obj) == 1
-        else encoded_prefix
-    )
+    single_item_for_round_trip: bool = False
+    if comma_round_trip and isinstance(obj, (list, tuple)):
+        if generate_array_prefix == ListFormat.COMMA.generator and comma_effective_length is not None:
+            single_item_for_round_trip = comma_effective_length == 1
+        else:
+            single_item_for_round_trip = len(obj) == 1
+    adjusted_prefix: str = f"{encoded_prefix}[]" if single_item_for_round_trip else encoded_prefix
 
     # Optionally emit empty lists as `key[]=`.
     if allow_empty_lists and isinstance(obj, (list, tuple)) and not obj:
@@ -381,6 +393,7 @@ def _encode(
             side_channel=value_side_channel,
             prefix=key_prefix,
             comma_round_trip=comma_round_trip,
+            comma_compact_nulls=comma_compact_nulls,
             encoder=(
                 None
                 if generate_array_prefix is ListFormat.COMMA.generator
