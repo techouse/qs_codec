@@ -782,6 +782,7 @@ class TestEncode:
             side_channel=WeakKeyDictionary(),
             prefix=None,  # This will trigger line 133
             comma_round_trip=None,  # This will trigger line 136
+            comma_compact_nulls=False,
             encoder=None,
             serialize_date=lambda dt: dt.isoformat(),
             sort=None,
@@ -1719,6 +1720,7 @@ class TestEncodeInternals:
                 side_channel=side_channel,
                 prefix="root",
                 comma_round_trip=False,
+                comma_compact_nulls=False,
                 encoder=EncodeUtils.encode,
                 serialize_date=EncodeUtils.serialize_date,
                 sort=None,
@@ -1749,6 +1751,7 @@ class TestEncodeInternals:
             side_channel=side_channel,
             prefix="root",
             comma_round_trip=False,
+            comma_compact_nulls=False,
             encoder=EncodeUtils.encode,
             serialize_date=EncodeUtils.serialize_date,
             sort=None,
@@ -1789,6 +1792,7 @@ class TestEncodeInternals:
             side_channel=WeakKeyDictionary(),
             prefix="root",
             comma_round_trip=False,
+            comma_compact_nulls=False,
             encoder=EncodeUtils.encode,
             serialize_date=EncodeUtils.serialize_date,
             sort=None,
@@ -1881,3 +1885,24 @@ class TestEncodeInternals:
         self, data: t.Mapping[str, t.Any], list_format: ListFormat, expected: str
     ) -> None:
         assert encode(data, EncodeOptions(list_format=list_format, encode=False)) == expected
+
+    def test_comma_compact_nulls_skips_none_entries(self) -> None:
+        options = EncodeOptions(
+            list_format=ListFormat.COMMA,
+            encode=False,
+            comma_compact_nulls=True,
+        )
+        assert encode({"a": {"b": [True, False, None, True]}}, options) == "a[b]=true,false,true"
+
+    def test_comma_compact_nulls_empty_after_filtering_omits_key(self) -> None:
+        options = EncodeOptions(list_format=ListFormat.COMMA, encode=False, comma_compact_nulls=True)
+        assert encode({"a": [None, None]}, options) == ""
+
+    def test_comma_compact_nulls_preserves_round_trip_marker(self) -> None:
+        options = EncodeOptions(
+            list_format=ListFormat.COMMA,
+            encode=False,
+            comma_round_trip=True,
+            comma_compact_nulls=True,
+        )
+        assert encode({"a": [None, "foo"]}, options) == "a[]=foo"
