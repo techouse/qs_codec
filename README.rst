@@ -582,6 +582,9 @@ format of the output ``list``:
 `COMMA <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.enums.list_format.ListFormat.COMMA>`_, you can also pass the
 `comma_round_trip <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.comma_round_trip>`__ option set to ``True`` or
 ``False``, to append ``[]`` on single-item ``list``\ s, so that they can round trip through a decoding.
+Set the `comma_compact_nulls <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.comma_compact_nulls>`__ option to ``True`` with the same
+format when you'd like to drop ``None`` entries instead of keeping empty slots (e.g. ``[True, False, None, True]`` becomes
+``true,false,true``).
 
 `BRACKETS <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.enums.list_format.ListFormat.BRACKETS>`__ notation is used for encoding ``dict``\s by default:
 

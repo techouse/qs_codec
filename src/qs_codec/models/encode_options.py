@@ -110,6 +110,10 @@ class EncodeOptions:
     comma_round_trip: t.Optional[bool] = None
     """Only used with `ListFormat.COMMA`. When `True`, single‑item lists append `[]` so they round‑trip back to a list on decode."""
 
+    comma_compact_nulls: bool = False
+    """Only with `ListFormat.COMMA`. When `True`, omit `None` entries inside lists instead of emitting empty positions
+    (e.g. `[True, False, None, True]` -> `true,false,true`)."""
+
     sort: t.Optional[t.Callable[[t.Any, t.Any], int]] = field(default=None)
     """Optional comparator for deterministic key ordering. Must return -1, 0, or +1."""
 
