@@ -1,3 +1,7 @@
+## 1.3.0
+
+* [FEAT] add `EncodeOptions.comma_compact_nulls`, allowing omission of `None` entries in lists when using the `ListFormat.COMMA`. This results in cleaner output (e.g., `[True, False, None, True]` becomes `"true,false,true"`).
+
 ## 1.2.5
 
 * [CHORE] add support for Python 3.14
