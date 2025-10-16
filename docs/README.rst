@@ -538,6 +538,9 @@ format of the output ``list``:
 :py:attr:`COMMA <qs_codec.enums.list_format.ListFormat.COMMA>`, you can also pass the
 :py:attr:`comma_round_trip <qs_codec.models.encode_options.EncodeOptions.comma_round_trip>` option set to ``True`` or
 ``False``, to append ``[]`` on single-item ``list``\ s so they can round-trip through a decoding.
+Set :py:attr:`comma_compact_nulls <qs_codec.models.encode_options.EncodeOptions.comma_compact_nulls>` to ``True`` with the same
+format when you'd like to drop ``None`` entries instead of keeping empty slots (e.g.
+``[True, False, None, True]`` becomes ``true,false,true``).
 
 :py:attr:`BRACKETS <qs_codec.enums.list_format.ListFormat.BRACKETS>` notation is used for encoding ``dict``\s by default:
 
