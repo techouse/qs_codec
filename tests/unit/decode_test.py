@@ -653,6 +653,7 @@ class TestDecode:
 
     def test_does_not_error_when_parsing_a_very_long_list(self) -> None:
         buf: str = "a[]=a"
+
         def _approx_size(value: str) -> int:
             try:
                 return getsizeof(value)

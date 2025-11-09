@@ -301,9 +301,7 @@ class TestEncoding:
                     serialize_date=lambda date: str(
                         int(
                             (
-                                date
-                                if date.tzinfo is not None
-                                else date.replace(tzinfo=datetime.timezone.utc)
+                                date if date.tzinfo is not None else date.replace(tzinfo=datetime.timezone.utc)
                             ).timestamp()
                         )
                     ),
@@ -348,9 +346,7 @@ class TestEncoding:
                         "e[f]": (
                             int(
                                 (
-                                    value
-                                    if value.tzinfo is not None
-                                    else value.replace(tzinfo=datetime.timezone.utc)
+                                    value if value.tzinfo is not None else value.replace(tzinfo=datetime.timezone.utc)
                                 ).timestamp()
                             )
                             if isinstance(value, datetime.datetime)
