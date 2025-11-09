@@ -56,6 +56,14 @@ jobs:
             py: "3.13"
           - toxenv: "python3.14"
             py: "3.14"
+          - toxenv: "pypy3.8"
+            py: "pypy-3.8"
+          - toxenv: "pypy3.9"
+            py: "pypy-3.9"
+          - toxenv: "pypy3.10"
+            py: "pypy-3.10"
+          - toxenv: "pypy3.11"
+            py: "pypy-3.11"
     steps:
       - uses: actions/checkout@v5
       - name: Set up Python ${{ matrix.py }}
