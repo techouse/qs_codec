@@ -1,3 +1,7 @@
+## 1.3.1
+
+* [FEAT] add support for PyPy 3.8, 3.9, 3.10 and 3.11
+
 ## 1.3.0
 
 * [FEAT] add `EncodeOptions.comma_compact_nulls`, allowing omission of `None` entries in lists when using the `ListFormat.COMMA`. This results in cleaner output (e.g., `[True, False, None, True]` becomes `"true,false,true"`).
