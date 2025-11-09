@@ -653,7 +653,14 @@ class TestDecode:
 
     def test_does_not_error_when_parsing_a_very_long_list(self) -> None:
         buf: str = "a[]=a"
-        while getsizeof(buf) < 128 * 1024:
+        def _approx_size(value: str) -> int:
+            try:
+                return getsizeof(value)
+            except TypeError:
+                # PyPy does not implement getsizeof; fall back to len, which matches byte size for ASCII payloads.
+                return len(value)
+
+        while _approx_size(buf) < 128 * 1024:
             buf += "&"
             buf += buf
 
