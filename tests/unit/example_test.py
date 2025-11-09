@@ -296,7 +296,18 @@ class TestEncoding:
                         else datetime.datetime.utcfromtimestamp(7)
                     )
                 },
-                qs_codec.EncodeOptions(encode=False, serialize_date=lambda date: str(int(date.timestamp()))),
+                qs_codec.EncodeOptions(
+                    encode=False,
+                    serialize_date=lambda date: str(
+                        int(
+                            (
+                                date
+                                if date.tzinfo is not None
+                                else date.replace(tzinfo=datetime.timezone.utc)
+                            ).timestamp()
+                        )
+                    ),
+                ),
             )
             == "a=7"
         )
@@ -334,7 +345,17 @@ class TestEncoding:
                     encode=False,
                     filter=lambda prefix, value: {
                         "b": None,
-                        "e[f]": int(value.timestamp()) if isinstance(value, datetime.datetime) else value,
+                        "e[f]": (
+                            int(
+                                (
+                                    value
+                                    if value.tzinfo is not None
+                                    else value.replace(tzinfo=datetime.timezone.utc)
+                                ).timestamp()
+                            )
+                            if isinstance(value, datetime.datetime)
+                            else value
+                        ),
                         "e[g][0]": value * 2 if isinstance(value, int) else value,
                     }.get(prefix, value),
                 ),
