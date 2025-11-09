@@ -18,6 +18,7 @@ class TestWeakrefWithDictKeys:
         assert d.get(foo) == 123
         assert d.get(foo_copy) == 123
         del foo
+        gc.collect()
         assert len(d) == 0
         assert d.get(foo_copy) is None
 
@@ -31,6 +32,7 @@ class TestWeakrefWithDictKeys:
         assert d.get(foo) == 123
         assert d.get(foo_copy) == 123
         del foo
+        gc.collect()
         assert len(d) == 0
         assert d.get(foo_copy) is None
 
