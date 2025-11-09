@@ -28,6 +28,12 @@ Highlights
 - Safety limits: configurable nesting depth, parameter limit, and list index limit; optional strict-depth errors; duplicate-key strategies (combine/first/last).
 - Extras: numeric entity decoding (e.g. ``&#9786;`` → ☺), alternate delimiters/regex, and query-prefix helpers.
 
+Compatibility
+-------------
+
+- CPython 3.8–3.14 (default tox envs).
+- PyPy 3.8–3.11 (run ``tox -e pypy3.8`` through ``tox -e pypy3.11`` locally; CI mirrors this matrix).
+
 Usage
 -----
 
