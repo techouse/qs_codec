@@ -11,7 +11,7 @@ A query string encoding and decoding library for Python.
 
 Ported from `qs <https://www.npmjs.com/package/qs>`__ for JavaScript.
 
-|PyPI - Version| |PyPI - Downloads| |PyPI - Status| |PyPI - Python Version| |PyPI - Format|
+|PyPI - Version| |PyPI - Downloads| |PyPI - Status| |PyPI - Python Version| |PyPy Support| |PyPI - Format|
 |Test| |CodeQL| |Publish| |Docs| |codecov| |Codacy| |Black| |flake8| |mypy| |pylint| |isort| |bandit|
 |License| |Contributor Covenant| |GitHub Sponsors| |GitHub Repo stars|
 
@@ -1034,6 +1034,9 @@ Holowaychuk <https://github.com/visionmedia/node-querystring>`__
    :target: https://pypistats.org/packages/qs-codec
 .. |PyPI - Status| image:: https://img.shields.io/pypi/status/qs_codec
 .. |PyPI - Python Version| image:: https://img.shields.io/pypi/pyversions/qs_codec
+.. |PyPy Support| image:: https://img.shields.io/badge/PyPy-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-6f42c1?logo=pypy
+   :target: https://www.pypy.org/
+   :alt: PyPy support status
 .. |PyPI - Format| image:: https://img.shields.io/pypi/format/qs_codec
 .. |Test| image:: https://github.com/techouse/qs_codec/actions/workflows/test.yml/badge.svg
    :target: https://github.com/techouse/qs_codec/actions/workflows/test.yml
