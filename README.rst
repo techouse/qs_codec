@@ -1028,47 +1028,70 @@ Special thanks to the authors of
 Harband <https://github.com/ljharb>`__ - `TJ
 Holowaychuk <https://github.com/visionmedia/node-querystring>`__
 
-.. |PyPI - Version| image:: https://img.shields.io/pypi/v/qs_codec
+.. |PyPI - Version| image:: https://img.shields.io/pypi/v/qs_codec?logo=pypi&label=PyPI
    :target: https://pypi.org/project/qs-codec/
-.. |PyPI - Downloads| image:: https://img.shields.io/pypi/dm/qs_codec
+   :alt: PyPI version
+.. |PyPI - Downloads| image:: https://img.shields.io/pypi/dm/qs_codec?logo=pypi&label=PyPI%20downloads
    :target: https://pypistats.org/packages/qs-codec
-.. |PyPI - Status| image:: https://img.shields.io/pypi/status/qs_codec
-.. |PyPI - Python Version| image:: https://img.shields.io/pypi/pyversions/qs_codec
+   :alt: PyPI downloads
+.. |PyPI - Status| image:: https://img.shields.io/pypi/status/qs_codec?logo=pypi
+   :target: https://pypi.org/project/qs-codec/
+   :alt: PyPI status
+.. |PyPI - Python Version| image:: https://img.shields.io/pypi/pyversions/qs_codec?logo=python&label=Python
+   :target: https://pypi.org/project/qs-codec/
+   :alt: Python version support
 .. |PyPy Support| image:: https://img.shields.io/badge/PyPy-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-6f42c1?logo=pypy
    :target: https://www.pypy.org/
    :alt: PyPy support status
-.. |PyPI - Format| image:: https://img.shields.io/pypi/format/qs_codec
+.. |PyPI - Format| image:: https://img.shields.io/pypi/format/qs_codec?logo=python
+   :target: https://pypi.org/project/qs-codec/
+   :alt: PyPI format
 .. |Test| image:: https://github.com/techouse/qs_codec/actions/workflows/test.yml/badge.svg
    :target: https://github.com/techouse/qs_codec/actions/workflows/test.yml
+   :alt: Test Status
 .. |CodeQL| image:: https://github.com/techouse/qs_codec/actions/workflows/github-code-scanning/codeql/badge.svg
    :target: https://github.com/techouse/qs_codec/actions/workflows/github-code-scanning/codeql
+   :alt: CodeQL Status
 .. |Publish| image:: https://github.com/techouse/qs_codec/actions/workflows/publish.yml/badge.svg
    :target: https://github.com/techouse/qs_codec/actions/workflows/publish.yml
+   :alt: Publish Status
 .. |Docs| image:: https://github.com/techouse/qs_codec/actions/workflows/docs.yml/badge.svg
    :target: https://github.com/techouse/qs_codec/actions/workflows/docs.yml
-.. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
+   :alt: Docs Status
+.. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg?logo=python
    :target: https://github.com/psf/black
+   :alt: Code style Black
 .. |codecov| image:: https://codecov.io/gh/techouse/qs_codec/graph/badge.svg?token=Vp0z05yj2l
    :target: https://codecov.io/gh/techouse/qs_codec
+   :alt: Code Coverage
 .. |Codacy| image:: https://app.codacy.com/project/badge/Grade/7ead208221ae4f6785631043064647e4
    :target: https://app.codacy.com/gh/techouse/qs_codec/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade
+   :alt: Codacy Quality
 .. |License| image:: https://img.shields.io/github/license/techouse/qs_codec
    :target: LICENSE
-.. |GitHub Sponsors| image:: https://img.shields.io/github/sponsors/techouse
+   :alt: License
+.. |GitHub Sponsors| image:: https://img.shields.io/github/sponsors/techouse?logo=github
    :target: https://github.com/sponsors/techouse
+   :alt: GitHub Sponsors
 .. |GitHub Repo stars| image:: https://img.shields.io/github/stars/techouse/qs_codec
    :target: https://github.com/techouse/qs_codec/stargazers
-.. |Contributor Covenant| image:: https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg
+   :alt: GitHub Repo stars
+.. |Contributor Covenant| image:: https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg?logo=contributorcovenant
    :target: CODE-OF-CONDUCT.md
-.. |flake8| image:: https://img.shields.io/badge/flake8-checked-blueviolet.svg
+   :alt: Contributor Covenant
+.. |flake8| image:: https://img.shields.io/badge/flake8-checked-blueviolet.svg?logo=python
    :target: https://flake8.pycqa.org/en/latest/
-.. |mypy| image:: https://img.shields.io/badge/mypy-checked-blue.svg
+   :alt: flake8 Status
+.. |mypy| image:: https://img.shields.io/badge/mypy-checked-blue.svg?logo=python
    :target: https://mypy.readthedocs.io/en/stable/
-.. |pylint| image:: https://img.shields.io/badge/linting-pylint-yellowgreen.svg
+   :alt: typing mypy
+.. |pylint| image:: https://img.shields.io/badge/linting-pylint-yellowgreen.svg?logo=python
    :target: https://github.com/pylint-dev/pylint
-.. |isort| image:: https://img.shields.io/badge/imports-isort-blue.svg
+   :alt: linting pylint
+.. |isort| image:: https://img.shields.io/badge/imports-isort-blue.svg?logo=python
    :target: https://pycqa.github.io/isort/
-.. |bandit| image:: https://img.shields.io/badge/security-bandit-blue.svg
+   :alt: imports isort
+.. |bandit| image:: https://img.shields.io/badge/security-bandit-blue.svg?logo=python
    :target: https://github.com/PyCQA/bandit
    :alt: Security Status
 .. |pubdev| image:: https://img.shields.io/pub/v/qs_dart?logo=dart&label=pub.dev
