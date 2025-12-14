@@ -1,3 +1,7 @@
+## 1.3.2
+
+* [CHORE] pin mypy<1.19 on PyPy to avoid new `librt` build failures while keeping newer mypy on CPython
+
 ## 1.3.1
 
 * [FEAT] add support for PyPy 3.8, 3.9, 3.10 and 3.11

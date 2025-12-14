@@ -14,7 +14,7 @@ The package root re-exports the most commonly used functions and enums so you ca
 """
 
 # Package version (PEP 440). Bump in lockstep with distribution metadata.
-__version__ = "1.3.1"
+__version__ = "1.3.2"
 
 from .decode import decode, load, loads
 from .encode import dumps, encode
