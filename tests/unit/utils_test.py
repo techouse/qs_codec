@@ -1,5 +1,6 @@
 import re
 import typing as t
+from unittest.mock import patch
 
 import pytest
 
@@ -876,6 +877,39 @@ class TestUtils:
     def test_encode_string(self):
         assert EncodeUtils._encode_string("💩", Format.RFC3986) == "%F0%9F%92%A9"
         assert EncodeUtils._encode_string("A💩B", Format.RFC3986) == "A%F0%9F%92%A9B"
+
+    def test_merge_target_is_overflow_dict(self) -> None:
+        target = OverflowDict({"0": "a"})
+        source = "b"
+        # Should delegate to combine, which appends 'b' at index 1
+        result = Utils.merge(target, source)
+        assert isinstance(result, OverflowDict)
+        assert result == {"0": "a", "1": "b"}
+
+    def test_merge_source_is_overflow_dict_into_dict(self) -> None:
+        target = {"a": 1}
+        source = OverflowDict({"b": 2})
+        result = Utils.merge(target, source)
+        assert isinstance(result, dict)
+        assert result == {"a": 1, "b": 2}
+
+    def test_merge_source_is_overflow_dict_into_list(self) -> None:
+        target = ["a"]
+        # source has key '0', which collides with target's index 0
+        source = OverflowDict({"0": "b"})
+        result = Utils.merge(target, source)
+        assert isinstance(result, dict)
+        # Source overwrites target at key '0'
+        assert result == {"0": "b"}
+
+    def test_merge_delegates_to_combine_with_options(self) -> None:
+        target = OverflowDict({"0": "a"})
+        source = "b"
+        options = DecodeOptions(list_limit=50)
+
+        with patch("qs_codec.utils.utils.Utils.combine") as mock_combine:
+            Utils.merge(target, source, options)
+            mock_combine.assert_called_once_with(target, source, options)
 
 
 class TestDecodeUtilsHelpers:
