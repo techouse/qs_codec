@@ -210,12 +210,16 @@ class Utils:
         merge_target: t.Dict[str, t.Any] = copy.deepcopy(target if isinstance(target, dict) else dict(target))
 
         # For overlapping keys, merge recursively; otherwise, take the new value.
+        merged_updates: t.Dict[str, t.Any] = {}
+        for key, value in source.items():
+            normalized_key = str(key)
+            if normalized_key in merge_target:
+                merged_updates[normalized_key] = Utils.merge(merge_target[normalized_key], value, options)
+            else:
+                merged_updates[normalized_key] = value
         merged = {
             **merge_target,
-            **{
-                str(key): Utils.merge(merge_target[key], value, options) if key in merge_target else value
-                for key, value in source.items()
-            },
+            **merged_updates,
         }
         return OverflowDict(merged) if is_overflow_target else merged
 
