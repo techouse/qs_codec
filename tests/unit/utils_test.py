@@ -954,6 +954,10 @@ class TestUtils:
         assert isinstance(shallow, OverflowDict)
         assert shallow == {"0": "a"}
 
+        deep = copy.deepcopy(target)
+        assert isinstance(deep, OverflowDict)
+        assert deep == {"0": "a"}
+
     def test_combine_sparse_overflow_dict(self) -> None:
         # Create an OverflowDict with a sparse key
         a = OverflowDict({"999": "a"})
