@@ -29,7 +29,7 @@ from ..models.undefined import Undefined
 
 
 class OverflowDict(dict):
-    """A dictionary subclass used to mark objects that have been converted from lists due to the `list_limit` being exceeded."""
+    """A mutable marker for list overflows when `list_limit` is exceeded."""
 
     pass
 
@@ -178,18 +178,19 @@ class Utils:
             if Utils.is_overflow(source):
                 source_of = t.cast(OverflowDict, source)
                 sorted_pairs = sorted(Utils._numeric_key_pairs(source_of), key=lambda item: item[0])
-                overflow_values = [source_of[k] for _, k in sorted_pairs]
                 numeric_keys = {key for _, key in sorted_pairs}
-                non_numeric_items = [(key, val) for key, val in source_of.items() if key not in numeric_keys]
                 result = OverflowDict()
                 offset = 0
                 if not isinstance(target, Undefined):
                     result["0"] = target
                     offset = 1
-                for (numeric_key, _), val in zip(sorted_pairs, overflow_values):
+                for numeric_key, key in sorted_pairs:
+                    val = source_of[key]
                     if not isinstance(val, Undefined):
                         result[str(numeric_key + offset)] = val
-                for key, val in non_numeric_items:
+                for key, val in source_of.items():
+                    if key in numeric_keys:
+                        continue
                     if not isinstance(val, Undefined):
                         result[key] = val
                 return result
@@ -365,7 +366,11 @@ class Utils:
 
     @staticmethod
     def _numeric_key_pairs(mapping: t.Mapping[t.Any, t.Any]) -> t.List[t.Tuple[int, t.Any]]:
-        """Return (numeric_key, original_key) for keys that coerce to int."""
+        """Return (numeric_key, original_key) for keys that coerce to int.
+
+        Note: distinct keys like "01" and "1" both coerce to 1; downstream merges
+        may overwrite earlier values when materializing numeric-keyed dicts.
+        """
         pairs: t.List[t.Tuple[int, t.Any]] = []
         for key in mapping.keys():
             try:

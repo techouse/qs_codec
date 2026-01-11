@@ -629,14 +629,14 @@ class TestUtils:
         assert combined == [1, 2]
 
     def test_combine_list_limit_exceeded_creates_overflow_dict(self) -> None:
-        a = [1] * 10
-        b = [2] * 11
-        # Total 21 items, default limit is 20
+        default_limit = DecodeOptions().list_limit
+        a = [1] * max(1, default_limit)
+        b = [2]
         combined = Utils.combine(a, b)
         assert isinstance(combined, OverflowDict)
-        assert len(combined) == 21
+        assert len(combined) == len(a) + len(b)
         assert combined["0"] == 1
-        assert combined["20"] == 2
+        assert combined[str(len(a) + len(b) - 1)] == 2
 
     def test_combine_list_limit_zero_creates_overflow_dict(self) -> None:
         options = DecodeOptions(list_limit=0)
@@ -655,7 +655,7 @@ class TestUtils:
         b = "y"
         combined = Utils.combine(a, b)
         assert isinstance(combined, OverflowDict)
-        assert combined is not a  # Check for immutability (copy)
+        assert combined is not a  # Check for copy-on-write (no mutation)
         assert combined["0"] == "x"
         assert combined["1"] == "y"
         assert len(combined) == 2
@@ -665,12 +665,12 @@ class TestUtils:
         assert "1" not in a
 
     def test_combine_options_default(self) -> None:
-        # Default options should imply list_limit=20
-        a = [1] * 20
+        default_limit = DecodeOptions().list_limit
+        a = [1] * max(0, default_limit)
         b = [2]
         combined = Utils.combine(a, b, options=None)
         assert isinstance(combined, OverflowDict)
-        assert len(combined) == 21
+        assert len(combined) == len(a) + len(b)
 
     def test_combine_overflow_dict_with_overflow_dict(self) -> None:
         a = OverflowDict({"0": "x"})
