@@ -1,6 +1,5 @@
 import re
 import typing as t
-from unittest.mock import patch
 
 import pytest
 
