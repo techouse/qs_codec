@@ -349,7 +349,7 @@ class Utils:
         options: t.Optional[DecodeOptions] = None,
     ) -> t.Union[t.List[t.Any], t.Dict[str, t.Any]]:
         """
-        Concatenate two values, treating non‑sequences as singletons.
+        Concatenate two values, treating non-sequences as singletons.
 
         If `list_limit` is exceeded, converts the list to an `OverflowDict`
         (a dict with numeric keys) to prevent memory exhaustion.
@@ -358,7 +358,7 @@ class Utils:
         prevent unbounded growth. If ``options`` is ``None``, a default
         ``list_limit`` of ``20`` is used.
         A negative ``list_limit`` is treated as "overflow immediately": any
-        non‑empty combined result will be converted to :class:`OverflowDict`
+        non-empty combined result will be converted to :class:`OverflowDict`
         because ``len(res) > list_limit`` is then always true for ``len(res) >= 0``.
         This helper never raises an exception when the limit is exceeded; even
         if :class:`DecodeOptions` has ``raise_on_limit_exceeded`` set to
@@ -370,22 +370,41 @@ class Utils:
             # We assume sequential keys; len(a_copy) gives the next index.
             orig_a = t.cast(OverflowDict, a)
             a_copy = OverflowDict(orig_a)
-            idx = len(a_copy)
+            # Use max key + 1 to handle sparse dicts safely, rather than len(a)
+            keys = [int(k) for k in a_copy]
+            idx = (max(keys) + 1) if keys else 0
+
             if isinstance(b, (list, tuple)):
                 for item in b:
                     a_copy[str(idx)] = item
                     idx += 1
             elif Utils.is_overflow(b):
                 b = t.cast(OverflowDict, b)
-                for item in b.values():
-                    a_copy[str(idx)] = item
+                # Iterate in numeric key order to preserve list semantics
+                for k in sorted(b.keys(), key=int):
+                    a_copy[str(idx)] = b[k]
                     idx += 1
             else:
                 a_copy[str(idx)] = b
             return a_copy
 
         # Normal combination: flatten lists/tuples
-        res = [*(a if isinstance(a, (list, tuple)) else [a]), *(b if isinstance(b, (list, tuple)) else [b])]
+        # Flatten a
+        if isinstance(a, (list, tuple)):
+            list_a = list(a)
+        else:
+            list_a = [a]
+
+        # Flatten b, handling OverflowDict as a list source
+        if isinstance(b, (list, tuple)):
+            list_b = list(b)
+        elif Utils.is_overflow(b):
+            b_of = t.cast(OverflowDict, b)
+            list_b = [b_of[k] for k in sorted(b_of.keys(), key=int)]
+        else:
+            list_b = [b]
+
+        res = [*list_a, *list_b]
 
         list_limit = options.list_limit if options else 20
         if len(res) > list_limit:
