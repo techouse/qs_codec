@@ -392,11 +392,10 @@ class Utils:
         (a dict with numeric keys) to prevent memory exhaustion.
         When `options` is provided, its ``list_limit`` controls when a list is
         converted into an :class:`OverflowDict` (a dict with numeric keys) to
-        prevent unbounded growth. If ``options`` is ``None``, a default
-        ``list_limit`` of ``20`` is used.
+        prevent unbounded growth. If ``options`` is ``None``, the default
+        ``list_limit`` from :class:`DecodeOptions` is used.
         A negative ``list_limit`` is treated as "overflow immediately": any
-        non-empty combined result will be converted to :class:`OverflowDict`
-        because ``len(res) > list_limit`` is then always true for ``len(res) >= 0``.
+        non-empty combined result will be converted to :class:`OverflowDict`.
         This helper never raises an exception when the limit is exceeded; even
         if :class:`DecodeOptions` has ``raise_on_limit_exceeded`` set to
         ``True``, ``combine`` will still handle overflow only by converting the
@@ -451,7 +450,9 @@ class Utils:
 
         res = [*list_a, *list_b]
 
-        list_limit = options.list_limit if options else 20
+        list_limit = options.list_limit if options else DecodeOptions().list_limit
+        if list_limit < 0:
+            return OverflowDict({str(i): x for i, x in enumerate(res)}) if res else res
         if len(res) > list_limit:
             # Convert to OverflowDict
             return OverflowDict({str(i): x for i, x in enumerate(res)})
