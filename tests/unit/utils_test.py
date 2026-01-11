@@ -1,3 +1,4 @@
+import copy
 import re
 import typing as t
 
@@ -6,6 +7,7 @@ import pytest
 from qs_codec.enums.charset import Charset
 from qs_codec.enums.format import Format
 from qs_codec.models.decode_options import DecodeOptions
+from qs_codec.models.overflow_dict import OverflowDict
 from qs_codec.models.undefined import Undefined
 from qs_codec.utils.decode_utils import DecodeUtils
 from qs_codec.utils.encode_utils import EncodeUtils
@@ -628,6 +630,69 @@ class TestUtils:
         assert b is not combined
         assert combined == [1, 2]
 
+    def test_combine_list_limit_exceeded_creates_overflow_dict(self) -> None:
+        default_limit = DecodeOptions().list_limit
+        a = [1] * max(1, default_limit)
+        b = [2]
+        combined = Utils.combine(a, b)
+        assert isinstance(combined, OverflowDict)
+        assert len(combined) == len(a) + len(b)
+        assert combined["0"] == 1
+        assert combined[str(len(a) + len(b) - 1)] == 2
+
+    def test_combine_list_limit_zero_creates_overflow_dict(self) -> None:
+        options = DecodeOptions(list_limit=0)
+        combined = Utils.combine(["a"], [], options)
+        assert isinstance(combined, OverflowDict)
+        assert combined == {"0": "a"}
+
+    def test_combine_negative_list_limit_overflows_non_empty(self) -> None:
+        options = DecodeOptions(list_limit=-1)
+        combined = Utils.combine([], ["a"], options)
+        assert isinstance(combined, OverflowDict)
+        assert combined == {"0": "a"}
+
+    def test_combine_at_list_limit_stays_list(self) -> None:
+        options = DecodeOptions(list_limit=2)
+        combined = Utils.combine(["a"], ["b"], options)
+        assert combined == ["a", "b"]
+
+    def test_combine_negative_list_limit_with_empty_result_stays_list(self) -> None:
+        options = DecodeOptions(list_limit=-1)
+        combined = Utils.combine([], [], options)
+        assert combined == []
+
+    def test_combine_with_overflow_dict(self) -> None:
+        a = OverflowDict({"0": "x"})
+        b = "y"
+        combined = Utils.combine(a, b)
+        assert isinstance(combined, OverflowDict)
+        assert combined is not a  # Check for copy-on-write (no mutation)
+        assert combined["0"] == "x"
+        assert combined["1"] == "y"
+        assert len(combined) == 2
+
+        # Verify 'a' was not mutated
+        assert len(a) == 1
+        assert "1" not in a
+
+    def test_combine_options_default(self) -> None:
+        default_limit = DecodeOptions().list_limit
+        a = [1] * max(0, default_limit)
+        b = [2]
+        combined = Utils.combine(a, b, options=None)
+        assert isinstance(combined, OverflowDict)
+        assert len(combined) == len(a) + len(b)
+
+    def test_combine_overflow_dict_with_overflow_dict(self) -> None:
+        a = OverflowDict({"0": "x"})
+        b = OverflowDict({"0": "y"})
+        combined = Utils.combine(a, b)
+        assert isinstance(combined, OverflowDict)
+        assert combined["0"] == "x"
+        assert combined["1"] == "y"
+        assert len(combined) == 2
+
     def test_compact_removes_undefined_entries_and_avoids_cycles(self) -> None:
         root: t.Dict[str, t.Any] = {
             "keep": 1,
@@ -835,6 +900,160 @@ class TestUtils:
     def test_encode_string(self):
         assert EncodeUtils._encode_string("💩", Format.RFC3986) == "%F0%9F%92%A9"
         assert EncodeUtils._encode_string("A💩B", Format.RFC3986) == "A%F0%9F%92%A9B"
+
+    def test_merge_target_is_overflow_dict(self) -> None:
+        target = OverflowDict({"0": "a"})
+        source = "b"
+        # Should delegate to combine, which appends 'b' at index 1
+        result = Utils.merge(target, source)
+        assert isinstance(result, OverflowDict)
+        assert result == {"0": "a", "1": "b"}
+
+    def test_merge_source_is_overflow_dict_into_dict(self) -> None:
+        target = {"a": 1}
+        source = OverflowDict({"b": 2})
+        result = Utils.merge(target, source)
+        assert isinstance(result, dict)
+        assert result == {"a": 1, "b": 2}
+
+    def test_merge_source_is_overflow_dict_into_list(self) -> None:
+        target = ["a"]
+        # source has key '0', which collides with target's index 0
+        source = OverflowDict({"0": "b"})
+        result = Utils.merge(target, source)
+        assert isinstance(result, dict)
+        # Source overwrites target at key '0'
+        assert result == {"0": "b"}
+
+    def test_merge_overflow_dict_with_mapping_preserves_overflow(self) -> None:
+        target = OverflowDict({"0": "a"})
+        source = {"foo": "bar"}
+        result = Utils.merge(target, source)
+        assert isinstance(result, OverflowDict)
+        assert result == {"0": "a", "foo": "bar"}
+
+    def test_merge_prefers_exact_key_match_before_string_normalization(self) -> None:
+        target = {1: {"a": "x"}}
+        source = {1: {"b": "y"}}
+        result = Utils.merge(target, source)
+        assert result == {1: {"a": "x", "b": "y"}}
+
+        target = {"1": {"a": "x"}}
+        source = {1: {"b": "y"}}
+        result = Utils.merge(target, source)
+        assert result == {"1": {"a": "x", "b": "y"}}
+        assert 1 not in result
+
+    def test_overflow_dict_copy_preserves_type(self) -> None:
+        target = OverflowDict({"0": "a"})
+        result = target.copy()
+        assert isinstance(result, OverflowDict)
+        assert result == {"0": "a"}
+
+        shallow = copy.copy(target)
+        assert isinstance(shallow, OverflowDict)
+        assert shallow == {"0": "a"}
+
+        deep = copy.deepcopy(target)
+        assert isinstance(deep, OverflowDict)
+        assert deep == {"0": "a"}
+
+    def test_combine_sparse_overflow_dict(self) -> None:
+        # Create an OverflowDict with a sparse key
+        a = OverflowDict({"999": "a"})
+        b = "b"
+        # Combine should append at index 1000 (max key + 1)
+        result = Utils.combine(a, b)
+        assert isinstance(result, OverflowDict)
+        assert result == {"999": "a", "1000": "b"}
+        # Verify it uses integer sorting for keys when determining max
+        assert len(result) == 2
+
+    def test_merge_target_is_sparse_overflow_dict(self) -> None:
+        # Merge delegates to combine, so this should also use max key + 1
+        target = OverflowDict({"999": "a"})
+        source = "b"
+        result = Utils.merge(target, source)
+        assert isinstance(result, OverflowDict)
+        assert result == {"999": "a", "1000": "b"}
+
+    def test_merge_scalar_target_with_sparse_overflow_dict_source(self) -> None:
+        # Merging OverflowDict source into a scalar target (which becomes a list)
+        # should preserve overflow semantics and shift numeric indices by 1.
+        target = "a"
+        # Insert in reverse order to verify sorting
+        source = OverflowDict({})
+        source["10"] = "c"
+        source["2"] = "b"
+
+        # Utils.merge should produce [target, *source_values_sorted]
+        result = Utils.merge(target, source)
+        assert isinstance(result, OverflowDict)
+        assert result == {"0": "a", "3": "b", "11": "c"}
+
+    def test_combine_scalar_with_overflow_dict(self) -> None:
+        # Test for coverage of Utils.combine lines 403-404
+        # Case where 'a' is scalar (not overflow) and 'b' is OverflowDict
+        a = "start"
+        b = OverflowDict({"1": "y", "0": "x"})  # Unordered to verify sorting
+
+        # Should flatten 'b' into ["x", "y"] and prepend 'a' -> ["start", "x", "y"]
+        result = Utils.combine(a, b)
+        assert result == ["start", "x", "y"]
+
+    def test_combine_list_with_overflow_dict(self) -> None:
+        # Test for coverage of Utils.combine lines 403-404
+        # Case where 'a' is list and 'b' is OverflowDict
+        a = ["start"]
+        b = OverflowDict({"1": "y", "0": "x"})
+
+        # Should flatten 'b' into ["x", "y"] and extend 'a' -> ["start", "x", "y"]
+        result = Utils.combine(a, b)
+        assert result == ["start", "x", "y"]
+
+    def test_combine_skips_undefined_in_overflow_dict_append(self) -> None:
+        a = OverflowDict({"0": "x"})
+        b = ["y", Undefined(), "z"]
+        result = Utils.combine(a, b)
+        assert isinstance(result, OverflowDict)
+        assert result == {"0": "x", "1": "y", "2": "z"}
+
+    def test_combine_skips_undefined_in_list_flattening(self) -> None:
+        a = ["x", Undefined()]
+        b = [Undefined(), "y"]
+        result = Utils.combine(a, b)
+        assert result == ["x", "y"]
+
+    def test_combine_skips_undefined_scalar(self) -> None:
+        a = ["x"]
+        b = Undefined()
+        result = Utils.combine(a, b)
+        assert result == ["x"]
+
+    def test_combine_overflow_dict_skips_existing_undefined_and_ignores_non_numeric_keys_for_index(self) -> None:
+        a = OverflowDict({"0": "x", "skip": "keep", "1": Undefined()})
+        b = "y"
+        result = Utils.combine(a, b)
+        assert isinstance(result, OverflowDict)
+        assert result["0"] == "x"
+        assert result["1"] == "y"
+        assert result["skip"] == "keep"
+        assert "1" in a  # Original should remain unchanged
+
+    def test_combine_overflow_dict_source_skips_non_numeric_keys(self) -> None:
+        a = OverflowDict({"0": "x"})
+        b = OverflowDict({"foo": "bar", "1": "y", "0": "z"})
+        result = Utils.combine(a, b)
+        assert isinstance(result, OverflowDict)
+        assert result == {"0": "x", "1": "z", "2": "y"}
+        assert "foo" not in result
+
+    def test_merge_overflow_dict_source_preserves_non_numeric_keys(self) -> None:
+        target = "a"
+        source = OverflowDict({"foo": "skip", "1": "b"})
+        result = Utils.merge(target, source)
+        assert isinstance(result, OverflowDict)
+        assert result == {"0": "a", "2": "b", "foo": "skip"}
 
 
 class TestDecodeUtilsHelpers:

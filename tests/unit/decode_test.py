@@ -9,6 +9,7 @@ import pytest
 from qs_codec import Charset, DecodeOptions, Duplicates, decode, load, loads
 from qs_codec.decode import _parse_object
 from qs_codec.enums.decode_kind import DecodeKind
+from qs_codec.models.overflow_dict import OverflowDict
 from qs_codec.utils.decode_utils import DecodeUtils
 
 
@@ -318,14 +319,20 @@ class TestDecode:
             pytest.param("a=b&a[0]=c", None, {"a": ["b", "c"]}, id="simple-first-indexed-list-second"),
             pytest.param("a[1]=b&a=c", DecodeOptions(list_limit=20), {"a": ["b", "c"]}, id="indexed-list-with-limit"),
             pytest.param(
-                "a[]=b&a=c", DecodeOptions(list_limit=0), {"a": ["b", "c"]}, id="explicit-list-with-zero-limit"
+                "a[]=b&a=c",
+                DecodeOptions(list_limit=0),
+                {"a": {"0": "b", "1": "c"}},
+                id="explicit-list-with-zero-limit",
             ),
             pytest.param("a[]=b&a=c", None, {"a": ["b", "c"]}, id="explicit-list-default"),
             pytest.param(
                 "a=b&a[1]=c", DecodeOptions(list_limit=20), {"a": ["b", "c"]}, id="simple-and-indexed-with-limit"
             ),
             pytest.param(
-                "a=b&a[]=c", DecodeOptions(list_limit=0), {"a": ["b", "c"]}, id="simple-and-explicit-zero-limit"
+                "a=b&a[]=c",
+                DecodeOptions(list_limit=0),
+                {"a": {"0": "b", "1": "c"}},
+                id="simple-and-explicit-zero-limit",
             ),
             pytest.param("a=b&a[]=c", None, {"a": ["b", "c"]}, id="simple-and-explicit-default"),
         ],
@@ -574,7 +581,7 @@ class TestDecode:
             pytest.param(
                 "a[]=b&a[]&a[]=c&a[]=",
                 DecodeOptions(strict_null_handling=True, list_limit=0),
-                {"a": ["b", None, "c", ""]},
+                {"a": {"0": "b", "1": None, "2": "c", "3": ""}},
                 id="strict-null-and-empty-zero-limit",
             ),
             pytest.param(
@@ -586,7 +593,7 @@ class TestDecode:
             pytest.param(
                 "a[]=b&a[]=&a[]=c&a[]",
                 DecodeOptions(strict_null_handling=True, list_limit=0),
-                {"a": ["b", "", "c", None]},
+                {"a": {"0": "b", "1": "", "2": "c", "3": None}},
                 id="empty-and-strict-null-zero-limit",
             ),
             pytest.param("a[]=&a[]=b&a[]=c", None, {"a": ["", "b", "c"]}, id="explicit-empty-first"),
@@ -1328,7 +1335,9 @@ class TestListLimit:
                 False,
                 id="convert-to-map",
             ),
-            pytest.param("a[]=1&a[]=2", DecodeOptions(list_limit=0), {"a": ["1", "2"]}, False, id="zero-list-limit"),
+            pytest.param(
+                "a[]=1&a[]=2", DecodeOptions(list_limit=0), {"a": {"0": "1", "1": "2"}}, False, id="zero-list-limit"
+            ),
             pytest.param(
                 "a[]=1&a[]=2",
                 DecodeOptions(list_limit=-1, raise_on_limit_exceeded=True),
@@ -1680,3 +1689,47 @@ class TestSplitKeySegmentationRemainder:
     def test_unterminated_group_does_not_raise_under_strict_depth(self) -> None:
         segs = DecodeUtils.split_key_into_segments("a[b[c", allow_dots=False, max_depth=5, strict_depth=True)
         assert segs == ["a", "[[b[c]"]
+
+
+class TestCVE2024:
+    def test_dos_attack(self) -> None:
+        # JS test:
+        # var arr = [];
+        # for (var i = 0; i < 105; i++) {
+        #     arr[arr.length] = 'x';
+        # }
+        # var attack = 'a[]=' + arr.join('&a[]=');
+        # var result = qs.parse(attack, { arrayLimit: 100 });
+        # t.notOk(Array.isArray(result.a))
+
+        arr = ["x"] * 105
+        # Construct query: a[]=x&a[]=x...
+        attack = "a[]=" + "&a[]=".join(arr)
+
+        # list_limit is the python equivalent of arrayLimit
+        options = DecodeOptions(list_limit=100)
+        result = decode(attack, options=options)
+
+        assert isinstance(result["a"], dict), "Should be a dict when limit exceeded"
+        assert isinstance(result["a"], OverflowDict)
+        assert len(result["a"]) == 105
+        assert result["a"]["0"] == "x"
+        assert result["a"]["104"] == "x"
+
+    def test_array_limit_checks(self) -> None:
+        # JS patch tests
+        # st.deepEqual(qs.parse('a[]=b', { arrayLimit: 0 }), { a: { 0: 'b' } });
+        assert decode("a[]=b", DecodeOptions(list_limit=0)) == {"a": {"0": "b"}}
+
+        # st.deepEqual(qs.parse('a[]=b&a[]=c', { arrayLimit: 0 }), { a: { 0: 'b', 1: 'c' } });
+        assert decode("a[]=b&a[]=c", DecodeOptions(list_limit=0)) == {"a": {"0": "b", "1": "c"}}
+
+        # st.deepEqual(qs.parse('a[]=b&a[]=c', { arrayLimit: 1 }), { a: { 0: 'b', 1: 'c' } });
+        assert decode("a[]=b&a[]=c", DecodeOptions(list_limit=1)) == {"a": {"0": "b", "1": "c"}}
+
+        # st.deepEqual(qs.parse('a[]=b&a[]=c&a[]=d', { arrayLimit: 2 }), { a: { 0: 'b', 1: 'c', 2: 'd' } });
+        assert decode("a[]=b&a[]=c&a[]=d", DecodeOptions(list_limit=2)) == {"a": {"0": "b", "1": "c", "2": "d"}}
+
+    def test_no_limit_does_not_overflow(self) -> None:
+        # Verify that within limit it stays a list
+        assert decode("a[]=b&a[]=c", DecodeOptions(list_limit=2)) == {"a": ["b", "c"]}

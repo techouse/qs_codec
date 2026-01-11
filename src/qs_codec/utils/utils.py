@@ -25,7 +25,24 @@ from decimal import Decimal
 from enum import Enum
 
 from ..models.decode_options import DecodeOptions
+from ..models.overflow_dict import OverflowDict
 from ..models.undefined import Undefined
+
+
+def _numeric_key_pairs(mapping: t.Mapping[t.Any, t.Any]) -> t.List[t.Tuple[int, t.Any]]:
+    """Return (numeric_key, original_key) for keys that coerce to int.
+
+    Note: distinct keys like "01" and "1" both coerce to 1; downstream merges
+    may overwrite earlier values when materializing numeric-keyed dicts.
+    """
+    pairs: t.List[t.Tuple[int, t.Any]] = []
+    for key in mapping.keys():
+        try:
+            numeric_key = int(key)
+        except (TypeError, ValueError):
+            continue
+        pairs.append((numeric_key, key))
+    return pairs
 
 
 class Utils:
@@ -143,6 +160,9 @@ class Utils:
                             target = list(target)
                         target.append(source)
             elif isinstance(target, t.Mapping):
+                if Utils.is_overflow(target):
+                    return Utils.combine(target, source, options)
+
                 # Target is a mapping but source is a sequence — coerce indices to string keys.
                 if isinstance(source, (list, tuple)):
                     _new = dict(target)
@@ -166,28 +186,58 @@ class Utils:
                     **source,
                 }
 
+            if Utils.is_overflow(source):
+                source_of = t.cast(OverflowDict, source)
+                sorted_pairs = sorted(_numeric_key_pairs(source_of), key=lambda item: item[0])
+                numeric_keys = {key for _, key in sorted_pairs}
+                result = OverflowDict()
+                offset = 0
+                if not isinstance(target, Undefined):
+                    result["0"] = target
+                    offset = 1
+                for numeric_key, key in sorted_pairs:
+                    val = source_of[key]
+                    if not isinstance(val, Undefined):
+                        # Offset ensures target occupies index "0"; source indices shift up by 1
+                        result[str(numeric_key + offset)] = val
+                for key, val in source_of.items():
+                    if key in numeric_keys:
+                        continue
+                    if not isinstance(val, Undefined):
+                        result[key] = val
+                return result
+
             _res: t.List[t.Any] = []
             _iter1 = target if isinstance(target, (list, tuple)) else [target]
             for _el in _iter1:
                 if not isinstance(_el, Undefined):
                     _res.append(_el)
-            _iter2 = source if isinstance(source, (list, tuple)) else [source]
+            _iter2 = [source]
             for _el in _iter2:
                 if not isinstance(_el, Undefined):
                     _res.append(_el)
             return _res
 
         # Prepare a mutable copy of the target we can merge into.
+        is_overflow_target = Utils.is_overflow(target)
         merge_target: t.Dict[str, t.Any] = copy.deepcopy(target if isinstance(target, dict) else dict(target))
 
         # For overlapping keys, merge recursively; otherwise, take the new value.
-        return {
+        merged_updates: t.Dict[t.Any, t.Any] = {}
+        # Prefer exact key matches; fall back to string normalization only when needed.
+        for key, value in source.items():
+            normalized_key = str(key)
+            if key in merge_target:
+                merged_updates[key] = Utils.merge(merge_target[key], value, options)
+            elif normalized_key in merge_target:
+                merged_updates[normalized_key] = Utils.merge(merge_target[normalized_key], value, options)
+            else:
+                merged_updates[key] = value
+        merged = {
             **merge_target,
-            **{
-                str(key): Utils.merge(merge_target[key], value, options) if key in merge_target else value
-                for key, value in source.items()
-            },
+            **merged_updates,
         }
+        return OverflowDict(merged) if is_overflow_target else merged
 
     @staticmethod
     def compact(root: t.Dict[str, t.Any]) -> t.Dict[str, t.Any]:
@@ -325,16 +375,89 @@ class Utils:
             return d1 == d2
 
     @staticmethod
+    def is_overflow(obj: t.Any) -> bool:
+        """Check if an object is an OverflowDict."""
+        return isinstance(obj, OverflowDict)
+
+    @staticmethod
     def combine(
         a: t.Union[t.List[t.Any], t.Tuple[t.Any], t.Any],
         b: t.Union[t.List[t.Any], t.Tuple[t.Any], t.Any],
-    ) -> t.List[t.Any]:
+        options: t.Optional[DecodeOptions] = None,
+    ) -> t.Union[t.List[t.Any], t.Dict[str, t.Any]]:
         """
-        Concatenate two values, treating non‑sequences as singletons.
+        Concatenate two values, treating non-sequences as singletons.
 
-        Returns a new `list`; tuples are expanded but not preserved as tuples.
+        If `list_limit` is exceeded, converts the list to an `OverflowDict`
+        (a dict with numeric keys) to prevent memory exhaustion.
+        When `options` is provided, its ``list_limit`` controls when a list is
+        converted into an :class:`OverflowDict` (a dict with numeric keys) to
+        prevent unbounded growth. If ``options`` is ``None``, the default
+        ``list_limit`` from :class:`DecodeOptions` is used.
+        A negative ``list_limit`` is treated as "overflow immediately": any
+        non-empty combined result will be converted to :class:`OverflowDict`.
+        This helper never raises an exception when the limit is exceeded; even
+        if :class:`DecodeOptions` has ``raise_on_limit_exceeded`` set to
+        ``True``, ``combine`` will still handle overflow only by converting the
+        list to :class:`OverflowDict`.
         """
-        return [*(a if isinstance(a, (list, tuple)) else [a]), *(b if isinstance(b, (list, tuple)) else [b])]
+        if Utils.is_overflow(a):
+            # a is already an OverflowDict. Append b to a *copy* at the next numeric index.
+            # We assume sequential keys; len(a_copy) gives the next index.
+            orig_a = t.cast(OverflowDict, a)
+            a_copy = OverflowDict({k: v for k, v in orig_a.items() if not isinstance(v, Undefined)})
+            # Use max key + 1 to handle sparse dicts safely, rather than len(a)
+            key_pairs = _numeric_key_pairs(a_copy)
+            idx = (max(key for key, _ in key_pairs) + 1) if key_pairs else 0
+
+            if isinstance(b, (list, tuple)):
+                for item in b:
+                    if not isinstance(item, Undefined):
+                        a_copy[str(idx)] = item
+                        idx += 1
+            elif Utils.is_overflow(b):
+                b = t.cast(OverflowDict, b)
+                # Iterate in numeric key order to preserve list semantics
+                for _, k in sorted(_numeric_key_pairs(b), key=lambda item: item[0]):
+                    val = b[k]
+                    if not isinstance(val, Undefined):
+                        a_copy[str(idx)] = val
+                        idx += 1
+            else:
+                if not isinstance(b, Undefined):
+                    a_copy[str(idx)] = b
+            return a_copy
+
+        # Normal combination: flatten lists/tuples
+        # Flatten a
+        if isinstance(a, (list, tuple)):
+            list_a = [x for x in a if not isinstance(x, Undefined)]
+        else:
+            list_a = [a] if not isinstance(a, Undefined) else []
+
+        # Flatten b, handling OverflowDict as a list source
+        if isinstance(b, (list, tuple)):
+            list_b = [x for x in b if not isinstance(x, Undefined)]
+        elif Utils.is_overflow(b):
+            b_of = t.cast(OverflowDict, b)
+            list_b = [
+                b_of[k]
+                for _, k in sorted(_numeric_key_pairs(b_of), key=lambda item: item[0])
+                if not isinstance(b_of[k], Undefined)
+            ]
+        else:
+            list_b = [b] if not isinstance(b, Undefined) else []
+
+        res = [*list_a, *list_b]
+
+        list_limit = options.list_limit if options else DecodeOptions().list_limit
+        if list_limit < 0:
+            return OverflowDict({str(i): x for i, x in enumerate(res)}) if res else res
+        if len(res) > list_limit:
+            # Convert to OverflowDict
+            return OverflowDict({str(i): x for i, x in enumerate(res)})
+
+        return res
 
     @staticmethod
     def apply(

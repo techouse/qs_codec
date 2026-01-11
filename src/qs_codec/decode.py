@@ -25,6 +25,7 @@ from .enums.decode_kind import DecodeKind
 from .enums.duplicates import Duplicates
 from .enums.sentinel import Sentinel
 from .models.decode_options import DecodeOptions
+from .models.overflow_dict import OverflowDict
 from .models.undefined import UNDEFINED
 from .utils.decode_utils import DecodeUtils
 from .utils.utils import Utils
@@ -288,7 +289,7 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
 
         # Combine/overwrite according to the configured duplicates policy.
         if existing and options.duplicates == Duplicates.COMBINE:
-            obj[key] = Utils.combine(obj[key], val)
+            obj[key] = Utils.combine(obj[key], val, options)
         elif not existing or options.duplicates == Duplicates.LAST:
             obj[key] = val
 
@@ -361,10 +362,14 @@ def _parse_object(
         root: str = chain[i]
 
         if root == "[]" and options.parse_lists:
-            if options.allow_empty_lists and (leaf == "" or (options.strict_null_handling and leaf is None)):
+            if Utils.is_overflow(leaf):
+                obj = leaf
+            elif options.allow_empty_lists and (leaf == "" or (options.strict_null_handling and leaf is None)):
                 obj = []
             else:
                 obj = list(leaf) if isinstance(leaf, (list, tuple)) else [leaf]
+                if options.list_limit is not None and len(obj) > options.list_limit:
+                    obj = OverflowDict({str(i): x for i, x in enumerate(obj)})
         else:
             obj = dict()
 
@@ -389,7 +394,10 @@ def _parse_object(
                 index = None
 
             if not options.parse_lists and decoded_root == "":
-                obj = {"0": leaf}
+                if Utils.is_overflow(leaf):
+                    obj = leaf
+                else:
+                    obj = {"0": leaf}
             elif (
                 index is not None
                 and index >= 0
