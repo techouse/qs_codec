@@ -177,13 +177,14 @@ class Utils:
 
             if Utils.is_overflow(source):
                 source_of = t.cast(OverflowDict, source)
+                sorted_pairs = sorted(Utils._numeric_key_pairs(source_of), key=lambda item: item[0])
+                overflow_values = [source_of[k] for _, k in sorted_pairs]
                 result = OverflowDict()
                 offset = 0
                 if not isinstance(target, Undefined):
                     result["0"] = target
                     offset = 1
-                for numeric_key, key in sorted(Utils._numeric_key_pairs(source_of), key=lambda item: item[0]):
-                    val = source_of[key]
+                for (numeric_key, _), val in zip(sorted_pairs, overflow_values):
                     if not isinstance(val, Undefined):
                         result[str(numeric_key + offset)] = val
                 return result
@@ -193,14 +194,7 @@ class Utils:
             for _el in _iter1:
                 if not isinstance(_el, Undefined):
                     _res.append(_el)
-            if Utils.is_overflow(source):
-                # Iterate in numeric key order to preserve list semantics
-                source_of = t.cast(OverflowDict, source)
-                _iter2 = [
-                    source_of[k] for _, k in sorted(Utils._numeric_key_pairs(source_of), key=lambda item: item[0])
-                ]
-            else:
-                _iter2 = [source]
+            _iter2 = [source]
             for _el in _iter2:
                 if not isinstance(_el, Undefined):
                     _res.append(_el)
