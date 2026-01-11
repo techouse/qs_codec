@@ -27,7 +27,6 @@ from .enums.sentinel import Sentinel
 from .models.decode_options import DecodeOptions
 from .models.encode_options import EncodeOptions
 from .models.undefined import Undefined
-from .utils.utils import OverflowDict
 
 
 # Public API surface re-exported at the package root.
@@ -46,5 +45,4 @@ __all__ = [
     "DecodeOptions",
     "EncodeOptions",
     "Undefined",
-    "OverflowDict",
 ]
