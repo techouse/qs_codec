@@ -183,7 +183,9 @@ class Utils:
             if Utils.is_overflow(source):
                 # Iterate in numeric key order to preserve list semantics
                 source_of = t.cast(OverflowDict, source)
-                _iter2 = [source_of[k] for k in sorted(source_of.keys(), key=int)]
+                _iter2 = [
+                    source_of[k] for _, k in sorted(Utils._numeric_key_pairs(source_of), key=lambda item: item[0])
+                ]
             else:
                 _iter2 = [source]
             for _el in _iter2:
@@ -344,6 +346,18 @@ class Utils:
         return isinstance(obj, OverflowDict)
 
     @staticmethod
+    def _numeric_key_pairs(mapping: t.Mapping[t.Any, t.Any]) -> t.List[t.Tuple[int, t.Any]]:
+        """Return (numeric_key, original_key) for keys that coerce to int."""
+        pairs: t.List[t.Tuple[int, t.Any]] = []
+        for key in mapping.keys():
+            try:
+                numeric_key = int(key)
+            except (TypeError, ValueError):
+                continue
+            pairs.append((numeric_key, key))
+        return pairs
+
+    @staticmethod
     def combine(
         a: t.Union[t.List[t.Any], t.Tuple[t.Any], t.Any],
         b: t.Union[t.List[t.Any], t.Tuple[t.Any], t.Any],
@@ -370,10 +384,10 @@ class Utils:
             # a is already an OverflowDict. Append b to a *copy* at the next numeric index.
             # We assume sequential keys; len(a_copy) gives the next index.
             orig_a = t.cast(OverflowDict, a)
-            a_copy = OverflowDict(orig_a)
+            a_copy = OverflowDict({k: v for k, v in orig_a.items() if not isinstance(v, Undefined)})
             # Use max key + 1 to handle sparse dicts safely, rather than len(a)
-            keys = [int(k) for k in a_copy]
-            idx = (max(keys) + 1) if keys else 0
+            key_pairs = Utils._numeric_key_pairs(a_copy)
+            idx = (max(key for key, _ in key_pairs) + 1) if key_pairs else 0
 
             if isinstance(b, (list, tuple)):
                 for item in b:
@@ -383,7 +397,7 @@ class Utils:
             elif Utils.is_overflow(b):
                 b = t.cast(OverflowDict, b)
                 # Iterate in numeric key order to preserve list semantics
-                for k in sorted(b.keys(), key=int):
+                for _, k in sorted(Utils._numeric_key_pairs(b), key=lambda item: item[0]):
                     val = b[k]
                     if not isinstance(val, Undefined):
                         a_copy[str(idx)] = val
@@ -405,7 +419,11 @@ class Utils:
             list_b = [x for x in b if not isinstance(x, Undefined)]
         elif Utils.is_overflow(b):
             b_of = t.cast(OverflowDict, b)
-            list_b = [b_of[k] for k in sorted(b_of.keys(), key=int) if not isinstance(b_of[k], Undefined)]
+            list_b = [
+                b_of[k]
+                for _, k in sorted(Utils._numeric_key_pairs(b_of), key=lambda item: item[0])
+                if not isinstance(b_of[k], Undefined)
+            ]
         else:
             list_b = [b] if not isinstance(b, Undefined) else []
 

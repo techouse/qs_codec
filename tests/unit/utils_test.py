@@ -972,6 +972,30 @@ class TestUtils:
         result = Utils.combine(a, b)
         assert result == ["x"]
 
+    def test_combine_overflow_dict_skips_existing_undefined_and_ignores_non_numeric_keys_for_index(self) -> None:
+        a = OverflowDict({"0": "x", "skip": "keep", "1": Undefined()})
+        b = "y"
+        result = Utils.combine(a, b)
+        assert isinstance(result, OverflowDict)
+        assert result["0"] == "x"
+        assert result["1"] == "y"
+        assert result["skip"] == "keep"
+        assert "1" in a  # Original should remain unchanged
+
+    def test_combine_overflow_dict_source_skips_non_numeric_keys(self) -> None:
+        a = OverflowDict({"0": "x"})
+        b = OverflowDict({"foo": "bar", "1": "y", "0": "z"})
+        result = Utils.combine(a, b)
+        assert isinstance(result, OverflowDict)
+        assert result == {"0": "x", "1": "z", "2": "y"}
+        assert "foo" not in result
+
+    def test_merge_overflow_dict_source_skips_non_numeric_keys(self) -> None:
+        target = "a"
+        source = OverflowDict({"foo": "skip", "1": "b"})
+        result = Utils.merge(target, source)
+        assert result == ["a", "b"]
+
 
 class TestDecodeUtilsHelpers:
     def test_dot_to_bracket_preserves_ambiguous_dot_before_closing_bracket(self) -> None:
