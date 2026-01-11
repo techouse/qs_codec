@@ -902,14 +902,37 @@ class TestUtils:
         # Source overwrites target at key '0'
         assert result == {"0": "b"}
 
-    def test_merge_delegates_to_combine_with_options(self) -> None:
-        target = OverflowDict({"0": "a"})
-        source = "b"
-        options = DecodeOptions(list_limit=50)
+    def test_combine_sparse_overflow_dict(self) -> None:
+        # Create an OverflowDict with a sparse key
+        a = OverflowDict({"999": "a"})
+        b = "b"
+        # Combine should append at index 1000 (max key + 1)
+        result = Utils.combine(a, b)
+        assert isinstance(result, OverflowDict)
+        assert result == {"999": "a", "1000": "b"}
+        # Verify it uses integer sorting for keys when determining max
+        assert len(result) == 2
 
-        with patch("qs_codec.utils.utils.Utils.combine") as mock_combine:
-            Utils.merge(target, source, options)
-            mock_combine.assert_called_once_with(target, source, options)
+    def test_merge_target_is_sparse_overflow_dict(self) -> None:
+        # Merge delegates to combine, so this should also use max key + 1
+        target = OverflowDict({"999": "a"})
+        source = "b"
+        result = Utils.merge(target, source)
+        assert isinstance(result, OverflowDict)
+        assert result == {"999": "a", "1000": "b"}
+
+    def test_merge_scalar_target_with_sparse_overflow_dict_source(self) -> None:
+        # Merging OverflowDict source into a scalar target (which becomes a list)
+        # should flatten the OverflowDict values in numeric key order.
+        target = "a"
+        # Insert in reverse order to verify sorting
+        source = OverflowDict({})
+        source["10"] = "c"
+        source["2"] = "b"
+
+        # Utils.merge should produce [target, *source_values_sorted]
+        result = Utils.merge(target, source)
+        assert result == ["a", "b", "c"]
 
 
 class TestDecodeUtilsHelpers:

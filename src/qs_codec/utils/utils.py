@@ -180,11 +180,12 @@ class Utils:
             for _el in _iter1:
                 if not isinstance(_el, Undefined):
                     _res.append(_el)
-            _iter2 = (
-                source
-                if isinstance(source, (list, tuple))
-                else (list(source.values()) if Utils.is_overflow(source) else [source])
-            )
+            if Utils.is_overflow(source):
+                # Iterate in numeric key order to preserve list semantics
+                source_of = t.cast(OverflowDict, source)
+                _iter2 = [source_of[k] for k in sorted(source_of.keys(), key=int)]
+            else:
+                _iter2 = [source]
             for _el in _iter2:
                 if not isinstance(_el, Undefined):
                     _res.append(_el)
