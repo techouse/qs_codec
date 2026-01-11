@@ -920,6 +920,18 @@ class TestUtils:
         assert isinstance(result, OverflowDict)
         assert result == {"0": "a", "foo": "bar"}
 
+    def test_merge_prefers_exact_key_match_before_string_normalization(self) -> None:
+        target = {1: {"a": "x"}}
+        source = {1: {"b": "y"}}
+        result = Utils.merge(target, source)
+        assert result == {1: {"a": "x", "b": "y"}}
+
+        target = {"1": {"a": "x"}}
+        source = {1: {"b": "y"}}
+        result = Utils.merge(target, source)
+        assert result == {"1": {"a": "x", "b": "y"}}
+        assert 1 not in result
+
     def test_combine_sparse_overflow_dict(self) -> None:
         # Create an OverflowDict with a sparse key
         a = OverflowDict({"999": "a"})
