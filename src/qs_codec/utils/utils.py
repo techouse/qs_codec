@@ -355,22 +355,23 @@ class Utils:
         (a dict with numeric keys) to prevent memory exhaustion.
         """
         if Utils.is_overflow(a):
-            # a is already an OverflowDict. Append b to it at the next numeric index.
-            # We assume sequential keys; len(a) gives the next index.
-            a = t.cast(OverflowDict, a)
-            idx = len(a)
+            # a is already an OverflowDict. Append b to a *copy* at the next numeric index.
+            # We assume sequential keys; len(a_copy) gives the next index.
+            orig_a = t.cast(OverflowDict, a)
+            a_copy = OverflowDict(orig_a)
+            idx = len(a_copy)
             if isinstance(b, (list, tuple)):
                 for item in b:
-                    a[str(idx)] = item
+                    a_copy[str(idx)] = item
                     idx += 1
             elif Utils.is_overflow(b):
                 b = t.cast(OverflowDict, b)
                 for item in b.values():
-                    a[str(idx)] = item
+                    a_copy[str(idx)] = item
                     idx += 1
             else:
-                a[str(idx)] = b
-            return a
+                a_copy[str(idx)] = b
+            return a_copy
 
         # Normal combination: flatten lists/tuples
         res = [*(a if isinstance(a, (list, tuple)) else [a]), *(b if isinstance(b, (list, tuple)) else [b])]
