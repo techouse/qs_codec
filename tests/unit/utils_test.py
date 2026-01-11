@@ -1003,12 +1003,12 @@ class TestUtils:
         assert result == {"0": "x", "1": "z", "2": "y"}
         assert "foo" not in result
 
-    def test_merge_overflow_dict_source_skips_non_numeric_keys(self) -> None:
+    def test_merge_overflow_dict_source_preserves_non_numeric_keys(self) -> None:
         target = "a"
         source = OverflowDict({"foo": "skip", "1": "b"})
         result = Utils.merge(target, source)
         assert isinstance(result, OverflowDict)
-        assert result == {"0": "a", "2": "b"}
+        assert result == {"0": "a", "2": "b", "foo": "skip"}
 
 
 class TestDecodeUtilsHelpers:

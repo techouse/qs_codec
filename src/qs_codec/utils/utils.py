@@ -179,6 +179,8 @@ class Utils:
                 source_of = t.cast(OverflowDict, source)
                 sorted_pairs = sorted(Utils._numeric_key_pairs(source_of), key=lambda item: item[0])
                 overflow_values = [source_of[k] for _, k in sorted_pairs]
+                numeric_keys = {key for _, key in sorted_pairs}
+                non_numeric_items = [(key, val) for key, val in source_of.items() if key not in numeric_keys]
                 result = OverflowDict()
                 offset = 0
                 if not isinstance(target, Undefined):
@@ -187,6 +189,9 @@ class Utils:
                 for (numeric_key, _), val in zip(sorted_pairs, overflow_values):
                     if not isinstance(val, Undefined):
                         result[str(numeric_key + offset)] = val
+                for key, val in non_numeric_items:
+                    if not isinstance(val, Undefined):
+                        result[key] = val
                 return result
 
             _res: t.List[t.Any] = []
