@@ -353,6 +353,17 @@ class Utils:
 
         If `list_limit` is exceeded, converts the list to an `OverflowDict`
         (a dict with numeric keys) to prevent memory exhaustion.
+        When `options` is provided, its ``list_limit`` controls when a list is
+        converted into an :class:`OverflowDict` (a dict with numeric keys) to
+        prevent unbounded growth. If ``options`` is ``None``, a default
+        ``list_limit`` of ``20`` is used.
+        A negative ``list_limit`` is treated as "overflow immediately": any
+        non‑empty combined result will be converted to :class:`OverflowDict`
+        because ``len(res) > list_limit`` is then always true for ``len(res) >= 0``.
+        This helper never raises an exception when the limit is exceeded; even
+        if :class:`DecodeOptions` has ``raise_on_limit_exceeded`` set to
+        ``True``, ``combine`` will still handle overflow only by converting the
+        list to :class:`OverflowDict`.
         """
         if Utils.is_overflow(a):
             # a is already an OverflowDict. Append b to a *copy* at the next numeric index.
