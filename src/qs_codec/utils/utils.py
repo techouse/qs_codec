@@ -25,13 +25,8 @@ from decimal import Decimal
 from enum import Enum
 
 from ..models.decode_options import DecodeOptions
+from ..models.overflow_dict import OverflowDict
 from ..models.undefined import Undefined
-
-
-class OverflowDict(dict):
-    """A mutable marker for list overflows when `list_limit` is exceeded."""
-
-    pass
 
 
 class Utils:

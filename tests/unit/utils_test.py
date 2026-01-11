@@ -1,3 +1,4 @@
+import copy
 import re
 import typing as t
 
@@ -6,10 +7,11 @@ import pytest
 from qs_codec.enums.charset import Charset
 from qs_codec.enums.format import Format
 from qs_codec.models.decode_options import DecodeOptions
+from qs_codec.models.overflow_dict import OverflowDict
 from qs_codec.models.undefined import Undefined
 from qs_codec.utils.decode_utils import DecodeUtils
 from qs_codec.utils.encode_utils import EncodeUtils
-from qs_codec.utils.utils import OverflowDict, Utils
+from qs_codec.utils.utils import Utils
 
 
 class TestUtils:
@@ -942,6 +944,16 @@ class TestUtils:
         result = Utils.merge(target, source)
         assert result == {"1": {"a": "x", "b": "y"}}
         assert 1 not in result
+
+    def test_overflow_dict_copy_preserves_type(self) -> None:
+        target = OverflowDict({"0": "a"})
+        result = target.copy()
+        assert isinstance(result, OverflowDict)
+        assert result == {"0": "a"}
+
+        shallow = copy.copy(target)
+        assert isinstance(shallow, OverflowDict)
+        assert shallow == {"0": "a"}
 
     def test_combine_sparse_overflow_dict(self) -> None:
         # Create an OverflowDict with a sparse key

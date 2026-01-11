@@ -9,8 +9,8 @@ import pytest
 from qs_codec import Charset, DecodeOptions, Duplicates, decode, load, loads
 from qs_codec.decode import _parse_object
 from qs_codec.enums.decode_kind import DecodeKind
+from qs_codec.models.overflow_dict import OverflowDict
 from qs_codec.utils.decode_utils import DecodeUtils
-from qs_codec.utils.utils import OverflowDict
 
 
 class TestDecode:

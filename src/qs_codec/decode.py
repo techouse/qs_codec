@@ -25,9 +25,10 @@ from .enums.decode_kind import DecodeKind
 from .enums.duplicates import Duplicates
 from .enums.sentinel import Sentinel
 from .models.decode_options import DecodeOptions
+from .models.overflow_dict import OverflowDict
 from .models.undefined import UNDEFINED
 from .utils.decode_utils import DecodeUtils
-from .utils.utils import OverflowDict, Utils
+from .utils.utils import Utils
 
 
 def decode(
