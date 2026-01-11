@@ -329,7 +329,10 @@ class TestDecode:
                 "a=b&a[1]=c", DecodeOptions(list_limit=20), {"a": ["b", "c"]}, id="simple-and-indexed-with-limit"
             ),
             pytest.param(
-                "a=b&a[]=c", DecodeOptions(list_limit=0), {"a": ["b", "c"]}, id="simple-and-explicit-zero-limit"
+                "a=b&a[]=c",
+                DecodeOptions(list_limit=0),
+                {"a": {"0": "b", "1": "c"}},
+                id="simple-and-explicit-zero-limit",
             ),
             pytest.param("a=b&a[]=c", None, {"a": ["b", "c"]}, id="simple-and-explicit-default"),
         ],

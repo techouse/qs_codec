@@ -934,7 +934,7 @@ class TestUtils:
 
     def test_merge_scalar_target_with_sparse_overflow_dict_source(self) -> None:
         # Merging OverflowDict source into a scalar target (which becomes a list)
-        # should flatten the OverflowDict values in numeric key order.
+        # should preserve overflow semantics and shift numeric indices by 1.
         target = "a"
         # Insert in reverse order to verify sorting
         source = OverflowDict({})
@@ -943,7 +943,8 @@ class TestUtils:
 
         # Utils.merge should produce [target, *source_values_sorted]
         result = Utils.merge(target, source)
-        assert result == ["a", "b", "c"]
+        assert isinstance(result, OverflowDict)
+        assert result == {"0": "a", "3": "b", "11": "c"}
 
     def test_combine_scalar_with_overflow_dict(self) -> None:
         # Test for coverage of Utils.combine lines 403-404
@@ -1006,7 +1007,8 @@ class TestUtils:
         target = "a"
         source = OverflowDict({"foo": "skip", "1": "b"})
         result = Utils.merge(target, source)
-        assert result == ["a", "b"]
+        assert isinstance(result, OverflowDict)
+        assert result == {"0": "a", "2": "b"}
 
 
 class TestDecodeUtilsHelpers:

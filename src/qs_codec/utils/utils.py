@@ -175,6 +175,19 @@ class Utils:
                     **source,
                 }
 
+            if Utils.is_overflow(source):
+                source_of = t.cast(OverflowDict, source)
+                result = OverflowDict()
+                offset = 0
+                if not isinstance(target, Undefined):
+                    result["0"] = target
+                    offset = 1
+                for numeric_key, key in sorted(Utils._numeric_key_pairs(source_of), key=lambda item: item[0]):
+                    val = source_of[key]
+                    if not isinstance(val, Undefined):
+                        result[str(numeric_key + offset)] = val
+                return result
+
             _res: t.List[t.Any] = []
             _iter1 = target if isinstance(target, (list, tuple)) else [target]
             for _el in _iter1:
