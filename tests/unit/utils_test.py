@@ -913,6 +913,13 @@ class TestUtils:
         # Source overwrites target at key '0'
         assert result == {"0": "b"}
 
+    def test_merge_overflow_dict_with_mapping_preserves_overflow(self) -> None:
+        target = OverflowDict({"0": "a"})
+        source = {"foo": "bar"}
+        result = Utils.merge(target, source)
+        assert isinstance(result, OverflowDict)
+        assert result == {"0": "a", "foo": "bar"}
+
     def test_combine_sparse_overflow_dict(self) -> None:
         # Create an OverflowDict with a sparse key
         a = OverflowDict({"999": "a"})

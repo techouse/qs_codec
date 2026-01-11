@@ -206,16 +206,18 @@ class Utils:
             return _res
 
         # Prepare a mutable copy of the target we can merge into.
+        is_overflow_target = Utils.is_overflow(target)
         merge_target: t.Dict[str, t.Any] = copy.deepcopy(target if isinstance(target, dict) else dict(target))
 
         # For overlapping keys, merge recursively; otherwise, take the new value.
-        return {
+        merged = {
             **merge_target,
             **{
                 str(key): Utils.merge(merge_target[key], value, options) if key in merge_target else value
                 for key, value in source.items()
             },
         }
+        return OverflowDict(merged) if is_overflow_target else merged
 
     @staticmethod
     def compact(root: t.Dict[str, t.Any]) -> t.Dict[str, t.Any]:
