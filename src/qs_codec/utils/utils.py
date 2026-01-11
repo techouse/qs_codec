@@ -187,6 +187,7 @@ class Utils:
                 for numeric_key, key in sorted_pairs:
                     val = source_of[key]
                     if not isinstance(val, Undefined):
+                        # Offset ensures target occupies index "0"; source indices shift up by 1
                         result[str(numeric_key + offset)] = val
                 for key, val in source_of.items():
                     if key in numeric_keys:
