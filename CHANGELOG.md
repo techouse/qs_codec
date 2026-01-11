@@ -1,3 +1,7 @@
+## 1.3.3
+
+* [FIX] implement `DecodeOptions.list_limit` handling in `Utils.combine` function to prevent DoS via memory exhaustion
+
 ## 1.3.2
 
 * [CHORE] pin mypy<1.19 on PyPy to avoid new `librt` build failures while keeping newer mypy on CPython
