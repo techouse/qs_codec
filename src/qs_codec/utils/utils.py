@@ -28,6 +28,12 @@ from ..models.decode_options import DecodeOptions
 from ..models.undefined import Undefined
 
 
+class OverflowDict(dict):
+    """A dictionary subclass used to mark objects that have been converted from lists due to the `list_limit` being exceeded."""
+
+    pass
+
+
 class Utils:
     """
     Namespace container for stateless utility routines.
@@ -143,6 +149,9 @@ class Utils:
                             target = list(target)
                         target.append(source)
             elif isinstance(target, t.Mapping):
+                if Utils.is_overflow(target):
+                    return Utils.combine(target, source, options)
+
                 # Target is a mapping but source is a sequence — coerce indices to string keys.
                 if isinstance(source, (list, tuple)):
                     _new = dict(target)
@@ -171,7 +180,11 @@ class Utils:
             for _el in _iter1:
                 if not isinstance(_el, Undefined):
                     _res.append(_el)
-            _iter2 = source if isinstance(source, (list, tuple)) else [source]
+            _iter2 = (
+                source
+                if isinstance(source, (list, tuple))
+                else (list(source.values()) if Utils.is_overflow(source) else [source])
+            )
             for _el in _iter2:
                 if not isinstance(_el, Undefined):
                     _res.append(_el)
@@ -325,16 +338,49 @@ class Utils:
             return d1 == d2
 
     @staticmethod
+    def is_overflow(obj: t.Any) -> bool:
+        """Check if an object is an OverflowDict."""
+        return isinstance(obj, OverflowDict)
+
+    @staticmethod
     def combine(
         a: t.Union[t.List[t.Any], t.Tuple[t.Any], t.Any],
         b: t.Union[t.List[t.Any], t.Tuple[t.Any], t.Any],
-    ) -> t.List[t.Any]:
+        options: t.Optional[DecodeOptions] = None,
+    ) -> t.Union[t.List[t.Any], t.Dict[str, t.Any]]:
         """
         Concatenate two values, treating non‑sequences as singletons.
 
-        Returns a new `list`; tuples are expanded but not preserved as tuples.
+        If `list_limit` is exceeded, converts the list to an `OverflowDict`
+        (a dict with numeric keys) to prevent memory exhaustion.
         """
-        return [*(a if isinstance(a, (list, tuple)) else [a]), *(b if isinstance(b, (list, tuple)) else [b])]
+        if Utils.is_overflow(a):
+            # a is already an OverflowDict. Append b to it at the next numeric index.
+            # We assume sequential keys; len(a) gives the next index.
+            a = t.cast(OverflowDict, a)
+            idx = len(a)
+            if isinstance(b, (list, tuple)):
+                for item in b:
+                    a[str(idx)] = item
+                    idx += 1
+            elif Utils.is_overflow(b):
+                b = t.cast(OverflowDict, b)
+                for item in b.values():
+                    a[str(idx)] = item
+                    idx += 1
+            else:
+                a[str(idx)] = b
+            return a
+
+        # Normal combination: flatten lists/tuples
+        res = [*(a if isinstance(a, (list, tuple)) else [a]), *(b if isinstance(b, (list, tuple)) else [b])]
+
+        list_limit = options.list_limit if options else 20
+        if len(res) > list_limit:
+            # Convert to OverflowDict
+            return OverflowDict({str(i): x for i, x in enumerate(res)})
+
+        return res
 
     @staticmethod
     def apply(
