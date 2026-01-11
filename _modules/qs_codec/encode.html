@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>qs_codec.encode &#8212; qs-codec 1.3.3 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../_static/documentation_options.js?v=28d163b9"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for qs_codec.encode</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Query‑string *encoder* (stringifier).</span>
+
+<span class="sd">This module converts Python mappings and sequences into a percent‑encoded query string with feature parity to the</span>
+<span class="sd">Node.js `qs` package where it makes sense for Python. It supports:</span>
+
+<span class="sd">- Stable, deterministic key ordering with an optional custom comparator.</span>
+<span class="sd">- Multiple list encodings (indices, brackets, repeat key, comma) including the &quot;comma round‑trip&quot; behavior to preserve single‑element lists.</span>
+<span class="sd">- Custom per‑scalar encoder and `datetime` serializer hooks.</span>
+<span class="sd">- RFC 3986 vs RFC 1738 formatting and optional charset sentinels.</span>
+<span class="sd">- Dots vs brackets in key paths (`allow_dots`, `encode_dot_in_keys`).</span>
+<span class="sd">- Strict/null handling, empty‑list emission, and cycle detection.</span>
+
+<span class="sd">Nothing in this module mutates caller objects: inputs are shallow‑normalized and deep‑copied only where safe/necessary to honor options.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">t</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">deepcopy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cmp_to_key</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">weakref</span><span class="w"> </span><span class="kn">import</span> <span class="n">WeakKeyDictionary</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.enums.charset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Charset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.enums.format</span><span class="w"> </span><span class="kn">import</span> <span class="n">Format</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.enums.list_format</span><span class="w"> </span><span class="kn">import</span> <span class="n">ListFormat</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.enums.sentinel</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sentinel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.models.encode_options</span><span class="w"> </span><span class="kn">import</span> <span class="n">EncodeOptions</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.models.undefined</span><span class="w"> </span><span class="kn">import</span> <span class="n">UNDEFINED</span><span class="p">,</span> <span class="n">Undefined</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.models.weak_wrapper</span><span class="w"> </span><span class="kn">import</span> <span class="n">WeakWrapper</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.utils.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">Utils</span>
+
+
+<div class="viewcode-block" id="encode">
+<a class="viewcode-back" href="../../qs_codec.html#qs_codec.encode.encode">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">encode</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="n">options</span><span class="p">:</span> <span class="n">EncodeOptions</span> <span class="o">=</span> <span class="n">EncodeOptions</span><span class="p">())</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Stringify a Python value into a query string.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        value: The object to encode. Accepted shapes:</span>
+<span class="sd">            * Mapping -&gt; encoded as-is.</span>
+<span class="sd">            * Sequence (list/tuple) -&gt; treated as an object with string indices.</span>
+<span class="sd">            * Other/None -&gt; treated as empty input.</span>
+<span class="sd">        options: Encoding behavior (parity with the Node.js `qs` API).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The encoded query string (possibly prefixed with &quot;?&quot; if requested), or an empty string when there is nothing to encode.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        - Caller input is not mutated. When a mapping is provided it is deep-copied; sequences are projected to a temporary mapping.</span>
+<span class="sd">        - If a callable `filter` is provided, it can transform the root object.</span>
+<span class="sd">        - If an iterable filter is provided, it selects which *root* keys to emit.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Treat `None` as &quot;nothing to encode&quot;.</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># Normalize the root into a mapping we can traverse deterministically:</span>
+    <span class="c1"># - Mapping  -&gt; deepcopy (avoid mutating caller containers)</span>
+    <span class="c1"># - Sequence -&gt; promote to {&quot;0&quot;: v0, &quot;1&quot;: v1, ...}</span>
+    <span class="c1"># - Other    -&gt; empty (encodes to &quot;&quot;)</span>
+    <span class="n">obj</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">):</span> <span class="n">item</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">value</span><span class="p">)}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># Early exit if there&#39;s nothing to emit.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">obj</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="n">keys</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># If an iterable filter is provided for the root, restrict emission to those keys.</span>
+    <span class="n">obj_keys</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">filter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">filter</span><span class="p">):</span>
+            <span class="c1"># Callable filter may transform the root object.</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">filter</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="n">obj_keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">filter</span><span class="p">)</span>
+
+    <span class="c1"># Single-item list round-trip marker when using comma format.</span>
+    <span class="n">comma_round_trip</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">list_format</span> <span class="o">==</span> <span class="n">ListFormat</span><span class="o">.</span><span class="n">COMMA</span> <span class="ow">and</span> <span class="n">options</span><span class="o">.</span><span class="n">comma_round_trip</span> <span class="ow">is</span> <span class="kc">True</span>
+
+    <span class="c1"># Default root key set if no iterable filter was provided.</span>
+    <span class="k">if</span> <span class="n">obj_keys</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">obj_keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+    <span class="c1"># Deterministic ordering via user-supplied comparator (if any).</span>
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">sort</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">callable</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">sort</span><span class="p">):</span>
+        <span class="n">obj_keys</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">obj_keys</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">cmp_to_key</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">sort</span><span class="p">))</span>
+
+    <span class="c1"># Side channel for cycle detection across recursive calls.</span>
+    <span class="n">side_channel</span><span class="p">:</span> <span class="n">WeakKeyDictionary</span> <span class="o">=</span> <span class="n">WeakKeyDictionary</span><span class="p">()</span>
+
+    <span class="c1"># Encode each selected root key.</span>
+    <span class="k">for</span> <span class="n">_key</span> <span class="ow">in</span> <span class="n">obj_keys</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">_key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="c1"># Skip non-string keys; parity with ports that stringify key paths.</span>
+            <span class="k">continue</span>
+        <span class="c1"># Optionally drop explicit nulls at the root.</span>
+        <span class="k">if</span> <span class="n">_key</span> <span class="ow">in</span> <span class="n">obj</span> <span class="ow">and</span> <span class="n">obj</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">_key</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">options</span><span class="o">.</span><span class="n">skip_nulls</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">_encoded</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">_encode</span><span class="p">(</span>
+            <span class="n">value</span><span class="o">=</span><span class="n">obj</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">_key</span><span class="p">),</span>
+            <span class="n">is_undefined</span><span class="o">=</span><span class="n">_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">,</span>
+            <span class="n">side_channel</span><span class="o">=</span><span class="n">side_channel</span><span class="p">,</span>
+            <span class="n">prefix</span><span class="o">=</span><span class="n">_key</span><span class="p">,</span>
+            <span class="n">generate_array_prefix</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">list_format</span><span class="o">.</span><span class="n">generator</span><span class="p">,</span>
+            <span class="n">comma_round_trip</span><span class="o">=</span><span class="n">comma_round_trip</span><span class="p">,</span>
+            <span class="n">comma_compact_nulls</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">list_format</span> <span class="o">==</span> <span class="n">ListFormat</span><span class="o">.</span><span class="n">COMMA</span> <span class="ow">and</span> <span class="n">options</span><span class="o">.</span><span class="n">comma_compact_nulls</span><span class="p">,</span>
+            <span class="n">encoder</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">encoder</span> <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">encode</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">serialize_date</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">serialize_date</span><span class="p">,</span>
+            <span class="n">sort</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">sort</span><span class="p">,</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">filter</span><span class="p">,</span>
+            <span class="n">formatter</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">format</span><span class="o">.</span><span class="n">formatter</span><span class="p">,</span>
+            <span class="n">allow_empty_lists</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">allow_empty_lists</span><span class="p">,</span>
+            <span class="n">strict_null_handling</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">strict_null_handling</span><span class="p">,</span>
+            <span class="n">skip_nulls</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">skip_nulls</span><span class="p">,</span>
+            <span class="n">encode_dot_in_keys</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">encode_dot_in_keys</span><span class="p">,</span>
+            <span class="n">allow_dots</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">allow_dots</span><span class="p">,</span>
+            <span class="nb">format</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">format</span><span class="p">,</span>
+            <span class="n">encode_values_only</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">encode_values_only</span><span class="p">,</span>
+            <span class="n">charset</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">charset</span><span class="p">,</span>
+            <span class="n">add_query_prefix</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">add_query_prefix</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># `_encode` yields either a flat list of `key=value` tokens or a single token.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">_encoded</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="n">keys</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">_encoded</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_encoded</span><span class="p">)</span>
+
+    <span class="c1"># Join tokens with the selected pair delimiter.</span>
+    <span class="n">joined</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">delimiter</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
+
+    <span class="c1"># Optional leading &quot;?&quot; prefix (applied *before* a charset sentinel, if any).</span>
+    <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;?&quot;</span> <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">add_query_prefix</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># Optional charset sentinel token for downstream parsers (e.g., &quot;utf-8&quot; or &quot;iso-8859-1&quot;).</span>
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">charset_sentinel</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">charset</span> <span class="o">==</span> <span class="n">Charset</span><span class="o">.</span><span class="n">LATIN1</span><span class="p">:</span>
+            <span class="n">prefix</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">Sentinel</span><span class="o">.</span><span class="n">ISO</span><span class="o">.</span><span class="n">encoded</span><span class="si">}</span><span class="s2">&amp;&quot;</span>
+        <span class="k">elif</span> <span class="n">options</span><span class="o">.</span><span class="n">charset</span> <span class="o">==</span> <span class="n">Charset</span><span class="o">.</span><span class="n">UTF8</span><span class="p">:</span>
+            <span class="n">prefix</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">Sentinel</span><span class="o">.</span><span class="n">CHARSET</span><span class="o">.</span><span class="n">encoded</span><span class="si">}</span><span class="s2">&amp;&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid charset&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">prefix</span> <span class="o">+</span> <span class="n">joined</span> <span class="k">if</span> <span class="n">joined</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span></div>
+
+
+
+<span class="c1"># Alias for the `encode` function.</span>
+<span class="n">dumps</span> <span class="o">=</span> <span class="n">encode</span>  <span class="c1"># public alias (parity with `json.dumps` / Node `qs.stringify`)</span>
+
+<span class="c1"># Unique placeholder used as a key within the side-channel chain to pass context down recursion.</span>
+<span class="n">_sentinel</span><span class="p">:</span> <span class="n">WeakWrapper</span> <span class="o">=</span> <span class="n">WeakWrapper</span><span class="p">({})</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_encode</span><span class="p">(</span>
+    <span class="n">value</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span>
+    <span class="n">is_undefined</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">side_channel</span><span class="p">:</span> <span class="n">WeakKeyDictionary</span><span class="p">,</span>
+    <span class="n">prefix</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">comma_round_trip</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">],</span>
+    <span class="n">comma_compact_nulls</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">encoder</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Charset</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Format</span><span class="p">]],</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">serialize_date</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="n">datetime</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+    <span class="n">sort</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">],</span> <span class="nb">int</span><span class="p">]],</span>
+    <span class="nb">filter</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]]],</span>
+    <span class="n">formatter</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="nb">format</span><span class="p">:</span> <span class="n">Format</span> <span class="o">=</span> <span class="n">Format</span><span class="o">.</span><span class="n">RFC3986</span><span class="p">,</span>
+    <span class="n">generate_array_prefix</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">ListFormat</span><span class="o">.</span><span class="n">INDICES</span><span class="o">.</span><span class="n">generator</span><span class="p">,</span>
+    <span class="n">allow_empty_lists</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">strict_null_handling</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">skip_nulls</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">encode_dot_in_keys</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">allow_dots</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">encode_values_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">charset</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Charset</span><span class="p">]</span> <span class="o">=</span> <span class="n">Charset</span><span class="o">.</span><span class="n">UTF8</span><span class="p">,</span>
+    <span class="n">add_query_prefix</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Recursive worker that produces `key=value` tokens for a single subtree.</span>
+
+<span class="sd">    This function returns either:</span>
+<span class="sd">      * a list/tuple of tokens (strings) to be appended to the parent list, or</span>
+<span class="sd">      * a single token string (when a scalar is reached).</span>
+
+<span class="sd">    It threads a *side-channel* (a chained `WeakKeyDictionary`) through recursion to detect cycles by remembering where each visited object last appeared.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        value: Current subtree value.</span>
+<span class="sd">        is_undefined: Whether the current key was absent in the parent mapping.</span>
+<span class="sd">        side_channel: Cycle-detection chain; child frames point to their parent via `_sentinel`.</span>
+<span class="sd">        prefix: The key path accumulated so far (unencoded except for dot-encoding when requested).</span>
+<span class="sd">        comma_round_trip: Whether a single-element list should emit `[]` to ensure round-trip with comma format.</span>
+<span class="sd">        comma_compact_nulls: When True (and using comma list format), drop `None` entries before joining.</span>
+<span class="sd">        encoder: Custom per-scalar encoder; if None, falls back to `str(value)` for primitives.</span>
+<span class="sd">        serialize_date: Optional `datetime` serializer hook.</span>
+<span class="sd">        sort: Optional comparator for object/array key ordering.</span>
+<span class="sd">        filter: Callable (transform value) or iterable of keys/indices (select).</span>
+<span class="sd">        formatter: Percent-escape function chosen by `format` (RFC3986/1738).</span>
+<span class="sd">        format: Format enum (only used to choose a default `formatter` if none provided).</span>
+<span class="sd">        generate_array_prefix: Strategy used to build array key segments (indices/brackets/repeat/comma).</span>
+<span class="sd">        allow_empty_lists: Emit `[]` for empty lists if True.</span>
+<span class="sd">        strict_null_handling: If True, emit bare keys for nulls (no `=`).</span>
+<span class="sd">        skip_nulls: If True, drop nulls entirely.</span>
+<span class="sd">        encode_dot_in_keys: Percent-encode literal &#39;.&#39; in key names.</span>
+<span class="sd">        allow_dots: Use dot notation for nested objects instead of brackets.</span>
+<span class="sd">        encode_values_only: If True, do not encode key names (only values).</span>
+<span class="sd">        charset: The charset hint passed to `encoder`.</span>
+<span class="sd">        add_query_prefix: Whether the top-level caller requested a leading &#39;?&#39;.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Either a list/tuple of tokens or a single token string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Establish a starting prefix for the top-most invocation (used when called directly).</span>
+    <span class="k">if</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="s2">&quot;?&quot;</span> <span class="k">if</span> <span class="n">add_query_prefix</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># Infer comma round-trip when using the COMMA generator and the flag was not explicitly provided.</span>
+    <span class="k">if</span> <span class="n">comma_round_trip</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">comma_round_trip</span> <span class="o">=</span> <span class="n">generate_array_prefix</span> <span class="ow">is</span> <span class="n">ListFormat</span><span class="o">.</span><span class="n">COMMA</span><span class="o">.</span><span class="n">generator</span>
+
+    <span class="c1"># Choose a formatter if one wasn&#39;t provided (based on the selected format).</span>
+    <span class="k">if</span> <span class="n">formatter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">formatter</span> <span class="o">=</span> <span class="nb">format</span><span class="o">.</span><span class="n">formatter</span>
+
+    <span class="c1"># Work with the original; we never mutate in place (we build new lists/maps when normalizing).</span>
+    <span class="n">obj</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="c1"># --- Cycle detection via chained side-channel -----------------------------------------</span>
+    <span class="n">obj_wrapper</span><span class="p">:</span> <span class="n">WeakWrapper</span> <span class="o">=</span> <span class="n">WeakWrapper</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="n">tmp_sc</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">WeakKeyDictionary</span><span class="p">]</span> <span class="o">=</span> <span class="n">side_channel</span>
+    <span class="n">step</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">find_flag</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="c1"># Walk up the chain looking for `obj_wrapper`. If we see it at the same &quot;step&quot;</span>
+    <span class="c1"># again we&#39;ve closed a loop.</span>
+    <span class="k">while</span> <span class="p">(</span><span class="n">tmp_sc</span> <span class="o">:=</span> <span class="n">tmp_sc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">_sentinel</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">find_flag</span><span class="p">:</span>  <span class="c1"># type: ignore [union-attr]</span>
+        <span class="c1"># Where `value` last appeared in the ref tree</span>
+        <span class="n">pos</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">tmp_sc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">obj_wrapper</span><span class="p">)</span>
+        <span class="n">step</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">pos</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">pos</span> <span class="o">==</span> <span class="n">step</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Circular reference detected&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">find_flag</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># Break while</span>
+        <span class="k">if</span> <span class="n">tmp_sc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">_sentinel</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># --- Pre-processing: filter &amp; datetime handling ---------------------------------------</span>
+    <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="nb">filter</span><span class="p">):</span>
+        <span class="c1"># Callable filter can transform the object for this prefix.</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Normalize datetimes both for scalars and (in COMMA mode) list elements.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">datetime</span><span class="p">):</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="n">serialize_date</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">serialize_date</span><span class="p">)</span> <span class="k">else</span> <span class="n">obj</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">generate_array_prefix</span> <span class="ow">is</span> <span class="n">ListFormat</span><span class="o">.</span><span class="n">COMMA</span><span class="o">.</span><span class="n">generator</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">serialize_date</span><span class="p">):</span>
+                <span class="n">obj</span> <span class="o">=</span> <span class="p">[</span><span class="n">serialize_date</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">datetime</span><span class="p">)</span> <span class="k">else</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">obj</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">datetime</span><span class="p">)</span> <span class="k">else</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">]</span>
+
+    <span class="c1"># --- Null handling --------------------------------------------------------------------</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_undefined</span> <span class="ow">and</span> <span class="n">obj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">strict_null_handling</span><span class="p">:</span>
+            <span class="c1"># Bare key (no &#39;=value&#39;) when strict handling is requested.</span>
+            <span class="k">return</span> <span class="n">encoder</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">charset</span><span class="p">,</span> <span class="nb">format</span><span class="p">)</span> <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">encoder</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">encode_values_only</span> <span class="k">else</span> <span class="n">prefix</span>
+        <span class="c1"># Otherwise treat `None` as empty string.</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># --- Fast path for primitives/bytes ---------------------------------------------------</span>
+    <span class="k">if</span> <span class="n">Utils</span><span class="o">.</span><span class="n">is_non_nullish_primitive</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">skip_nulls</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+        <span class="c1"># When a custom encoder is provided, still coerce Python bools to lowercase JSON style</span>
+        <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">encoder</span><span class="p">):</span>
+            <span class="n">key_value</span> <span class="o">=</span> <span class="n">prefix</span> <span class="k">if</span> <span class="n">encode_values_only</span> <span class="k">else</span> <span class="n">encoder</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">charset</span><span class="p">,</span> <span class="nb">format</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+                <span class="n">value_part</span> <span class="o">=</span> <span class="s2">&quot;true&quot;</span> <span class="k">if</span> <span class="n">obj</span> <span class="k">else</span> <span class="s2">&quot;false&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">value_part</span> <span class="o">=</span> <span class="n">encoder</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">charset</span><span class="p">,</span> <span class="nb">format</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">formatter</span><span class="p">(</span><span class="n">key_value</span><span class="p">)</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">formatter</span><span class="p">(</span><span class="n">value_part</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span>
+        <span class="c1"># Default fallback (no custom encoder): ensure lowercase boolean literals</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+            <span class="n">value_str</span> <span class="o">=</span> <span class="s2">&quot;true&quot;</span> <span class="k">if</span> <span class="n">obj</span> <span class="k">else</span> <span class="s2">&quot;false&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">value_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">formatter</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">formatter</span><span class="p">(</span><span class="n">value_str</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span>
+
+    <span class="n">values</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># If the *key itself* was undefined (not present in the parent), there is nothing to emit.</span>
+    <span class="k">if</span> <span class="n">is_undefined</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">values</span>
+
+    <span class="c1"># --- Determine which keys/indices to traverse ----------------------------------------</span>
+    <span class="n">comma_effective_length</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">obj_keys</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">generate_array_prefix</span> <span class="o">==</span> <span class="n">ListFormat</span><span class="o">.</span><span class="n">COMMA</span><span class="o">.</span><span class="n">generator</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="c1"># In COMMA mode we join the elements into a single token at this level.</span>
+        <span class="n">comma_items</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">comma_compact_nulls</span><span class="p">:</span>
+            <span class="n">comma_items</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">comma_items</span> <span class="k">if</span> <span class="n">item</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="n">comma_effective_length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">comma_items</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">encode_values_only</span> <span class="ow">and</span> <span class="nb">callable</span><span class="p">(</span><span class="n">encoder</span><span class="p">):</span>
+            <span class="n">encoded_items</span> <span class="o">=</span> <span class="n">Utils</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">comma_items</span><span class="p">,</span> <span class="n">encoder</span><span class="p">)</span>
+            <span class="n">obj_keys_value</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="s2">&quot;&quot;</span> <span class="k">if</span> <span class="n">e</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">encoded_items</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">obj_keys_value</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">Utils</span><span class="o">.</span><span class="n">normalize_comma_elem</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">comma_items</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">comma_items</span><span class="p">:</span>
+            <span class="n">obj_keys</span> <span class="o">=</span> <span class="p">[{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="n">obj_keys_value</span> <span class="k">if</span> <span class="n">obj_keys_value</span> <span class="k">else</span> <span class="kc">None</span><span class="p">}]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">obj_keys</span> <span class="o">=</span> <span class="p">[{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="n">UNDEFINED</span><span class="p">}]</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">filter</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="c1"># Iterable filter restricts traversal to a fixed key/index set.</span>
+        <span class="n">obj_keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Default: enumerate keys/indices from mappings or sequences.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
+            <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">obj</span><span class="p">)))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">keys</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">obj_keys</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">cmp_to_key</span><span class="p">(</span><span class="n">sort</span><span class="p">))</span> <span class="k">if</span> <span class="n">sort</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">keys</span>
+
+    <span class="c1"># Percent-encode literal dots in key names when requested.</span>
+    <span class="n">encoded_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">prefix</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">%2E</span><span class="s2">&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">encode_dot_in_keys</span> <span class="k">else</span> <span class="n">prefix</span>
+
+    <span class="c1"># In comma round-trip mode, ensure a single-element list appends `[]` to preserve type on decode.</span>
+    <span class="n">single_item_for_round_trip</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">comma_round_trip</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">generate_array_prefix</span> <span class="o">==</span> <span class="n">ListFormat</span><span class="o">.</span><span class="n">COMMA</span><span class="o">.</span><span class="n">generator</span> <span class="ow">and</span> <span class="n">comma_effective_length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">single_item_for_round_trip</span> <span class="o">=</span> <span class="n">comma_effective_length</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">single_item_for_round_trip</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="n">adjusted_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">encoded_prefix</span><span class="si">}</span><span class="s2">[]&quot;</span> <span class="k">if</span> <span class="n">single_item_for_round_trip</span> <span class="k">else</span> <span class="n">encoded_prefix</span>
+
+    <span class="c1"># Optionally emit empty lists as `key[]=`.</span>
+    <span class="k">if</span> <span class="n">allow_empty_lists</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">obj</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">adjusted_prefix</span><span class="si">}</span><span class="s2">[]&quot;</span><span class="p">]</span>
+
+    <span class="c1"># --- Recurse for each child -----------------------------------------------------------</span>
+    <span class="k">for</span> <span class="n">_key</span> <span class="ow">in</span> <span class="n">obj_keys</span><span class="p">:</span>
+        <span class="c1"># Resolve the child value and whether it was &quot;undefined&quot; at this level.</span>
+        <span class="n">_value</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span>
+        <span class="n">_value_undefined</span><span class="p">:</span> <span class="nb">bool</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">_key</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">&quot;value&quot;</span> <span class="ow">in</span> <span class="n">_key</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">_key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">),</span> <span class="n">Undefined</span><span class="p">):</span>
+            <span class="n">_value</span> <span class="o">=</span> <span class="n">_key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">)</span>
+            <span class="n">_value_undefined</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
+                    <span class="n">_value</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">_key</span><span class="p">)</span>
+                    <span class="n">_value_undefined</span> <span class="o">=</span> <span class="n">_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">obj</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+                    <span class="n">_value</span> <span class="o">=</span> <span class="n">obj</span><span class="p">[</span><span class="n">_key</span><span class="p">]</span>
+                    <span class="n">_value_undefined</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">_value</span> <span class="o">=</span> <span class="n">obj</span><span class="p">[</span><span class="n">_key</span><span class="p">]</span>
+                    <span class="n">_value_undefined</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># pylint: disable=W0718</span>
+                <span class="n">_value</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">_value_undefined</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># Optionally drop null children.</span>
+        <span class="k">if</span> <span class="n">skip_nulls</span> <span class="ow">and</span> <span class="n">_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># When using dotted paths and also encoding dots in keys, percent-escape &#39;.&#39; inside key names.</span>
+        <span class="n">encoded_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">_key</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">%2E</span><span class="s2">&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">allow_dots</span> <span class="ow">and</span> <span class="n">encode_dot_in_keys</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">_key</span><span class="p">)</span>
+
+        <span class="c1"># Build the child key path depending on whether we&#39;re traversing a list or a mapping.</span>
+        <span class="n">key_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">generate_array_prefix</span><span class="p">(</span><span class="n">adjusted_prefix</span><span class="p">,</span> <span class="n">encoded_key</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span>
+            <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">adjusted_prefix</span><span class="si">}{</span><span class="sa">f</span><span class="s1">&#39;.</span><span class="si">{</span><span class="n">encoded_key</span><span class="si">}</span><span class="s1">&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">allow_dots</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="sa">f</span><span class="s1">&#39;[</span><span class="si">{</span><span class="n">encoded_key</span><span class="si">}</span><span class="s1">]&#39;</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Update side-channel for the child call and thread the parent channel via `_sentinel`.</span>
+        <span class="n">side_channel</span><span class="p">[</span><span class="n">obj_wrapper</span><span class="p">]</span> <span class="o">=</span> <span class="n">step</span>
+        <span class="n">value_side_channel</span><span class="p">:</span> <span class="n">WeakKeyDictionary</span> <span class="o">=</span> <span class="n">WeakKeyDictionary</span><span class="p">()</span>
+        <span class="n">value_side_channel</span><span class="p">[</span><span class="n">_sentinel</span><span class="p">]</span> <span class="o">=</span> <span class="n">side_channel</span>
+
+        <span class="c1"># Recurse into the child.</span>
+        <span class="n">encoded</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">_encode</span><span class="p">(</span>
+            <span class="n">value</span><span class="o">=</span><span class="n">_value</span><span class="p">,</span>
+            <span class="n">is_undefined</span><span class="o">=</span><span class="n">_value_undefined</span><span class="p">,</span>
+            <span class="n">side_channel</span><span class="o">=</span><span class="n">value_side_channel</span><span class="p">,</span>
+            <span class="n">prefix</span><span class="o">=</span><span class="n">key_prefix</span><span class="p">,</span>
+            <span class="n">comma_round_trip</span><span class="o">=</span><span class="n">comma_round_trip</span><span class="p">,</span>
+            <span class="n">comma_compact_nulls</span><span class="o">=</span><span class="n">comma_compact_nulls</span><span class="p">,</span>
+            <span class="n">encoder</span><span class="o">=</span><span class="p">(</span>
+                <span class="kc">None</span>
+                <span class="k">if</span> <span class="n">generate_array_prefix</span> <span class="ow">is</span> <span class="n">ListFormat</span><span class="o">.</span><span class="n">COMMA</span><span class="o">.</span><span class="n">generator</span>
+                <span class="ow">and</span> <span class="n">encode_values_only</span>
+                <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span>
+                <span class="k">else</span> <span class="n">encoder</span>
+            <span class="p">),</span>
+            <span class="n">serialize_date</span><span class="o">=</span><span class="n">serialize_date</span><span class="p">,</span>
+            <span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="p">,</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+            <span class="n">formatter</span><span class="o">=</span><span class="n">formatter</span><span class="p">,</span>
+            <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">,</span>
+            <span class="n">generate_array_prefix</span><span class="o">=</span><span class="n">generate_array_prefix</span><span class="p">,</span>
+            <span class="n">allow_empty_lists</span><span class="o">=</span><span class="n">allow_empty_lists</span><span class="p">,</span>
+            <span class="n">strict_null_handling</span><span class="o">=</span><span class="n">strict_null_handling</span><span class="p">,</span>
+            <span class="n">skip_nulls</span><span class="o">=</span><span class="n">skip_nulls</span><span class="p">,</span>
+            <span class="n">encode_dot_in_keys</span><span class="o">=</span><span class="n">encode_dot_in_keys</span><span class="p">,</span>
+            <span class="n">allow_dots</span><span class="o">=</span><span class="n">allow_dots</span><span class="p">,</span>
+            <span class="n">encode_values_only</span><span class="o">=</span><span class="n">encode_values_only</span><span class="p">,</span>
+            <span class="n">charset</span><span class="o">=</span><span class="n">charset</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Flatten nested results into the `values` list.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">encoded</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="n">values</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">encoded</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">encoded</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">values</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">qs-codec</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../README.html">Decoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../README.html#encoding">Encoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../README.html#handling-none-values">Handling <code class="docutils literal notranslate"><span class="pre">None</span></code> values</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../README.html#dealing-with-special-character-sets">Dealing with special character sets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../README.html#rfc-3986-and-rfc-1738-space-encoding">RFC 3986 and RFC 1738 space encoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">qs_codec</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, Klemen Tusar.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
