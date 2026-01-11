@@ -638,6 +638,18 @@ class TestUtils:
         assert combined["0"] == 1
         assert combined["20"] == 2
 
+    def test_combine_list_limit_zero_creates_overflow_dict(self) -> None:
+        options = DecodeOptions(list_limit=0)
+        combined = Utils.combine(["a"], [], options)
+        assert isinstance(combined, OverflowDict)
+        assert combined == {"0": "a"}
+
+    def test_combine_negative_list_limit_overflows_non_empty(self) -> None:
+        options = DecodeOptions(list_limit=-1)
+        combined = Utils.combine([], ["a"], options)
+        assert isinstance(combined, OverflowDict)
+        assert combined == {"0": "a"}
+
     def test_combine_with_overflow_dict(self) -> None:
         a = OverflowDict({"0": "x"})
         b = "y"
