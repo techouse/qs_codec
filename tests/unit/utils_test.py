@@ -934,6 +934,26 @@ class TestUtils:
         result = Utils.merge(target, source)
         assert result == ["a", "b", "c"]
 
+    def test_combine_scalar_with_overflow_dict(self) -> None:
+        # Test for coverage of Utils.combine lines 403-404
+        # Case where 'a' is scalar (not overflow) and 'b' is OverflowDict
+        a = "start"
+        b = OverflowDict({"1": "y", "0": "x"})  # Unordered to verify sorting
+
+        # Should flatten 'b' into ["x", "y"] and prepend 'a' -> ["start", "x", "y"]
+        result = Utils.combine(a, b)
+        assert result == ["start", "x", "y"]
+
+    def test_combine_list_with_overflow_dict(self) -> None:
+        # Test for coverage of Utils.combine lines 403-404
+        # Case where 'a' is list and 'b' is OverflowDict
+        a = ["start"]
+        b = OverflowDict({"1": "y", "0": "x"})
+
+        # Should flatten 'b' into ["x", "y"] and extend 'a' -> ["start", "x", "y"]
+        result = Utils.combine(a, b)
+        assert result == ["start", "x", "y"]
+
 
 class TestDecodeUtilsHelpers:
     def test_dot_to_bracket_preserves_ambiguous_dot_before_closing_bracket(self) -> None:
