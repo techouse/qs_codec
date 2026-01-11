@@ -377,33 +377,37 @@ class Utils:
 
             if isinstance(b, (list, tuple)):
                 for item in b:
-                    a_copy[str(idx)] = item
-                    idx += 1
+                    if not isinstance(item, Undefined):
+                        a_copy[str(idx)] = item
+                        idx += 1
             elif Utils.is_overflow(b):
                 b = t.cast(OverflowDict, b)
                 # Iterate in numeric key order to preserve list semantics
                 for k in sorted(b.keys(), key=int):
-                    a_copy[str(idx)] = b[k]
-                    idx += 1
+                    val = b[k]
+                    if not isinstance(val, Undefined):
+                        a_copy[str(idx)] = val
+                        idx += 1
             else:
-                a_copy[str(idx)] = b
+                if not isinstance(b, Undefined):
+                    a_copy[str(idx)] = b
             return a_copy
 
         # Normal combination: flatten lists/tuples
         # Flatten a
         if isinstance(a, (list, tuple)):
-            list_a = list(a)
+            list_a = [x for x in a if not isinstance(x, Undefined)]
         else:
-            list_a = [a]
+            list_a = [a] if not isinstance(a, Undefined) else []
 
         # Flatten b, handling OverflowDict as a list source
         if isinstance(b, (list, tuple)):
-            list_b = list(b)
+            list_b = [x for x in b if not isinstance(x, Undefined)]
         elif Utils.is_overflow(b):
             b_of = t.cast(OverflowDict, b)
-            list_b = [b_of[k] for k in sorted(b_of.keys(), key=int)]
+            list_b = [b_of[k] for k in sorted(b_of.keys(), key=int) if not isinstance(b_of[k], Undefined)]
         else:
-            list_b = [b]
+            list_b = [b] if not isinstance(b, Undefined) else []
 
         res = [*list_a, *list_b]
 

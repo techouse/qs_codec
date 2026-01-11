@@ -953,6 +953,25 @@ class TestUtils:
         result = Utils.combine(a, b)
         assert result == ["start", "x", "y"]
 
+    def test_combine_skips_undefined_in_overflow_dict_append(self) -> None:
+        a = OverflowDict({"0": "x"})
+        b = ["y", Undefined(), "z"]
+        result = Utils.combine(a, b)
+        assert isinstance(result, OverflowDict)
+        assert result == {"0": "x", "1": "y", "2": "z"}
+
+    def test_combine_skips_undefined_in_list_flattening(self) -> None:
+        a = ["x", Undefined()]
+        b = [Undefined(), "y"]
+        result = Utils.combine(a, b)
+        assert result == ["x", "y"]
+
+    def test_combine_skips_undefined_scalar(self) -> None:
+        a = ["x"]
+        b = Undefined()
+        result = Utils.combine(a, b)
+        assert result == ["x"]
+
 
 class TestDecodeUtilsHelpers:
     def test_dot_to_bracket_preserves_ambiguous_dot_before_closing_bracket(self) -> None:
