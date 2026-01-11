@@ -9,7 +9,7 @@ from qs_codec.models.decode_options import DecodeOptions
 from qs_codec.models.undefined import Undefined
 from qs_codec.utils.decode_utils import DecodeUtils
 from qs_codec.utils.encode_utils import EncodeUtils
-from qs_codec.utils.utils import Utils
+from qs_codec.utils.utils import OverflowDict, Utils
 
 
 class TestUtils:
@@ -627,6 +627,47 @@ class TestUtils:
         assert a is not combined
         assert b is not combined
         assert combined == [1, 2]
+
+    def test_combine_list_limit_exceeded_creates_overflow_dict(self) -> None:
+        a = [1] * 10
+        b = [2] * 11
+        # Total 21 items, default limit is 20
+        combined = Utils.combine(a, b)
+        assert isinstance(combined, OverflowDict)
+        assert len(combined) == 21
+        assert combined["0"] == 1
+        assert combined["20"] == 2
+
+    def test_combine_with_overflow_dict(self) -> None:
+        a = OverflowDict({"0": "x"})
+        b = "y"
+        combined = Utils.combine(a, b)
+        assert isinstance(combined, OverflowDict)
+        assert combined is not a  # Check for immutability (copy)
+        assert combined["0"] == "x"
+        assert combined["1"] == "y"
+        assert len(combined) == 2
+
+        # Verify 'a' was not mutated
+        assert len(a) == 1
+        assert "1" not in a
+
+    def test_combine_options_default(self) -> None:
+        # Default options should imply list_limit=20
+        a = [1] * 20
+        b = [2]
+        combined = Utils.combine(a, b, options=None)
+        assert isinstance(combined, OverflowDict)
+        assert len(combined) == 21
+
+    def test_combine_overflow_dict_with_overflow_dict(self) -> None:
+        a = OverflowDict({"0": "x"})
+        b = OverflowDict({"0": "y"})
+        combined = Utils.combine(a, b)
+        assert isinstance(combined, OverflowDict)
+        assert combined["0"] == "x"
+        assert combined["1"] == "y"
+        assert len(combined) == 2
 
     def test_compact_removes_undefined_entries_and_avoids_cycles(self) -> None:
         root: t.Dict[str, t.Any] = {
