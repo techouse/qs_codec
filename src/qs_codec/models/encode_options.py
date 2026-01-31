@@ -71,7 +71,7 @@ class EncodeOptions:
     """Restrict which keys get included.
     - If a callable is provided, it is invoked for each key and should return the
     replacement value (or `None` to drop when `skip_nulls` applies).
-    - If a list is provided, only those keys/indices are retained.
+    - If a sequence is provided, only those keys/indices are retained.
     """
 
     skip_nulls: bool = False
