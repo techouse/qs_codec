@@ -14,7 +14,7 @@ Nothing in this module mutates caller objects: inputs are shallow‑normalized a
 """
 
 import typing as t
-from collections.abc import Sequence
+from collections.abc import Sequence as ABCSequence
 from copy import deepcopy
 from datetime import datetime
 from functools import cmp_to_key
@@ -77,7 +77,7 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
         if callable(options.filter):
             # Callable filter may transform the root object.
             obj = options.filter("", obj)
-        elif isinstance(options.filter, Sequence) and not isinstance(options.filter, (str, bytes, bytearray)):
+        elif isinstance(options.filter, ABCSequence) and not isinstance(options.filter, (str, bytes, bytearray)):
             obj_keys = list(options.filter)
 
     # Single-item list round-trip marker when using comma format.
@@ -168,7 +168,7 @@ def _encode(
     encoder: t.Optional[t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str]],
     serialize_date: t.Callable[[datetime], t.Optional[str]],
     sort: t.Optional[t.Callable[[t.Any, t.Any], int]],
-    filter: t.Optional[t.Union[t.Callable, Sequence[t.Union[str, int]]]],
+    filter: t.Optional[t.Union[t.Callable, t.Sequence[t.Union[str, int]]]],
     formatter: t.Optional[t.Callable[[str], str]],
     format: Format = Format.RFC3986,
     generate_array_prefix: t.Callable[[str, t.Optional[str]], str] = ListFormat.INDICES.generator,
@@ -316,7 +316,7 @@ def _encode(
             obj_keys = [{"value": obj_keys_value if obj_keys_value else None}]
         else:
             obj_keys = [{"value": UNDEFINED}]
-    elif isinstance(filter, Sequence) and not isinstance(filter, (str, bytes, bytearray)):
+    elif isinstance(filter, ABCSequence) and not isinstance(filter, (str, bytes, bytearray)):
         # Iterable filter restricts traversal to a fixed key/index set.
         obj_keys = list(filter)
     else:
