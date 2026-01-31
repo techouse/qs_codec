@@ -77,9 +77,9 @@ class EncodeOptions:
     skip_nulls: bool = False
     """When `True`, omit keys whose value is `None` entirely (no trailing `=`)."""
 
-    serialize_date: t.Callable[[datetime], t.Optional[str]] = EncodeUtils.serialize_date
-    """Hook to stringify `datetime` values before encoding; returning `None` is treated as a null value
-    (subject to null-handling options), not as a fallback to ISO-8601."""
+    serialize_date: t.Union[t.Callable[[datetime], t.Optional[str]], str] = EncodeUtils.serialize_date
+    """Hook to stringify `datetime` values before encoding. Returning `None` is treated as a null value
+    (subject to null-handling options). If a non-callable is provided, datetimes fall back to ISO-8601."""
 
     encoder: t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str] = field(  # type: ignore [assignment]
         default=EncodeUtils.encode, init=False, repr=False

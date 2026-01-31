@@ -126,7 +126,7 @@ class DecodeOptions:
     ``strict_depth=True``—stops descending once ``depth`` is reached without raising.
     """
 
-    decoder: t.Optional[t.Callable[..., t.Optional[str]]] = DecodeUtils.decode
+    decoder: t.Optional[t.Callable[..., t.Optional[t.Any]]] = DecodeUtils.decode
     """Custom scalar decoder invoked for each raw token prior to interpretation.
 
     The built-in decoder supports ``kind`` and is invoked as
@@ -135,7 +135,7 @@ class DecodeOptions:
     from the decoder uses ``None`` as the scalar value.
     """
 
-    legacy_decoder: t.Optional[t.Callable[..., t.Optional[str]]] = None
+    legacy_decoder: t.Optional[t.Callable[..., t.Optional[t.Any]]] = None
     """Back‑compat adapter for legacy decoders of the form ``decoder(value, charset)``.
     Prefer ``decoder`` which may optionally accept a ``kind`` argument. When both are supplied,
     ``decoder`` takes precedence (mirroring Kotlin/C#/Swift/Dart behavior)."""
@@ -221,7 +221,7 @@ class DecodeOptions:
                 s: t.Optional[str],
                 charset: t.Optional[Charset],
                 kind: DecodeKind,
-            ) -> t.Optional[str]:
+            ) -> t.Optional[t.Any]:
                 kind_arg: t.Union[DecodeKind, str] = kind.value if pass_kind_as_str else kind
                 args: t.List[t.Any] = [s]
                 kwargs: t.Dict[str, t.Any] = {}
@@ -241,7 +241,7 @@ class DecodeOptions:
                 s: t.Optional[str],
                 charset: t.Optional[Charset],
                 kind: DecodeKind,
-            ) -> t.Optional[str]:
+            ) -> t.Optional[t.Any]:
                 _ = kind  # ignored by legacy decoders
                 try:
                     return user_dec(s)  # type: ignore[misc]
@@ -257,7 +257,7 @@ class DecodeOptions:
             charset: t.Optional[Charset] = Charset.UTF8,
             *,
             kind: DecodeKind = DecodeKind.VALUE,
-        ) -> t.Optional[str]:
+        ) -> t.Optional[t.Any]:
             """Adapter that dispatches based on the user decoder's signature."""
             return dispatch(s, charset, kind)
 

@@ -16,7 +16,7 @@ from qs_codec.utils.decode_utils import DecodeUtils
 class TestDecode:
     def test_throws_an_error_if_the_input_is_not_a_string_or_a_dict(self) -> None:
         with pytest.raises(ValueError):
-            decode(123)
+            decode(123)  # type: ignore[arg-type]
 
     @pytest.mark.parametrize(
         "encoded, decoded, options",

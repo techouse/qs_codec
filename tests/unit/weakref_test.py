@@ -68,7 +68,7 @@ class TestWeakrefWithDictKeys:
 
     def test_hash_fallback_uses_repr_for_unhashable_object(self) -> None:
         class Unhashable:
-            __hash__ = None
+            __hash__ = None  # type: ignore[assignment]
 
             def __repr__(self) -> str:  # pragma: no cover - trivial repr
                 return "<Unhashable>"

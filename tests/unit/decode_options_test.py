@@ -28,8 +28,9 @@ class TestDecodeOptionsDecoderDefault:
         # The adapter may wrap the default, so compare behavior rather than identity.
         opts = DecodeOptions()
         s = "a+b%2E"
-        out_key = opts.decoder(s, Charset.UTF8, kind=DecodeKind.KEY)
-        out_val = opts.decoder(s, Charset.UTF8, kind=DecodeKind.VALUE)
+        decoder = require_decoder(opts)
+        out_key = decoder(s, Charset.UTF8, kind=DecodeKind.KEY)
+        out_val = decoder(s, Charset.UTF8, kind=DecodeKind.VALUE)
         assert out_key == DecodeUtils.decode(s, charset=Charset.UTF8, kind=DecodeKind.KEY)
         assert out_val == DecodeUtils.decode(s, charset=Charset.UTF8, kind=DecodeKind.VALUE)
 
@@ -43,7 +44,8 @@ class TestDecoderAdapterSignatures:
             return None if s is None else s.upper()
 
         opts = DecodeOptions(decoder=dec)
-        assert opts.decoder("x", Charset.UTF8, kind=DecodeKind.KEY) == "X"
+        decoder = require_decoder(opts)
+        assert decoder("x", Charset.UTF8, kind=DecodeKind.KEY) == "X"
         assert calls == [("x",)]
 
     def test_two_args_s_charset(self) -> None:
@@ -55,7 +57,8 @@ class TestDecoderAdapterSignatures:
             return None if s is None else f"{s}|{charset.name if charset else 'NONE'}"
 
         opts = DecodeOptions(decoder=dec)
-        assert opts.decoder("hi", Charset.LATIN1, kind=DecodeKind.VALUE) == "hi|LATIN1"
+        decoder = require_decoder(opts)
+        assert decoder("hi", Charset.LATIN1, kind=DecodeKind.VALUE) == "hi|LATIN1"
         assert seen == [("hi", Charset.LATIN1)]
 
     def test_three_args_kind_enum_annotation(self) -> None:
@@ -67,7 +70,8 @@ class TestDecoderAdapterSignatures:
             return None if s is None else f"K:{'E' if isinstance(kind, DecodeKind) else type(kind).__name__}"
 
         opts = DecodeOptions(decoder=dec)
-        assert opts.decoder("z", Charset.UTF8, kind=DecodeKind.KEY) == "K:E"
+        decoder = require_decoder(opts)
+        assert decoder("z", Charset.UTF8, kind=DecodeKind.KEY) == "K:E"
         assert seen and isinstance(seen[0], DecodeKind) and seen[0] is DecodeKind.KEY
 
     def test_three_args_kind_str_annotation(self) -> None:
@@ -78,7 +82,8 @@ class TestDecoderAdapterSignatures:
             return None if s is None else kind  # echo back
 
         opts = DecodeOptions(decoder=dec)
-        assert opts.decoder("z", Charset.UTF8, kind=DecodeKind.KEY) == "key"
+        decoder = require_decoder(opts)
+        assert decoder("z", Charset.UTF8, kind=DecodeKind.KEY) == "key"
         assert seen == ["key"]
 
     def test_kwonly_kind_str(self) -> None:
@@ -89,7 +94,8 @@ class TestDecoderAdapterSignatures:
             return None if s is None else kind
 
         opts = DecodeOptions(decoder=dec)
-        assert opts.decoder("z", Charset.UTF8, kind=DecodeKind.VALUE) == "value"
+        decoder = require_decoder(opts)
+        assert decoder("z", Charset.UTF8, kind=DecodeKind.VALUE) == "value"
         assert seen == ["value"]
 
     def test_varargs_kwargs_receives_kind_string(self) -> None:
@@ -100,7 +106,8 @@ class TestDecoderAdapterSignatures:
             return s
 
         opts = DecodeOptions(decoder=dec)
-        assert opts.decoder("ok", Charset.UTF8, kind=DecodeKind.KEY) == "ok"
+        decoder = require_decoder(opts)
+        assert decoder("ok", Charset.UTF8, kind=DecodeKind.KEY) == "ok"
         assert seen == ["key"]
 
     def test_user_decoder_typeerror_is_not_swallowed(self) -> None:
@@ -108,8 +115,9 @@ class TestDecoderAdapterSignatures:
             raise TypeError("boom")
 
         opts = DecodeOptions(decoder=dec)
+        decoder = require_decoder(opts)
         with pytest.raises(TypeError):
-            _ = opts.decoder("oops", Charset.UTF8, kind=DecodeKind.KEY)
+            _ = decoder("oops", Charset.UTF8, kind=DecodeKind.KEY)
 
     def test_kwonly_charset_receives_keyword_argument(self) -> None:
         calls: t.List[t.Dict[str, t.Any]] = []
@@ -119,7 +127,8 @@ class TestDecoderAdapterSignatures:
             return s
 
         opts = DecodeOptions(decoder=dec)
-        assert opts.decoder("x", Charset.LATIN1, kind=DecodeKind.KEY) == "x"
+        decoder = require_decoder(opts)
+        assert decoder("x", Charset.LATIN1, kind=DecodeKind.KEY) == "x"
         assert calls == [{"charset": Charset.LATIN1, "kind": "key"}]
 
     def test_positional_only_kind_receives_string(self) -> None:
@@ -136,7 +145,8 @@ class TestDecoderAdapterSignatures:
             return s
 
         opts = DecodeOptions(decoder=dec)
-        assert opts.decoder("value", Charset.UTF8, kind=DecodeKind.VALUE) == "value"
+        decoder = require_decoder(opts)
+        assert decoder("value", Charset.UTF8, kind=DecodeKind.VALUE) == "value"
         assert seen == [("value", Charset.UTF8)]
 
     def test_unannotated_kind_parameter_receives_string(self) -> None:
@@ -147,7 +157,8 @@ class TestDecoderAdapterSignatures:
             return s
 
         opts = DecodeOptions(decoder=dec)
-        assert opts.decoder("q", Charset.UTF8, kind=DecodeKind.KEY) == "q"
+        decoder = require_decoder(opts)
+        assert decoder("q", Charset.UTF8, kind=DecodeKind.KEY) == "q"
         assert seen == ["key"]
 
     def test_literal_kind_annotation_prefers_string(self) -> None:
@@ -162,7 +173,8 @@ class TestDecoderAdapterSignatures:
             return s
 
         opts = DecodeOptions(decoder=dec)
-        assert opts.decoder("ok", Charset.UTF8, kind=DecodeKind.VALUE) == "ok"
+        decoder = require_decoder(opts)
+        assert decoder("ok", Charset.UTF8, kind=DecodeKind.VALUE) == "ok"
         assert seen == ["value"]
 
     def test_builtin_signature_unavailable_single_arg_fallback(self) -> None:
@@ -173,7 +185,8 @@ class TestDecoderAdapterSignatures:
                 return None if s is None else f"{s}-ok"
 
         opts = DecodeOptions(decoder=BadSignature())
-        assert opts.decoder("x", Charset.UTF8, kind=DecodeKind.KEY) == "x-ok"
+        decoder = require_decoder(opts)
+        assert decoder("x", Charset.UTF8, kind=DecodeKind.KEY) == "x-ok"
 
     def test_builtin_signature_unavailable_two_arg_fallback(self) -> None:
         class BadSignature:
@@ -183,7 +196,8 @@ class TestDecoderAdapterSignatures:
                 return None if s is None else f"{s}|{charset.name if charset else 'NONE'}"
 
         opts = DecodeOptions(decoder=BadSignature())
-        assert opts.decoder("x", Charset.UTF8, kind=DecodeKind.VALUE) == "x|UTF8"
+        decoder = require_decoder(opts)
+        assert decoder("x", Charset.UTF8, kind=DecodeKind.VALUE) == "x|UTF8"
 
     def test_builtin_signature_unavailable_raises_original_typeerror(self) -> None:
         class BadSignature:
@@ -193,8 +207,9 @@ class TestDecoderAdapterSignatures:
                 return "nope"
 
         opts = DecodeOptions(decoder=BadSignature())
+        decoder = require_decoder(opts)
         with pytest.raises(TypeError) as exc_info:
-            _ = opts.decoder("x", Charset.UTF8, kind=DecodeKind.KEY)
+            _ = decoder("x", Charset.UTF8, kind=DecodeKind.KEY)
         assert exc_info.value.__cause__ is not None
 
     def test_builtin_without_signature_raises_original_typeerror(self) -> None:
@@ -257,43 +272,51 @@ class TestDefaultDecodeKeyEncodedDots:
     def test_key_maps_2e_inside_brackets_allowdots_true(self) -> None:
         for cs in (Charset.UTF8, Charset.LATIN1):
             opts = DecodeOptions(allow_dots=True, charset=cs)
-            assert opts.decoder("a[%2E]", cs, kind=DecodeKind.KEY) == "a[.]"
-            assert opts.decoder("a[%2e]", cs, kind=DecodeKind.KEY) == "a[.]"
+            decoder = require_decoder(opts)
+            assert decoder("a[%2E]", cs, kind=DecodeKind.KEY) == "a[.]"
+            assert decoder("a[%2e]", cs, kind=DecodeKind.KEY) == "a[.]"
 
     def test_key_maps_2e_outside_brackets_allowdots_true_independent_of_decodeopt(self) -> None:
         for cs in (Charset.UTF8, Charset.LATIN1):
             opts1 = DecodeOptions(allow_dots=True, decode_dot_in_keys=False, charset=cs)
             opts2 = DecodeOptions(allow_dots=True, decode_dot_in_keys=True, charset=cs)
-            assert opts1.decoder("a%2Eb", cs, kind=DecodeKind.KEY) == "a.b"
-            assert opts2.decoder("a%2Eb", cs, kind=DecodeKind.KEY) == "a.b"
+            decoder1 = require_decoder(opts1)
+            decoder2 = require_decoder(opts2)
+            assert decoder1("a%2Eb", cs, kind=DecodeKind.KEY) == "a.b"
+            assert decoder2("a%2Eb", cs, kind=DecodeKind.KEY) == "a.b"
 
     def test_non_key_decodes_2e_to_dot_control(self) -> None:
         for cs in (Charset.UTF8, Charset.LATIN1):
             opts = DecodeOptions(allow_dots=True, charset=cs)
-            assert opts.decoder("a%2Eb", cs, kind=DecodeKind.VALUE) == "a.b"
+            decoder = require_decoder(opts)
+            assert decoder("a%2Eb", cs, kind=DecodeKind.VALUE) == "a.b"
 
     def test_key_maps_2e_inside_brackets_allowdots_false(self) -> None:
         for cs in (Charset.UTF8, Charset.LATIN1):
             opts = DecodeOptions(allow_dots=False, charset=cs)
-            assert opts.decoder("a[%2E]", cs, kind=DecodeKind.KEY) == "a[.]"
-            assert opts.decoder("a[%2e]", cs, kind=DecodeKind.KEY) == "a[.]"
+            decoder = require_decoder(opts)
+            assert decoder("a[%2E]", cs, kind=DecodeKind.KEY) == "a[.]"
+            assert decoder("a[%2e]", cs, kind=DecodeKind.KEY) == "a[.]"
 
     def test_key_outside_2e_decodes_to_dot_allowdots_false(self) -> None:
         for cs in (Charset.UTF8, Charset.LATIN1):
             opts = DecodeOptions(allow_dots=False, charset=cs)
-            assert opts.decoder("a%2Eb", cs, kind=DecodeKind.KEY) == "a.b"
-            assert opts.decoder("a%2eb", cs, kind=DecodeKind.KEY) == "a.b"
+            decoder = require_decoder(opts)
+            assert decoder("a%2Eb", cs, kind=DecodeKind.KEY) == "a.b"
+            assert decoder("a%2eb", cs, kind=DecodeKind.KEY) == "a.b"
 
 
 class TestCustomDecoderBehavior:
     def test_decode_key_decodes_percent_sequences_like_values_when_decode_dot_in_keys_false(self) -> None:
         opts = DecodeOptions(allow_dots=True, decode_dot_in_keys=False)
-        assert opts.decoder("a%2Eb", Charset.UTF8, kind=DecodeKind.KEY) == "a.b"
-        assert opts.decoder("a%2eb", Charset.UTF8, kind=DecodeKind.KEY) == "a.b"
+        decoder = require_decoder(opts)
+        assert decoder("a%2Eb", Charset.UTF8, kind=DecodeKind.KEY) == "a.b"
+        assert decoder("a%2eb", Charset.UTF8, kind=DecodeKind.KEY) == "a.b"
 
     def test_decode_value_decodes_percent_sequences_normally(self) -> None:
         opts = DecodeOptions()
-        assert opts.decoder("%2E", Charset.UTF8, kind=DecodeKind.VALUE) == "."
+        decoder = require_decoder(opts)
+        assert decoder("%2E", Charset.UTF8, kind=DecodeKind.VALUE) == "."
 
     def test_decoder_is_used_for_key_and_value(self) -> None:
         calls: t.List[t.Tuple[t.Optional[str], DecodeKind]] = []
@@ -303,8 +326,9 @@ class TestCustomDecoderBehavior:
             return s
 
         opts = DecodeOptions(decoder=dec)
-        assert opts.decoder("x", Charset.UTF8, kind=DecodeKind.KEY) == "x"
-        assert opts.decoder("y", Charset.UTF8, kind=DecodeKind.VALUE) == "y"
+        decoder = require_decoder(opts)
+        assert decoder("x", Charset.UTF8, kind=DecodeKind.KEY) == "x"
+        assert decoder("y", Charset.UTF8, kind=DecodeKind.VALUE) == "y"
 
         assert len(calls) == 2
         assert calls[0][1] is DecodeKind.KEY and calls[0][0] == "x"
@@ -315,17 +339,19 @@ class TestCustomDecoderBehavior:
             return None
 
         opts = DecodeOptions(decoder=dec)
-        assert opts.decoder("foo", Charset.UTF8, kind=DecodeKind.VALUE) is None
-        assert opts.decoder("bar", Charset.UTF8, kind=DecodeKind.KEY) is None
+        decoder = require_decoder(opts)
+        assert decoder("foo", Charset.UTF8, kind=DecodeKind.VALUE) is None
+        assert decoder("bar", Charset.UTF8, kind=DecodeKind.KEY) is None
 
     def test_single_decoder_acts_like_legacy_when_ignoring_kind(self) -> None:
         def dec(s: t.Optional[str], *args, **kwargs):  # type: ignore[no-untyped-def]
             return None if s is None else s.upper()
 
         opts = DecodeOptions(decoder=dec)
-        assert opts.decoder("abc", Charset.UTF8, kind=DecodeKind.VALUE) == "ABC"
+        decoder = require_decoder(opts)
+        assert decoder("abc", Charset.UTF8, kind=DecodeKind.VALUE) == "ABC"
         # For keys, custom decoder gets the raw token; no default percent-decoding happens first.
-        assert opts.decoder("a%2Eb", Charset.UTF8, kind=DecodeKind.KEY) == "A%2EB"
+        assert decoder("a%2Eb", Charset.UTF8, kind=DecodeKind.KEY) == "A%2EB"
 
     def test_decoder_wins_over_legacy_decoder_when_both_provided(self) -> None:
         # decoder must take precedence over legacy_decoder (parity with Kotlin/C#)
@@ -356,3 +382,11 @@ class TestCustomDecoderBehavior:
 
         opts = DecodeOptions(decoder=dec)
         assert opts.decode_key("anything") == "42"
+
+
+DecoderCallable = t.Callable[..., t.Optional[t.Any]]
+
+
+def require_decoder(opts: DecodeOptions) -> DecoderCallable:
+    assert opts.decoder is not None
+    return opts.decoder
