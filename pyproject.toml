@@ -135,14 +135,7 @@ markers = []
 [tool.mypy]
 mypy_path = "src"
 python_version = "3.8"
-exclude = [
-    "tests",
-    "docs",
-    "build",
-    "dist",
-    "venv",
-    "env",
-]
+exclude = ["tests", "docs", "build", "dist", "venv", "env", ".tox"]
 show_error_codes = true
 warn_return_any = true
 warn_unused_configs = true
