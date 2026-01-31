@@ -73,12 +73,13 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
 
     # If an iterable filter is provided for the root, restrict emission to those keys.
     obj_keys: t.Optional[t.List[t.Any]] = None
-    if options.filter is not None:
-        if callable(options.filter):
+    filter_opt = options.filter
+    if filter_opt is not None:
+        if callable(filter_opt):
             # Callable filter may transform the root object.
-            obj = options.filter("", obj)
-        elif isinstance(options.filter, ABCSequence) and not isinstance(options.filter, (str, bytes, bytearray)):
-            obj_keys = list(options.filter)
+            obj = filter_opt("", obj)
+        elif isinstance(filter_opt, ABCSequence) and not isinstance(filter_opt, (str, bytes, bytearray)):
+            obj_keys = list(filter_opt)
 
     # Single-item list round-trip marker when using comma format.
     comma_round_trip: bool = options.list_format == ListFormat.COMMA and options.comma_round_trip is True
@@ -252,9 +253,10 @@ def _encode(
             step = 0
 
     # --- Pre-processing: filter & datetime handling ---------------------------------------
-    if callable(filter_):
+    filter_opt = filter_
+    if callable(filter_opt):
         # Callable filter can transform the object for this prefix.
-        obj = filter_(prefix, obj)
+        obj = filter_opt(prefix, obj)
     else:
         # Normalize datetimes both for scalars and (in COMMA mode) list elements.
         if isinstance(obj, datetime):
@@ -316,9 +318,13 @@ def _encode(
             obj_keys = [{"value": obj_keys_value if obj_keys_value else None}]
         else:
             obj_keys = [{"value": UNDEFINED}]
-    elif isinstance(filter_, ABCSequence) and not isinstance(filter_, (str, bytes, bytearray)):
+    elif (
+        filter_opt is not None
+        and isinstance(filter_opt, ABCSequence)
+        and not isinstance(filter_opt, (str, bytes, bytearray))
+    ):
         # Iterable filter restricts traversal to a fixed key/index set.
-        obj_keys = list(filter_)
+        obj_keys = list(filter_opt)
     else:
         # Default: enumerate keys/indices from mappings or sequences.
         if isinstance(obj, t.Mapping):
