@@ -56,16 +56,24 @@ PayPal = "https://paypal.me/ktusar"
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.1.2",
-    "pytest-cov>=5.0.0",
+    "bandit",
+    "black",
+    "flake8",
+    "flake8-colors",
+    "flake8-docstrings",
+    "flake8-import-order",
+    "flake8-typing-imports",
+    "isort",
     "mypy<1.11; python_version < \"3.9\"",
-    "mypy>=1.11; python_version >= \"3.9\" and platform_python_implementation != \"PyPy\"",
     "mypy<1.19; python_version >= \"3.9\" and platform_python_implementation == \"PyPy\"",
+    "mypy>=1.11; python_version >= \"3.9\" and platform_python_implementation != \"PyPy\"",
+    "pep8-naming",
+    "pylint",
+    "pyright",
+    "pytest-cov>=5.0.0",
+    "pytest>=8.1.2",
     "toml>=0.10.2",
     "tox",
-    "black",
-    "isort",
-    "pyright"
 ]
 
 [tool.hatch.version]
