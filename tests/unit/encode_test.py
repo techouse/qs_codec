@@ -876,6 +876,19 @@ class TestEncode:
     ) -> None:
         assert encode(data, options) == expected
 
+    @pytest.mark.parametrize(
+        "sequence, expected",
+        [
+            pytest.param([1, 2], "a%5B0%5D=1", id="list"),
+            pytest.param((1, 2), "a%5B0%5D=1", id="tuple"),
+        ],
+    )
+    def test_filter_list_ignores_non_int_keys_for_sequences(self, sequence: t.Sequence[int], expected: str) -> None:
+        data = {"a": sequence}
+        options = EncodeOptions(filter=["a", 0, "x"])
+
+        assert encode(data, options) == expected
+
     def test_supports_custom_representations_when_filter_is_function(self) -> None:
         calls = 0
 
