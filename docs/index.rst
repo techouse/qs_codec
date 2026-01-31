@@ -16,7 +16,7 @@ A query string encoding and decoding library for Python.
 Ported from `qs <https://www.npmjs.com/package/qs>`__ for JavaScript.
 
 |PyPI - Version| |PyPI - Downloads| |PyPI - Status| |PyPI - Python Version| |PyPy Support| |PyPI - Format| |Black|
-|Test| |CodeQL| |Publish| |Docs| |codecov| |Codacy| |flake8| |mypy| |pylint| |isort| |bandit|
+|Test| |CodeQL| |Publish| |Docs| |codecov| |Codacy| |OpenSSF| |flake8| |mypy| |pylint| |isort| |bandit|
 |License| |Contributor Covenant| |GitHub Sponsors| |GitHub Repo stars|
 
 Highlights
@@ -144,6 +144,9 @@ Holowaychuk <https://github.com/visionmedia/node-querystring>`__
 .. |Contributor Covenant| image:: https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg?logo=contributorcovenant
    :target: CODE-OF-CONDUCT.md
    :alt: Contributor Covenant
+.. |OpenSSF| image:: https://www.bestpractices.dev/projects/11863/badge
+   :target: https://www.bestpractices.dev/projects/11863
+   :alt: OpenSSF Best Practices
 .. |flake8| image:: https://img.shields.io/badge/flake8-checked-blueviolet.svg?logo=python
    :target: https://flake8.pycqa.org/en/latest/
    :alt: flake8 Status
