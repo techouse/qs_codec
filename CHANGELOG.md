@@ -1,3 +1,7 @@
+## 1.3.4
+
+* [CHORE] stricter static type checking with pyright
+
 ## 1.3.3
 
 * [FIX] implement `DecodeOptions.list_limit` handling in `Utils.combine` function to prevent DoS via memory exhaustion
