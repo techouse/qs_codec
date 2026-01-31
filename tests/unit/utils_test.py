@@ -591,7 +591,7 @@ class TestUtils:
     def test_combine_both_arrays(self) -> None:
         a: t.List[int] = [1]
         b: t.List[int] = [2]
-        combined: t.List[int] = Utils.combine(a, b)
+        combined = Utils.combine(a, b)
 
         assert a == [1]
         assert b == [2]
@@ -605,7 +605,7 @@ class TestUtils:
         b_n: int = 2
         b: t.List[int] = [b_n]
 
-        combined_an_b: t.List[int] = Utils.combine(a_n, b)
+        combined_an_b = Utils.combine(a_n, b)
         assert b == [b_n]
         assert a_n is not combined_an_b
         assert a is not combined_an_b
@@ -624,7 +624,7 @@ class TestUtils:
     def test_combine_neither_is_an_array(self) -> None:
         a: int = 1
         b: int = 2
-        combined: t.List[int] = Utils.combine(a, b)
+        combined = Utils.combine(a, b)
 
         assert a is not combined
         assert b is not combined
@@ -812,13 +812,13 @@ class TestUtils:
     def test_dicts_are_equal_with_non_dicts(self) -> None:
         # Test for lines 189 and 192 in utils.py
         # Test comparing a dict with a non-dict (should return False)
-        assert not Utils._dicts_are_equal({"a": 1}, "not a dict")
+        assert not Utils._dicts_are_equal({"a": 1}, "not a dict")  # type: ignore[arg-type]
 
         # Test comparing two non-dicts that are equal
-        assert Utils._dicts_are_equal("same", "same")
+        assert Utils._dicts_are_equal("same", "same")  # type: ignore[arg-type]
 
         # Test comparing two non-dicts that are not equal
-        assert not Utils._dicts_are_equal("one", "two")
+        assert not Utils._dicts_are_equal("one", "two")  # type: ignore[arg-type]
 
     def test_is_non_nullish_primitive_catch_all(self) -> None:
         # Test for line 226-228 in utils.py
@@ -905,14 +905,14 @@ class TestUtils:
         target = OverflowDict({"0": "a"})
         source = "b"
         # Should delegate to combine, which appends 'b' at index 1
-        result = Utils.merge(target, source)
+        result = Utils.merge(target, source)  # type: ignore[arg-type]
         assert isinstance(result, OverflowDict)
         assert result == {"0": "a", "1": "b"}
 
     def test_merge_source_is_overflow_dict_into_dict(self) -> None:
         target = {"a": 1}
         source = OverflowDict({"b": 2})
-        result = Utils.merge(target, source)
+        result = Utils.merge(target, source)  # type: ignore[arg-type]
         assert isinstance(result, dict)
         assert result == {"a": 1, "b": 2}
 
@@ -920,7 +920,7 @@ class TestUtils:
         target = ["a"]
         # source has key '0', which collides with target's index 0
         source = OverflowDict({"0": "b"})
-        result = Utils.merge(target, source)
+        result = Utils.merge(target, source)  # type: ignore[arg-type]
         assert isinstance(result, dict)
         # Source overwrites target at key '0'
         assert result == {"0": "b"}
@@ -928,19 +928,19 @@ class TestUtils:
     def test_merge_overflow_dict_with_mapping_preserves_overflow(self) -> None:
         target = OverflowDict({"0": "a"})
         source = {"foo": "bar"}
-        result = Utils.merge(target, source)
+        result = Utils.merge(target, source)  # type: ignore[arg-type]
         assert isinstance(result, OverflowDict)
         assert result == {"0": "a", "foo": "bar"}
 
     def test_merge_prefers_exact_key_match_before_string_normalization(self) -> None:
         target = {1: {"a": "x"}}
         source = {1: {"b": "y"}}
-        result = Utils.merge(target, source)
+        result = Utils.merge(target, source)  # type: ignore[arg-type]
         assert result == {1: {"a": "x", "b": "y"}}
 
-        target = {"1": {"a": "x"}}
-        source = {1: {"b": "y"}}
-        result = Utils.merge(target, source)
+        target_str = {"1": {"a": "x"}}
+        source_str = {1: {"b": "y"}}
+        result = Utils.merge(target_str, source_str)  # type: ignore[arg-type]
         assert result == {"1": {"a": "x", "b": "y"}}
         assert 1 not in result
 
@@ -973,7 +973,7 @@ class TestUtils:
         # Merge delegates to combine, so this should also use max key + 1
         target = OverflowDict({"999": "a"})
         source = "b"
-        result = Utils.merge(target, source)
+        result = Utils.merge(target, source)  # type: ignore[arg-type]
         assert isinstance(result, OverflowDict)
         assert result == {"999": "a", "1000": "b"}
 
@@ -987,7 +987,7 @@ class TestUtils:
         source["2"] = "b"
 
         # Utils.merge should produce [target, *source_values_sorted]
-        result = Utils.merge(target, source)
+        result = Utils.merge(target, source)  # type: ignore[arg-type]
         assert isinstance(result, OverflowDict)
         assert result == {"0": "a", "3": "b", "11": "c"}
 
@@ -1051,7 +1051,7 @@ class TestUtils:
     def test_merge_overflow_dict_source_preserves_non_numeric_keys(self) -> None:
         target = "a"
         source = OverflowDict({"foo": "skip", "1": "b"})
-        result = Utils.merge(target, source)
+        result = Utils.merge(target, source)  # type: ignore[arg-type]
         assert isinstance(result, OverflowDict)
         assert result == {"0": "a", "2": "b", "foo": "skip"}
 

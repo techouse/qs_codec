@@ -68,7 +68,7 @@ class TestWeakrefWithDictKeys:
 
     def test_hash_fallback_uses_repr_for_unhashable_object(self) -> None:
         class Unhashable:
-            __hash__ = None
+            __hash__ = None  # type: ignore[assignment]
 
             def __repr__(self) -> str:  # pragma: no cover - trivial repr
                 return "<Unhashable>"
@@ -94,9 +94,10 @@ class TestWeakrefWithDictKeys:
 
     def test_hash_detects_excessive_depth(self) -> None:
         # artificially create a super deep nested list
-        deep = current = []
+        deep: t.List[t.Any] = []
+        current: t.List[t.Any] = deep
         for _ in range(401):  # 400 is the limit
-            new_list = []
+            new_list: t.List[t.Any] = []
             current.append(new_list)
             current = new_list
         wrapper = WeakWrapper(deep)

@@ -5,13 +5,19 @@ from qs_codec.utils.encode_utils import EncodeUtils
 class TestEncodeOptions:
     def test_post_init_restores_default_encoder(self) -> None:
         opts = EncodeOptions()
-        assert opts._encoder.__func__ is EncodeUtils.encode.__func__
+        left = getattr(opts._encoder, "__func__", None)
+        right = getattr(EncodeUtils.encode, "__func__", None)
+        assert left is not None and right is not None
+        assert left is right
 
     def test_post_init_recovers_when_encoder_missing(self) -> None:
         opts = EncodeOptions()
         delattr(opts, "_encoder")
         EncodeOptions.__post_init__(opts)
-        assert opts._encoder.__func__ is EncodeUtils.encode.__func__
+        left = getattr(opts._encoder, "__func__", None)
+        right = getattr(EncodeUtils.encode, "__func__", None)
+        assert left is not None and right is not None
+        assert left is right
 
     def test_equality_with_other_type_returns_false(self) -> None:
         opts = EncodeOptions()

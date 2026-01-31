@@ -174,7 +174,9 @@ class TestEncoding:
                 return "c"
             return value
 
-        assert qs_codec.encode({"a": {"b": "č"}}, qs_codec.EncodeOptions(encoder=custom_encoder)) == "a[b]=c"
+        encode_options = qs_codec.EncodeOptions()
+        encode_options.encoder = custom_encoder
+        assert qs_codec.encode({"a": {"b": "č"}}, encode_options) == "a[b]=c"
 
         # Similar to `EncodeOptions.encoder` there is a `DecodeOptions.decoder` option for `decode` to override decoding
         # of properties and values:
@@ -276,7 +278,7 @@ class TestEncoding:
             qs_codec.encode(
                 {
                     "a": (
-                        datetime.datetime.fromtimestamp(7, datetime.UTC)
+                        datetime.datetime.fromtimestamp(7, datetime.timezone.utc)
                         if version_info.major == 3 and version_info.minor >= 11
                         else datetime.datetime.utcfromtimestamp(7)
                     )
@@ -291,7 +293,7 @@ class TestEncoding:
             qs_codec.encode(
                 {
                     "a": (
-                        datetime.datetime.fromtimestamp(7, datetime.UTC)
+                        datetime.datetime.fromtimestamp(7, datetime.timezone.utc)
                         if version_info.major == 3 and version_info.minor >= 11
                         else datetime.datetime.utcfromtimestamp(7)
                     )
@@ -332,7 +334,7 @@ class TestEncoding:
                     "c": "d",
                     "e": {
                         "f": (
-                            datetime.datetime.fromtimestamp(123, datetime.UTC)
+                            datetime.datetime.fromtimestamp(123, datetime.timezone.utc)
                             if version_info.major == 3 and version_info.minor >= 11
                             else datetime.datetime.utcfromtimestamp(123)
                         ),
@@ -414,10 +416,10 @@ class TestEncoding:
                 return "%" + "%".join(result)
             return ""
 
-        assert (
-            qs_codec.encode({"a": "こんにちは！"}, qs_codec.EncodeOptions(encoder=custom_encoder))
-            == "%61=%82%b1%82%f1%82%c9%82%bf%82%cd%81%49"
-        )
+        shift_jis_options = qs_codec.EncodeOptions()
+        shift_jis_options.encoder = custom_encoder
+
+        assert qs_codec.encode({"a": "こんにちは！"}, shift_jis_options) == "%61=%82%b1%82%f1%82%c9%82%bf%82%cd%81%49"
 
         # This also works for decoding of query strings:
         def custom_decoder(string: str, charset: t.Optional[qs_codec.Charset]) -> t.Optional[str]:

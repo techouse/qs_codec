@@ -18,6 +18,25 @@ from qs_codec.utils.encode_utils import EncodeUtils
 from qs_codec.utils.utils import Utils
 
 
+def options_with_encoder(
+    encoder: t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str],
+    **kwargs: t.Any,
+) -> EncodeOptions:
+    options = EncodeOptions(**kwargs)
+    options.encoder = encoder
+    return options
+
+
+def decimal_encoder(
+    value: t.Any,
+    charset: t.Optional[Charset] = None,
+    format: t.Optional[Format] = None,
+) -> str:
+    _ = charset
+    _ = format
+    return f"{EncodeUtils.encode(value)}n" if isinstance(value, Decimal) else EncodeUtils.encode(value)
+
+
 class TestEncode:
     @pytest.mark.parametrize(
         "decoded, encoded",
@@ -84,22 +103,14 @@ class TestEncode:
             pytest.param([_PI], None, f"0=3.141592653589793115997963468544185161590576171875", id="list-decimal"),
             pytest.param(
                 [_PI],
-                EncodeOptions(
-                    encoder=lambda v, charset=None, format=None: (
-                        f"{EncodeUtils.encode(v)}n" if isinstance(v, Decimal) else EncodeUtils.encode(v)
-                    )
-                ),
+                options_with_encoder(decimal_encoder),
                 f"0=3.141592653589793115997963468544185161590576171875n",
                 id="list-decimal-with-n",
             ),
             pytest.param({"a": _PI}, None, f"a=3.141592653589793115997963468544185161590576171875", id="dict-decimal"),
             pytest.param(
                 {"a": _PI},
-                EncodeOptions(
-                    encoder=lambda v, charset=None, format=None: (
-                        f"{EncodeUtils.encode(v)}n" if isinstance(v, Decimal) else EncodeUtils.encode(v)
-                    )
-                ),
+                options_with_encoder(decimal_encoder),
                 f"a=3.141592653589793115997963468544185161590576171875n",
                 id="dict-decimal-with-n",
             ),
@@ -111,12 +122,10 @@ class TestEncode:
             ),
             pytest.param(
                 {"a": [_PI]},
-                EncodeOptions(
+                options_with_encoder(
+                    decimal_encoder,
                     encode_values_only=True,
                     list_format=ListFormat.BRACKETS,
-                    encoder=lambda v, charset=None, format=None: (
-                        f"{EncodeUtils.encode(v)}n" if isinstance(v, Decimal) else EncodeUtils.encode(v)
-                    ),
                 ),
                 f"a[]=3.141592653589793115997963468544185161590576171875n",
                 id="brackets-list-decimal-with-n",
@@ -1002,7 +1011,7 @@ class TestEncode:
         def _encode(string: str, charset: t.Optional[Charset] = None, format: t.Optional[Format] = None) -> str:
             return "".join([f"%{i:02x}" for i in bytes(string, "shift-jis")])
 
-        assert encode({"県": "大阪府", "": ""}, options=EncodeOptions(encoder=_encode)) == "%8c%a7=%91%e5%8d%e3%95%7b&="
+        assert encode({"県": "大阪府", "": ""}, options=options_with_encoder(_encode)) == "%8c%a7=%91%e5%8d%e3%95%7b&="
 
     def test_can_encode_with_custom_encoding_for_a_buffer_map(self) -> None:
         buf: bytes = bytes([1])
@@ -1012,7 +1021,7 @@ class TestEncode:
                 return buffer
             return chr(buffer[0] + 97)
 
-        assert encode({"a": buf}, options=EncodeOptions(encoder=_encode1)) == "a=b"
+        assert encode({"a": buf}, options=options_with_encoder(_encode1)) == "a=b"
 
         buf2: bytes = "a b".encode("utf-8")
 
@@ -1021,7 +1030,7 @@ class TestEncode:
                 return buffer.decode("utf-8")
             return buffer
 
-        assert encode({"a": buf2}, options=EncodeOptions(encoder=_encode2)) == "a=a b"
+        assert encode({"a": buf2}, options=options_with_encoder(_encode2)) == "a=a b"
 
     _DATE_NOW = datetime.now()
     _SPECIFIC_DATE = datetime.fromtimestamp(6)
@@ -1739,7 +1748,11 @@ class TestEncodeNonStrings:
         assert (
             encode(
                 {"a": "b", False: {}},
-                options=EncodeOptions(filter=["a", False, None], allow_dots=True, encode_dot_in_keys=True),
+                options=EncodeOptions(
+                    filter=t.cast(t.Sequence[t.Union[str, int]], ["a", False, None]),
+                    allow_dots=True,
+                    encode_dot_in_keys=True,
+                ),
             )
             == "a=b"
         )
