@@ -938,9 +938,9 @@ class TestUtils:
         result = Utils.merge(target, source)  # type: ignore[arg-type]
         assert result == {1: {"a": "x", "b": "y"}}
 
-        target = {"1": {"a": "x"}}
-        source = {1: {"b": "y"}}
-        result = Utils.merge(target, source)  # type: ignore[arg-type]
+        target_str = {"1": {"a": "x"}}
+        source_str = {1: {"b": "y"}}
+        result = Utils.merge(target_str, source_str)  # type: ignore[arg-type]
         assert result == {"1": {"a": "x", "b": "y"}}
         assert 1 not in result
 

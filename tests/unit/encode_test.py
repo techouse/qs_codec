@@ -27,6 +27,16 @@ def options_with_encoder(
     return options
 
 
+def decimal_encoder(
+    value: t.Any,
+    charset: t.Optional[Charset] = None,
+    format: t.Optional[Format] = None,
+) -> str:
+    _ = charset
+    _ = format
+    return f"{EncodeUtils.encode(value)}n" if isinstance(value, Decimal) else EncodeUtils.encode(value)
+
+
 class TestEncode:
     @pytest.mark.parametrize(
         "decoded, encoded",
@@ -93,22 +103,14 @@ class TestEncode:
             pytest.param([_PI], None, f"0=3.141592653589793115997963468544185161590576171875", id="list-decimal"),
             pytest.param(
                 [_PI],
-                options_with_encoder(
-                    lambda v, charset=None, format=None: (
-                        f"{EncodeUtils.encode(v)}n" if isinstance(v, Decimal) else EncodeUtils.encode(v)
-                    )
-                ),
+                options_with_encoder(decimal_encoder),
                 f"0=3.141592653589793115997963468544185161590576171875n",
                 id="list-decimal-with-n",
             ),
             pytest.param({"a": _PI}, None, f"a=3.141592653589793115997963468544185161590576171875", id="dict-decimal"),
             pytest.param(
                 {"a": _PI},
-                options_with_encoder(
-                    lambda v, charset=None, format=None: (
-                        f"{EncodeUtils.encode(v)}n" if isinstance(v, Decimal) else EncodeUtils.encode(v)
-                    )
-                ),
+                options_with_encoder(decimal_encoder),
                 f"a=3.141592653589793115997963468544185161590576171875n",
                 id="dict-decimal-with-n",
             ),
@@ -121,9 +123,7 @@ class TestEncode:
             pytest.param(
                 {"a": [_PI]},
                 options_with_encoder(
-                    lambda v, charset=None, format=None: (
-                        f"{EncodeUtils.encode(v)}n" if isinstance(v, Decimal) else EncodeUtils.encode(v)
-                    ),
+                    decimal_encoder,
                     encode_values_only=True,
                     list_format=ListFormat.BRACKETS,
                 ),
