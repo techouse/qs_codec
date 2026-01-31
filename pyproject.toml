@@ -58,8 +58,9 @@ PayPal = "https://paypal.me/ktusar"
 dev = [
     "pytest>=8.1.2",
     "pytest-cov>=5.0.0",
-    "mypy>=1.10.0; platform_python_implementation != \"PyPy\"",
-    "mypy<1.19; platform_python_implementation == \"PyPy\"",
+    "mypy<1.11; python_version < \"3.9\"",
+    "mypy>=1.11; python_version >= \"3.9\" and platform_python_implementation != \"PyPy\"",
+    "mypy<1.19; python_version >= \"3.9\" and platform_python_implementation == \"PyPy\"",
     "toml>=0.10.2",
     "tox",
     "black",
