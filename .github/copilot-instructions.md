@@ -29,7 +29,7 @@ Concise, project-specific guidance for AI coding agents working on this repo. Fo
 ## 4. Developer Workflow
 - Install (dev): `python -m pip install -e .[dev]`.
 - Run full test suite: `pytest -v --cov=src/qs_codec` (coverage enforced in CI).
-- Lint/type check: `tox -e linters` (chains Black, isort, flake8, pylint, mypy, bandit).
+- Lint/type check: `tox -e linters` (chains Black, isort, flake8, pylint, mypy, pyright, bandit).
 - Multi-version tests: `tox -e python3.13` (swap env name for other versions).
 - Docs build: `make -C docs html` (update Sphinx when public behavior or options change).
 - Cross-language parity verification: run `tests/comparison/compare_outputs.sh` (invokes Node reference `qs.js` with shared `test_cases.json`). Update cases when adding features—maintain symmetry.
