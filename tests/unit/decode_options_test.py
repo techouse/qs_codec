@@ -165,6 +165,38 @@ class TestDecoderAdapterSignatures:
         assert opts.decoder("ok", Charset.UTF8, kind=DecodeKind.VALUE) == "ok"
         assert seen == ["value"]
 
+    def test_builtin_signature_unavailable_single_arg_fallback(self) -> None:
+        class BadSignature:
+            __signature__ = "nope"
+
+            def __call__(self, s: t.Optional[str]) -> t.Optional[str]:
+                return None if s is None else f"{s}-ok"
+
+        opts = DecodeOptions(decoder=BadSignature())
+        assert opts.decoder("x", Charset.UTF8, kind=DecodeKind.KEY) == "x-ok"
+
+    def test_builtin_signature_unavailable_two_arg_fallback(self) -> None:
+        class BadSignature:
+            __signature__ = "nope"
+
+            def __call__(self, s: t.Optional[str], charset: t.Optional[Charset]) -> t.Optional[str]:
+                return None if s is None else f"{s}|{charset.name if charset else 'NONE'}"
+
+        opts = DecodeOptions(decoder=BadSignature())
+        assert opts.decoder("x", Charset.UTF8, kind=DecodeKind.VALUE) == "x|UTF8"
+
+    def test_builtin_signature_unavailable_raises_original_typeerror(self) -> None:
+        class BadSignature:
+            __signature__ = "nope"
+
+            def __call__(self) -> t.Optional[str]:
+                return "nope"
+
+        opts = DecodeOptions(decoder=BadSignature())
+        with pytest.raises(TypeError) as exc_info:
+            _ = opts.decoder("x", Charset.UTF8, kind=DecodeKind.KEY)
+        assert exc_info.value.__cause__ is not None
+
     def test_builtin_without_signature_raises_original_typeerror(self) -> None:
         opts = DecodeOptions(decoder=math.hypot)  # type: ignore[arg-type]
 

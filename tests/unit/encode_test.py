@@ -919,6 +919,27 @@ class TestEncode:
         assert encode(obj, options=EncodeOptions(filter=filter_func)) == "a=b&c=&e%5Bf%5D=1257894000"
         assert calls == 5
 
+    def test_encode_handles_mapping_get_exception(self) -> None:
+        class ExplodingMapping(t.Mapping):
+            def __iter__(self):
+                return iter(["boom"])
+
+            def __len__(self) -> int:
+                return 1
+
+            def __getitem__(self, key):  # type: ignore[no-untyped-def]
+                raise RuntimeError("boom")
+
+            def get(self, key, default=None):  # type: ignore[no-untyped-def]
+                raise RuntimeError("boom")
+
+            def __deepcopy__(self, memo):  # type: ignore[no-untyped-def]
+                return self
+
+        data = {"a": ExplodingMapping()}
+
+        assert encode(data) == ""
+
     @pytest.mark.parametrize(
         "data, options, expected",
         [
