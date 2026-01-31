@@ -167,7 +167,7 @@ def _encode(
     encoder: t.Optional[t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str]],
     serialize_date: t.Callable[[datetime], t.Optional[str]],
     sort: t.Optional[t.Callable[[t.Any, t.Any], int]],
-    filter: t.Optional[t.Union[t.Callable, t.List[t.Union[str, int]]]],
+    filter: t.Optional[t.Union[t.Callable, t.Sequence[t.Union[str, int]]]],
     formatter: t.Optional[t.Callable[[str], str]],
     format: Format = Format.RFC3986,
     generate_array_prefix: t.Callable[[str, t.Optional[str]], str] = ListFormat.INDICES.generator,
@@ -358,8 +358,12 @@ def _encode(
                     _value = obj.get(_key)
                     _value_undefined = _key not in obj
                 elif isinstance(obj, (list, tuple)):
-                    _value = obj[_key]
-                    _value_undefined = False
+                    if isinstance(_key, int):
+                        _value = obj[_key]
+                        _value_undefined = False
+                    else:
+                        _value = None
+                        _value_undefined = True
                 else:
                     _value = obj[_key]
                     _value_undefined = False

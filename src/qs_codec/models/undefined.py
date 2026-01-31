@@ -37,7 +37,7 @@ class Undefined:
     _lock: t.ClassVar[threading.Lock] = threading.Lock()
     _instance: t.ClassVar[t.Optional["Undefined"]] = None
 
-    def __new__(cls: t.Type["Undefined"]) -> "Undefined":
+    def __new__(cls):
         """Return the singleton instance.
 
         Creating `Undefined()` multiple times always returns the same object reference. This ensures identity checks (``is``) are stable.
