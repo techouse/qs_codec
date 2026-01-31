@@ -16,19 +16,6 @@ The package root re-exports the most commonly used functions and enums so you ca
 # Package version (PEP 440). Bump in lockstep with distribution metadata.
 __version__ = "1.3.3"
 
-from .decode import decode, load, loads
-from .encode import dumps, encode
-from .enums.charset import Charset
-from .enums.decode_kind import DecodeKind
-from .enums.duplicates import Duplicates
-from .enums.format import Format
-from .enums.list_format import ListFormat
-from .enums.sentinel import Sentinel
-from .models.decode_options import DecodeOptions
-from .models.encode_options import EncodeOptions
-from .models.undefined import Undefined
-
-
 # Public API surface re-exported at the package root.
 __all__ = [
     "decode",
@@ -46,3 +33,15 @@ __all__ = [
     "EncodeOptions",
     "Undefined",
 ]
+
+from .decode import decode, load, loads
+from .encode import dumps, encode
+from .enums.charset import Charset
+from .enums.decode_kind import DecodeKind
+from .enums.duplicates import Duplicates
+from .enums.format import Format
+from .enums.list_format import ListFormat
+from .enums.sentinel import Sentinel
+from .models.decode_options import DecodeOptions
+from .models.encode_options import EncodeOptions
+from .models.undefined import Undefined

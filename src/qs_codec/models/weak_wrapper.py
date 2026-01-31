@@ -8,14 +8,6 @@ from threading import RLock
 from weakref import ReferenceType, WeakValueDictionary, ref
 
 
-__all__ = ["WeakWrapper", "_proxy_cache"]
-
-
-# Exported for tests
-_proxy_cache: "WeakValueDictionary[int, _Proxy]" = WeakValueDictionary()
-_proxy_cache_lock = RLock()
-
-
 class _Proxy:
     """Container for the original object.
 
@@ -27,6 +19,14 @@ class _Proxy:
     def __init__(self, value: t.Any) -> None:
         """Strong ref to the value so hash/equality can access it while a wrapper keeps this proxy alive."""
         self.value = value
+
+
+__all__ = ["WeakWrapper", "_proxy_cache"]
+
+
+# Exported for tests
+_proxy_cache: "WeakValueDictionary[int, _Proxy]" = WeakValueDictionary()
+_proxy_cache_lock = RLock()
 
 
 def _get_proxy(value: t.Any) -> "_Proxy":
