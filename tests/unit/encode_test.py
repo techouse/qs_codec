@@ -1,5 +1,6 @@
 import math
 import typing as t
+from collections import UserList
 from contextlib import nullcontext as does_not_raise
 from datetime import datetime
 from decimal import Decimal
@@ -888,6 +889,12 @@ class TestEncode:
         options = EncodeOptions(filter=["a", 0, "x"])
 
         assert encode(data, options) == expected
+
+    def test_filter_sequence_accepts_non_list_sequence(self) -> None:
+        data = {"a": [1, 2]}
+        options = EncodeOptions(filter=UserList(["a", 0, "x"]))
+
+        assert encode(data, options) == "a%5B0%5D=1"
 
     def test_supports_custom_representations_when_filter_is_function(self) -> None:
         calls = 0
