@@ -63,7 +63,8 @@ dev = [
     "toml>=0.10.2",
     "tox",
     "black",
-    "isort"
+    "isort",
+    "pyright"
 ]
 
 [tool.hatch.version]
@@ -136,3 +137,8 @@ exclude = [
 show_error_codes = true
 warn_return_any = true
 warn_unused_configs = true
+
+[tool.pyright]
+pythonVersion = "3.8"
+include = ["src/qs_codec"]
+exclude = ["tests", "docs", "build", "dist", "venv", "env", ".tox"]
