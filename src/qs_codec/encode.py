@@ -14,6 +14,7 @@ Nothing in this module mutates caller objects: inputs are shallow‑normalized a
 """
 
 import typing as t
+from collections.abc import Sequence as ABCSequence
 from copy import deepcopy
 from datetime import datetime
 from functools import cmp_to_key
@@ -72,12 +73,13 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
 
     # If an iterable filter is provided for the root, restrict emission to those keys.
     obj_keys: t.Optional[t.List[t.Any]] = None
-    if options.filter is not None:
-        if callable(options.filter):
+    filter_opt = options.filter
+    if filter_opt is not None:
+        if callable(filter_opt):
             # Callable filter may transform the root object.
-            obj = options.filter("", obj)
-        elif isinstance(options.filter, (list, tuple)):
-            obj_keys = list(options.filter)
+            obj = filter_opt("", obj)
+        elif isinstance(filter_opt, ABCSequence) and not isinstance(filter_opt, (str, bytes, bytearray)):
+            obj_keys = list(filter_opt)
 
     # Single-item list round-trip marker when using comma format.
     comma_round_trip: bool = options.list_format == ListFormat.COMMA and options.comma_round_trip is True
@@ -113,7 +115,7 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
             encoder=options.encoder if options.encode else None,
             serialize_date=options.serialize_date,
             sort=options.sort,
-            filter=options.filter,
+            filter_=options.filter,
             formatter=options.format.formatter,
             allow_empty_lists=options.allow_empty_lists,
             strict_null_handling=options.strict_null_handling,
@@ -167,7 +169,7 @@ def _encode(
     encoder: t.Optional[t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str]],
     serialize_date: t.Callable[[datetime], t.Optional[str]],
     sort: t.Optional[t.Callable[[t.Any, t.Any], int]],
-    filter: t.Optional[t.Union[t.Callable, t.List[t.Union[str, int]]]],
+    filter_: t.Optional[t.Union[t.Callable, t.Sequence[t.Union[str, int]]]],
     formatter: t.Optional[t.Callable[[str], str]],
     format: Format = Format.RFC3986,
     generate_array_prefix: t.Callable[[str, t.Optional[str]], str] = ListFormat.INDICES.generator,
@@ -199,7 +201,7 @@ def _encode(
         encoder: Custom per-scalar encoder; if None, falls back to `str(value)` for primitives.
         serialize_date: Optional `datetime` serializer hook.
         sort: Optional comparator for object/array key ordering.
-        filter: Callable (transform value) or iterable of keys/indices (select).
+        filter_: Callable (transform value) or iterable of keys/indices (select).
         formatter: Percent-escape function chosen by `format` (RFC3986/1738).
         format: Format enum (only used to choose a default `formatter` if none provided).
         generate_array_prefix: Strategy used to build array key segments (indices/brackets/repeat/comma).
@@ -251,9 +253,10 @@ def _encode(
             step = 0
 
     # --- Pre-processing: filter & datetime handling ---------------------------------------
-    if callable(filter):
+    filter_opt = filter_
+    if callable(filter_opt):
         # Callable filter can transform the object for this prefix.
-        obj = filter(prefix, obj)
+        obj = filter_opt(prefix, obj)
     else:
         # Normalize datetimes both for scalars and (in COMMA mode) list elements.
         if isinstance(obj, datetime):
@@ -315,9 +318,13 @@ def _encode(
             obj_keys = [{"value": obj_keys_value if obj_keys_value else None}]
         else:
             obj_keys = [{"value": UNDEFINED}]
-    elif isinstance(filter, (list, tuple)):
+    elif (
+        filter_opt is not None
+        and isinstance(filter_opt, ABCSequence)
+        and not isinstance(filter_opt, (str, bytes, bytearray))
+    ):
         # Iterable filter restricts traversal to a fixed key/index set.
-        obj_keys = list(filter)
+        obj_keys = list(filter_opt)
     else:
         # Default: enumerate keys/indices from mappings or sequences.
         if isinstance(obj, t.Mapping):
@@ -358,8 +365,12 @@ def _encode(
                     _value = obj.get(_key)
                     _value_undefined = _key not in obj
                 elif isinstance(obj, (list, tuple)):
-                    _value = obj[_key]
-                    _value_undefined = False
+                    if isinstance(_key, int):
+                        _value = obj[_key]
+                        _value_undefined = False
+                    else:
+                        _value = None
+                        _value_undefined = True
                 else:
                     _value = obj[_key]
                     _value_undefined = False
@@ -403,7 +414,7 @@ def _encode(
             ),
             serialize_date=serialize_date,
             sort=sort,
-            filter=filter,
+            filter_=filter_,
             formatter=formatter,
             format=format,
             generate_array_prefix=generate_array_prefix,

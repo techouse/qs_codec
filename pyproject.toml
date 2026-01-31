@@ -56,14 +56,24 @@ PayPal = "https://paypal.me/ktusar"
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.1.2",
+    "bandit",
+    "black",
+    "flake8",
+    "flake8-colors",
+    "flake8-docstrings",
+    "flake8-import-order",
+    "flake8-typing-imports",
+    "isort",
+    "mypy<1.11; python_version < \"3.9\"",
+    "mypy<1.19; python_version >= \"3.9\" and platform_python_implementation == \"PyPy\"",
+    "mypy>=1.11; python_version >= \"3.9\" and platform_python_implementation != \"PyPy\"",
+    "pep8-naming",
+    "pylint",
+    "pyright",
     "pytest-cov>=5.0.0",
-    "mypy>=1.10.0; platform_python_implementation != \"PyPy\"",
-    "mypy<1.19; platform_python_implementation == \"PyPy\"",
+    "pytest>=8.1.2",
     "toml>=0.10.2",
     "tox",
-    "black",
-    "isort"
 ]
 
 [tool.hatch.version]
@@ -136,3 +146,8 @@ exclude = [
 show_error_codes = true
 warn_return_any = true
 warn_unused_configs = true
+
+[tool.pyright]
+pythonVersion = "3.8"
+include = ["src/qs_codec"]
+exclude = ["tests", "docs", "build", "dist", "venv", "env", ".tox"]

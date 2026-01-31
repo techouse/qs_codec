@@ -1,5 +1,6 @@
 import math
 import typing as t
+from collections import UserList
 from contextlib import nullcontext as does_not_raise
 from datetime import datetime
 from decimal import Decimal
@@ -786,7 +787,7 @@ class TestEncode:
             encoder=None,
             serialize_date=lambda dt: dt.isoformat(),
             sort=None,
-            filter=None,
+            filter_=None,
             formatter=None,  # This will trigger line 139
         )
 
@@ -876,6 +877,25 @@ class TestEncode:
     ) -> None:
         assert encode(data, options) == expected
 
+    @pytest.mark.parametrize(
+        "sequence, expected",
+        [
+            pytest.param([1, 2], "a%5B0%5D=1", id="list"),
+            pytest.param((1, 2), "a%5B0%5D=1", id="tuple"),
+        ],
+    )
+    def test_filter_list_ignores_non_int_keys_for_sequences(self, sequence: t.Sequence[int], expected: str) -> None:
+        data = {"a": sequence}
+        options = EncodeOptions(filter=["a", 0, "x"])
+
+        assert encode(data, options) == expected
+
+    def test_filter_sequence_accepts_non_list_sequence(self) -> None:
+        data = {"a": [1, 2]}
+        options = EncodeOptions(filter=UserList(["a", 0, "x"]))
+
+        assert encode(data, options) == "a%5B0%5D=1"
+
     def test_supports_custom_representations_when_filter_is_function(self) -> None:
         calls = 0
 
@@ -898,6 +918,27 @@ class TestEncode:
 
         assert encode(obj, options=EncodeOptions(filter=filter_func)) == "a=b&c=&e%5Bf%5D=1257894000"
         assert calls == 5
+
+    def test_encode_handles_mapping_get_exception(self) -> None:
+        class ExplodingMapping(t.Mapping):
+            def __iter__(self):
+                return iter(["boom"])
+
+            def __len__(self) -> int:
+                return 1
+
+            def __getitem__(self, key):  # type: ignore[no-untyped-def]
+                raise RuntimeError("boom")
+
+            def get(self, key, default=None):  # type: ignore[no-untyped-def]
+                raise RuntimeError("boom")
+
+            def __deepcopy__(self, memo):  # type: ignore[no-untyped-def]
+                return self
+
+        data = {"a": ExplodingMapping()}
+
+        assert encode(data) == ""
 
     @pytest.mark.parametrize(
         "data, options, expected",
@@ -1724,7 +1765,7 @@ class TestEncodeInternals:
                 encoder=EncodeUtils.encode,
                 serialize_date=EncodeUtils.serialize_date,
                 sort=None,
-                filter=None,
+                filter_=None,
                 formatter=Format.RFC3986.formatter,
                 format=Format.RFC3986,
                 generate_array_prefix=ListFormat.INDICES.generator,
@@ -1755,7 +1796,7 @@ class TestEncodeInternals:
             encoder=EncodeUtils.encode,
             serialize_date=EncodeUtils.serialize_date,
             sort=None,
-            filter=None,
+            filter_=None,
             formatter=Format.RFC3986.formatter,
             format=Format.RFC3986,
             generate_array_prefix=ListFormat.INDICES.generator,
@@ -1796,7 +1837,7 @@ class TestEncodeInternals:
             encoder=EncodeUtils.encode,
             serialize_date=EncodeUtils.serialize_date,
             sort=None,
-            filter=["foo"],
+            filter_=["foo"],
             formatter=Format.RFC3986.formatter,
             format=Format.RFC3986,
             generate_array_prefix=ListFormat.INDICES.generator,
@@ -1918,7 +1959,7 @@ class TestEncodeInternals:
             encoder=EncodeUtils.encode,
             serialize_date=EncodeUtils.serialize_date,
             sort=None,
-            filter=None,
+            filter_=None,
             formatter=Format.RFC3986.formatter,
             format=Format.RFC3986,
             generate_array_prefix=ListFormat.INDICES.generator,
