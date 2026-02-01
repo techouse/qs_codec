@@ -25,7 +25,7 @@ Highlights
 - Pluggable hooks: custom ``encoder``/``decoder`` callables; options to sort keys, filter output, and control percent-encoding (keys-only, values-only).
 - Nulls & empties: ``strict_null_handling`` and ``skip_nulls``; support for empty lists/arrays when desired.
 - Dates: ``serialize_date`` for ISO 8601 or custom (e.g., UNIX timestamp).
-- Safety limits: configurable nesting depth, parameter limit, and list index limit; optional strict-depth errors; duplicate-key strategies (combine/first/last).
+- Safety limits: configurable decode depth and encode max depth, parameter limit, and list index limit; optional strict-depth errors; duplicate-key strategies (combine/first/last).
 - Extras: numeric entity decoding (e.g. ``&#9786;`` → ☺), alternate delimiters/regex, and query-prefix helpers.
 
 Compatibility
@@ -457,6 +457,23 @@ Encoding can be disabled for keys by setting the
        },
        qs.EncodeOptions(encode_values_only=True)
    ) == 'a=b&c[0]=d&c[1]=e%3Df&f[0][0]=g&f[1][0]=h'
+
+Maximum encoding depth
+^^^^^^^^^^^^^^^^^^^^^^
+
+You can cap how deep the encoder will traverse by setting the
+`max_depth <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.max_depth>`__
+option. If unset, the encoder derives a safe limit from the interpreter recursion limit; when set, the effective
+limit is capped to the current recursion limit to avoid ``RecursionError``.
+
+.. code:: python
+
+   import qs_codec as qs
+
+   try:
+       qs.encode({'a': {'b': {'c': 'd'}}}, qs.EncodeOptions(max_depth=2))
+   except ValueError as e:
+       assert str(e) == 'Maximum encoding depth exceeded'
 
 This encoding can also be replaced by a custom ``Callable`` in the
 `encoder <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encoder>`__ option:

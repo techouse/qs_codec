@@ -97,6 +97,7 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
 
     # Side channel for cycle detection across recursive calls.
     side_channel: WeakKeyDictionary = WeakKeyDictionary()
+    max_depth = _get_max_encode_depth(options.max_depth)
 
     # Encode each selected root key.
     for _key in obj_keys:
@@ -129,6 +130,7 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
             encode_values_only=options.encode_values_only,
             charset=options.charset,
             add_query_prefix=options.add_query_prefix,
+            _max_depth=max_depth,
         )
 
         # `_encode` yields either a flat list of `key=value` tokens or a single token.
@@ -162,13 +164,13 @@ dumps = encode  # public alias (parity with `json.dumps` / Node `qs.stringify`)
 _sentinel: WeakWrapper = WeakWrapper({})
 # Keep a safety buffer below Python's recursion limit to avoid RecursionError on deep inputs.
 _DEPTH_MARGIN: int = 50
-_MAX_ENCODE_DEPTH: t.Optional[int] = None
 
 
-def _get_max_encode_depth() -> int:
-    if _MAX_ENCODE_DEPTH is not None:
-        return _MAX_ENCODE_DEPTH
-    return max(0, sys.getrecursionlimit() - _DEPTH_MARGIN)
+def _get_max_encode_depth(max_depth: t.Optional[int]) -> int:
+    limit = max(0, sys.getrecursionlimit() - _DEPTH_MARGIN)
+    if max_depth is None:
+        return limit
+    return min(max_depth, limit)
 
 
 def _encode(
@@ -194,6 +196,7 @@ def _encode(
     charset: t.Optional[Charset] = Charset.UTF8,
     add_query_prefix: bool = False,
     _depth: int = 0,
+    _max_depth: t.Optional[int] = None,
 ) -> t.Union[t.List[t.Any], t.Tuple[t.Any, ...], t.Any]:
     """
     Recursive worker that produces `key=value` tokens for a single subtree.
@@ -230,7 +233,9 @@ def _encode(
     Returns:
         Either a list/tuple of tokens or a single token string.
     """
-    if _depth > _get_max_encode_depth():
+    if _max_depth is None:
+        _max_depth = _get_max_encode_depth(None)
+    if _depth > _max_depth:
         raise ValueError("Maximum encoding depth exceeded")
 
     # Establish a starting prefix for the top-most invocation (used when called directly).
@@ -442,6 +447,7 @@ def _encode(
             encode_values_only=encode_values_only,
             charset=charset,
             _depth=_depth + 1,
+            _max_depth=_max_depth,
         )
 
         # Flatten nested results into the `values` list.

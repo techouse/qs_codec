@@ -409,6 +409,23 @@ Encoding can be disabled for keys by setting the
        qs.EncodeOptions(encode_values_only=True)
    ) == 'a=b&c[0]=d&c[1]=e%3Df&f[0][0]=g&f[1][0]=h'
 
+Maximum encoding depth
+^^^^^^^^^^^^^^^^^^^^^^
+
+You can cap how deep the encoder will traverse by setting the
+:py:attr:`max_depth <qs_codec.models.encode_options.EncodeOptions.max_depth>` option. If unset, the encoder derives a
+safe limit from the interpreter recursion limit; when set, the effective limit is capped to the current recursion
+limit to avoid ``RecursionError``.
+
+.. code:: python
+
+   import qs_codec as qs
+
+   try:
+       qs.encode({'a': {'b': {'c': 'd'}}}, qs.EncodeOptions(max_depth=2))
+   except ValueError as e:
+       assert str(e) == 'Maximum encoding depth exceeded'
+
 This encoding can also be replaced by a custom ``Callable`` in the
 :py:attr:`encoder <qs_codec.models.encode_options.EncodeOptions.encoder>` option:
 
