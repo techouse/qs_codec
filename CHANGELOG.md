@@ -1,3 +1,11 @@
+## 1.4.0
+
+* [FEAT] add `EncodeOptions.max_depth` to cap encoding traversal depth (capped to the current recursion limit)
+* [FIX] avoid `RecursionError` on deeply nested input by enforcing a configurable encoding depth guard
+* [FIX] make `WeakWrapper` hashing identity-based to keep weak-key lookups stable after mutations
+* [CHORE] optimize encode/merge paths (shallow-copy root mappings, reuse dict targets in internal merges)
+* [CHORE] expand tests and documentation for encoding depth limits
+
 ## 1.3.4
 
 * [CHORE] stricter static type checking with pyright
