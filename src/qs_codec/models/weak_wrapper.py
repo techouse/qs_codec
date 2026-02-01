@@ -1,4 +1,4 @@
-"""Weakly wrap *any* object with identity equality and deep content hashing."""
+"""Weakly wrap *any* object with identity equality and stable hashing."""
 
 from __future__ import annotations
 
@@ -40,75 +40,12 @@ def _get_proxy(value: t.Any) -> "_Proxy":
         return proxy
 
 
-def _deep_hash(
-    obj: t.Any,
-    _seen: t.Optional[set[int]] = None,
-    _depth: int = 0,
-) -> int:
-    """Deterministic deep hash with cycle & depth protection.
-
-    - Raises ValueError("Circular reference detected") on cycles.
-    - Raises RecursionError when nesting exceeds 400.
-    - Produces equal hashes for equal-by-contents containers.
-    """
-    if _depth > 400:
-        raise RecursionError("Maximum hashing depth exceeded")
-
-    if _seen is None:
-        _seen = set()
-
-    # Track only containers by identity for cycle detection
-    def _enter(o: t.Any) -> int:
-        oid = id(o)
-        if oid in _seen:
-            raise ValueError("Circular reference detected")
-        _seen.add(oid)
-        return oid
-
-    def _leave(oid: int) -> None:
-        _seen.remove(oid)
-
-    if isinstance(obj, dict):
-        oid = _enter(obj)
-        try:
-            # Compute key/value deep hashes once and sort pairs for determinism
-            pairs = [(_deep_hash(k, _seen, _depth + 1), _deep_hash(v, _seen, _depth + 1)) for k, v in obj.items()]
-            pairs.sort()
-            kv_hashes = tuple(pairs)
-            return hash(("dict", kv_hashes))
-        finally:
-            _leave(oid)
-
-    if isinstance(obj, (list, tuple)):
-        oid = _enter(obj)
-        try:
-            elem_hashes = tuple(_deep_hash(x, _seen, _depth + 1) for x in obj)
-            tag = "list" if isinstance(obj, list) else "tuple"
-            return hash((tag, elem_hashes))
-        finally:
-            _leave(oid)
-
-    if isinstance(obj, set):
-        oid = _enter(obj)
-        try:
-            set_hashes = tuple(sorted(_deep_hash(x, _seen, _depth + 1) for x in obj))
-            return hash(("set", set_hashes))
-        finally:
-            _leave(oid)
-
-    # Fallback for scalars / unhashables
-    try:
-        return hash(obj)
-    except TypeError:
-        return hash(repr(obj))
-
-
 class WeakWrapper:
     """Wrapper suitable for use as a WeakKeyDictionary key.
 
     - Holds a *strong* reference to the proxy (keeps proxy alive while wrapper exists).
     - Exposes a weakref to the proxy via `_wref` so tests can observe/force GC.
-    - Equality is proxy identity; hash is a deep hash of the underlying value.
+    - Equality is proxy identity; hash is the proxy identity (stable across mutations).
     """
 
     __slots__ = ("_proxy", "_wref", "__weakref__")
@@ -145,6 +82,5 @@ class WeakWrapper:
         return self._proxy is other._proxy
 
     def __hash__(self) -> int:
-        """Return a deep hash of the wrapped value."""
-        # Uses your existing deep-hash helper (not shown here).
-        return _deep_hash(self.value)
+        """Return a stable hash based on the proxy identity."""
+        return hash(self._proxy)
