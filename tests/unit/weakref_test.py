@@ -51,22 +51,25 @@ class TestWeakrefWithDictKeys:
         w2 = WeakWrapper(v2)
         # Different identity  →  not equal
         assert w1 != w2
-        # hashes match because contents match
-        assert hash(w1) == hash(w2)
 
     def test_repr_includes_value_when_proxy_alive(self) -> None:
         wrapper = WeakWrapper({"k": "v"})
         text = repr(wrapper)
         assert text.startswith("WeakWrapper(") and "'v'" in text
 
-    def test_hash_handles_sets(self) -> None:
-        s1 = {"a", "b"}
-        s2 = {"b", "a"}
-        w1 = WeakWrapper(s1)
-        w2 = WeakWrapper(s2)
-        assert hash(w1) == hash(w2)
+    def test_value_property_returns_original_object(self) -> None:
+        payload: t.Dict[str, t.Any] = {"k": "v"}
+        wrapper = WeakWrapper(payload)
+        assert wrapper.value is payload
 
-    def test_hash_fallback_uses_repr_for_unhashable_object(self) -> None:
+    def test_hash_is_stable_for_mutable_sets(self) -> None:
+        s = {"a", "b"}
+        wrapper = WeakWrapper(s)
+        first = hash(wrapper)
+        s.add("c")
+        assert hash(wrapper) == first
+
+    def test_hash_handles_unhashable_object(self) -> None:
         class Unhashable:
             __hash__ = None  # type: ignore[assignment]
 
@@ -85,24 +88,15 @@ class TestWeakrefWithDictKeys:
         wrapper = WeakWrapper({})
         assert wrapper.__eq__(object()) is NotImplemented
 
-    def test_hash_detects_circular_references(self) -> None:
-        a: t.Dict[str, t.Any] = {}
-        a["self"] = a
-        wrapper = WeakWrapper(a)
-        with pytest.raises(ValueError, match="Circular reference detected"):
-            _ = hash(wrapper)
+    def test_hash_is_identity_based_and_weakkey_lookups_survive_mutation(self) -> None:
+        payload: t.Dict[str, t.Any] = {"a": 1}
+        wrapper = WeakWrapper(payload)
+        wk: WeakKeyDictionary = WeakKeyDictionary()
+        wk[wrapper] = "ok"
 
-    def test_hash_detects_excessive_depth(self) -> None:
-        # artificially create a super deep nested list
-        deep: t.List[t.Any] = []
-        current: t.List[t.Any] = deep
-        for _ in range(401):  # 400 is the limit
-            new_list: t.List[t.Any] = []
-            current.append(new_list)
-            current = new_list
-        wrapper = WeakWrapper(deep)
-        with pytest.raises(RecursionError):
-            _ = hash(wrapper)
+        payload["b"] = 2
+        assert wk.get(wrapper) == "ok"
+        assert wk.get(WeakWrapper(payload)) == "ok"
 
     def test_deleted_object_raises_reference_error_on_access(self) -> None:
         value: t.Dict[str, t.Any] = {"foo": "bar"}
