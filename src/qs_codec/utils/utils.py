@@ -217,7 +217,7 @@ class Utils:
                     _res.append(_el)
             return _res
 
-        # Prepare a mutable target we can merge into (avoid deepcopy for performance).
+        # Prepare a mutable target we can merge into; reuse dict targets for performance.
         merge_target: t.Dict[str, t.Any]
         if isinstance(target, dict):
             merge_target = target
