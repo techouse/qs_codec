@@ -856,6 +856,23 @@ class TestEncode:
             == "filters[$and][function]=gte&filters[$and][arguments][function]=hour_of_day&filters[$and][arguments]=0&filters[$and][function]=lte&filters[$and][arguments][function]=hour_of_day&filters[$and][arguments]=23"
         )
 
+    def test_encode_depth_guard_prevents_recursion_errors(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        import importlib
+
+        encode_module = importlib.import_module("qs_codec.encode")
+
+        monkeypatch.setattr(encode_module, "_MAX_ENCODE_DEPTH", 3)
+
+        data: t.Dict[str, t.Any] = {}
+        current = data
+        for _ in range(5):
+            nxt: t.Dict[str, t.Any] = {}
+            current["a"] = nxt
+            current = nxt
+
+        with pytest.raises(ValueError, match="Maximum encoding depth exceeded"):
+            encode_module.encode(data)
+
     @pytest.mark.parametrize(
         "data, options, expected",
         [
