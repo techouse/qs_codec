@@ -46,7 +46,8 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
         The encoded query string (possibly prefixed with "?" if requested), or an empty string when there is nothing to encode.
 
     Notes:
-        - Caller input is not mutated. When a mapping is provided it is deep-copied; sequences are projected to a temporary mapping.
+        - Caller input is not mutated. When a mapping is provided it is shallow-copied (deep-copied only when a callable
+          filter is used); sequences are projected to a temporary mapping.
         - If a callable `filter` is provided, it can transform the root object.
         - If an iterable filter is provided, it selects which *root* keys to emit.
     """
@@ -161,7 +162,13 @@ dumps = encode  # public alias (parity with `json.dumps` / Node `qs.stringify`)
 _sentinel: WeakWrapper = WeakWrapper({})
 # Keep a safety buffer below Python's recursion limit to avoid RecursionError on deep inputs.
 _DEPTH_MARGIN: int = 50
-_MAX_ENCODE_DEPTH: int = max(0, sys.getrecursionlimit() - _DEPTH_MARGIN)
+_MAX_ENCODE_DEPTH: t.Optional[int] = None
+
+
+def _get_max_encode_depth() -> int:
+    if _MAX_ENCODE_DEPTH is not None:
+        return _MAX_ENCODE_DEPTH
+    return max(0, sys.getrecursionlimit() - _DEPTH_MARGIN)
 
 
 def _encode(
@@ -223,7 +230,7 @@ def _encode(
     Returns:
         Either a list/tuple of tokens or a single token string.
     """
-    if _depth > _MAX_ENCODE_DEPTH:
+    if _depth > _get_max_encode_depth():
         raise ValueError("Maximum encoding depth exceeded")
 
     # Establish a starting prefix for the top-most invocation (used when called directly).
