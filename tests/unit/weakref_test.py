@@ -88,7 +88,19 @@ class TestWeakrefWithDictKeys:
         wrapper = WeakWrapper({})
         assert wrapper.__eq__(object()) is NotImplemented
 
-    def test_hash_is_identity_based_and_weakkey_lookups_survive_mutation(self) -> None:
+    def test_hash_is_identity_based_for_same_wrapped_object(self) -> None:
+        payload: t.Dict[str, t.Any] = {"a": 1}
+        wrapper1 = WeakWrapper(payload)
+        wrapper2 = WeakWrapper(payload)
+
+        first_hash = hash(wrapper1)
+        assert first_hash == hash(wrapper2)
+
+        payload["b"] = 2
+        assert hash(wrapper1) == first_hash
+        assert hash(wrapper2) == first_hash
+
+    def test_weakkey_lookups_survive_mutation(self) -> None:
         payload: t.Dict[str, t.Any] = {"a": 1}
         wrapper = WeakWrapper(payload)
         wk: WeakKeyDictionary = WeakKeyDictionary()
