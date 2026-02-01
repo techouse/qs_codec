@@ -244,7 +244,7 @@ class Utils:
         """
         Remove all `Undefined` sentinels from a nested container in place.
 
-        Traversal is iterative (explicit stack) to avoid deep recursion, and a per‑object `visited` set prevents infinite
+        Traversal is iterative (explicit stack) to avoid deep recursion, and a per-object `visited` set prevents infinite
         loops on cyclic inputs.
 
         Args:
@@ -254,7 +254,7 @@ class Utils:
             The same `root` object for chaining.
         """
         # Depth‑first traversal without recursion.
-        stack: deque[t.Union[t.Dict, t.List]] = deque([root])
+        stack: t.Deque[t.Union[t.Dict, t.List]] = deque([root])
         # Track object identities to avoid revisiting in cycles.
         visited: t.Set[int] = {id(root)}
 
