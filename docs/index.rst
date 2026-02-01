@@ -29,7 +29,7 @@ Highlights
 - Pluggable hooks: custom ``encoder``/``decoder`` callables; options to sort keys, filter output, and control percent-encoding (keys-only, values-only).
 - Nulls & empties: ``strict_null_handling`` and ``skip_nulls``; support for empty lists/arrays when desired.
 - Dates: ``serialize_date`` for ISO 8601 or custom (e.g., UNIX timestamp).
-- Safety limits: configurable nesting depth, parameter limit, and list index limit; optional strict-depth errors; duplicate-key strategies (combine/first/last).
+- Safety limits: configurable decode depth and encode max depth, parameter limit, and list index limit; optional strict-depth errors; duplicate-key strategies (combine/first/last).
 - Extras: numeric entity decoding (e.g. ``&#9786;`` → ☺), alternate delimiters/regex, and query-prefix helpers.
 
 Compatibility

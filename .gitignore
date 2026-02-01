@@ -116,7 +116,6 @@ venv.bak/
 
 # AI related
 .junie
-AGENTS.md
 
 # VS Code specific
 .history

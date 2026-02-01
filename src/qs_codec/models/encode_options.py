@@ -117,6 +117,13 @@ class EncodeOptions:
     sort: t.Optional[t.Callable[[t.Any, t.Any], int]] = field(default=None)
     """Optional comparator for deterministic key ordering. Must return -1, 0, or +1."""
 
+    max_depth: t.Optional[int] = None
+    """Maximum nesting depth allowed during encoding.
+
+    When ``None``, the encoder derives a safe limit from the interpreter recursion limit (minus a safety margin).
+    When set, the effective limit is capped to the current recursion limit to avoid ``RecursionError``.
+    """
+
     def __post_init__(self) -> None:
         """Normalize interdependent options.
 
@@ -126,6 +133,9 @@ class EncodeOptions:
         """
         if not hasattr(self, "_encoder") or self._encoder is None:
             self._encoder = EncodeUtils.encode
+        if self.max_depth is not None:
+            if not isinstance(self.max_depth, int) or isinstance(self.max_depth, bool) or self.max_depth <= 0:
+                raise ValueError("max_depth must be a positive integer or None")
         # Default `encode_dot_in_keys` first, then mirror into `allow_dots` when unspecified.
         if self.encode_dot_in_keys is None:
             self.encode_dot_in_keys = False

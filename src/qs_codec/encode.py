@@ -13,6 +13,7 @@ Node.js `qs` package where it makes sense for Python. It supports:
 Nothing in this module mutates caller objects: inputs are shallow‑normalized and deep‑copied only where safe/necessary to honor options.
 """
 
+import sys
 import typing as t
 from collections.abc import Sequence as ABCSequence
 from copy import deepcopy
@@ -45,7 +46,8 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
         The encoded query string (possibly prefixed with "?" if requested), or an empty string when there is nothing to encode.
 
     Notes:
-        - Caller input is not mutated. When a mapping is provided it is deep-copied; sequences are projected to a temporary mapping.
+        - Caller input is not mutated. When a mapping is provided it is shallow-copied (deep-copied only when a callable
+          filter is used); sequences are projected to a temporary mapping.
         - If a callable `filter` is provided, it can transform the root object.
         - If an iterable filter is provided, it selects which *root* keys to emit.
     """
@@ -53,13 +55,15 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
     if value is None:
         return ""
 
+    filter_opt = options.filter
+
     # Normalize the root into a mapping we can traverse deterministically:
-    # - Mapping  -> deepcopy (avoid mutating caller containers)
+    # - Mapping  -> shallow copy (deep-copy only when a callable filter may mutate)
     # - Sequence -> promote to {"0": v0, "1": v1, ...}
     # - Other    -> empty (encodes to "")
     obj: t.Mapping[str, t.Any]
     if isinstance(value, t.Mapping):
-        obj = deepcopy(value)
+        obj = deepcopy(value) if callable(filter_opt) else dict(value)
     elif isinstance(value, (list, tuple)):
         obj = {str(i): item for i, item in enumerate(value)}
     else:
@@ -73,7 +77,6 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
 
     # If an iterable filter is provided for the root, restrict emission to those keys.
     obj_keys: t.Optional[t.List[t.Any]] = None
-    filter_opt = options.filter
     if filter_opt is not None:
         if callable(filter_opt):
             # Callable filter may transform the root object.
@@ -94,6 +97,7 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
 
     # Side channel for cycle detection across recursive calls.
     side_channel: WeakKeyDictionary = WeakKeyDictionary()
+    max_depth = _get_max_encode_depth(options.max_depth)
 
     # Encode each selected root key.
     for _key in obj_keys:
@@ -126,6 +130,7 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
             encode_values_only=options.encode_values_only,
             charset=options.charset,
             add_query_prefix=options.add_query_prefix,
+            _max_depth=max_depth,
         )
 
         # `_encode` yields either a flat list of `key=value` tokens or a single token.
@@ -157,6 +162,15 @@ dumps = encode  # public alias (parity with `json.dumps` / Node `qs.stringify`)
 
 # Unique placeholder used as a key within the side-channel chain to pass context down recursion.
 _sentinel: WeakWrapper = WeakWrapper({})
+# Keep a safety buffer below Python's recursion limit to avoid RecursionError on deep inputs.
+_DEPTH_MARGIN: int = 50
+
+
+def _get_max_encode_depth(max_depth: t.Optional[int]) -> int:
+    limit = max(0, sys.getrecursionlimit() - _DEPTH_MARGIN)
+    if max_depth is None:
+        return limit
+    return min(max_depth, limit)
 
 
 def _encode(
@@ -181,6 +195,8 @@ def _encode(
     encode_values_only: bool = False,
     charset: t.Optional[Charset] = Charset.UTF8,
     add_query_prefix: bool = False,
+    _depth: int = 0,
+    _max_depth: t.Optional[int] = None,
 ) -> t.Union[t.List[t.Any], t.Tuple[t.Any, ...], t.Any]:
     """
     Recursive worker that produces `key=value` tokens for a single subtree.
@@ -217,6 +233,11 @@ def _encode(
     Returns:
         Either a list/tuple of tokens or a single token string.
     """
+    if _max_depth is None:
+        _max_depth = _get_max_encode_depth(None)
+    if _depth > _max_depth:
+        raise ValueError("Maximum encoding depth exceeded")
+
     # Establish a starting prefix for the top-most invocation (used when called directly).
     if prefix is None:
         prefix = "?" if add_query_prefix else ""
@@ -425,6 +446,8 @@ def _encode(
             allow_dots=allow_dots,
             encode_values_only=encode_values_only,
             charset=charset,
+            _depth=_depth + 1,
+            _max_depth=_max_depth,
         )
 
         # Flatten nested results into the `values` list.

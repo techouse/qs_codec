@@ -17,7 +17,6 @@ Notes:
 - Several routines use an object‑identity `visited` set to avoid infinite recursion when user inputs contain cycles.
 """
 
-import copy
 import typing as t
 from collections import deque
 from datetime import datetime, timedelta
@@ -218,9 +217,12 @@ class Utils:
                     _res.append(_el)
             return _res
 
-        # Prepare a mutable copy of the target we can merge into.
-        is_overflow_target = Utils.is_overflow(target)
-        merge_target: t.Dict[str, t.Any] = copy.deepcopy(target if isinstance(target, dict) else dict(target))
+        # Prepare a mutable target we can merge into; reuse dict targets for performance.
+        merge_target: t.Dict[str, t.Any]
+        if isinstance(target, dict):
+            merge_target = target
+        else:
+            merge_target = dict(target)
 
         # For overlapping keys, merge recursively; otherwise, take the new value.
         merged_updates: t.Dict[t.Any, t.Any] = {}
@@ -233,18 +235,16 @@ class Utils:
                 merged_updates[normalized_key] = Utils.merge(merge_target[normalized_key], value, options)
             else:
                 merged_updates[key] = value
-        merged = {
-            **merge_target,
-            **merged_updates,
-        }
-        return OverflowDict(merged) if is_overflow_target else merged
+        if merged_updates:
+            merge_target.update(merged_updates)
+        return merge_target
 
     @staticmethod
     def compact(root: t.Dict[str, t.Any]) -> t.Dict[str, t.Any]:
         """
         Remove all `Undefined` sentinels from a nested container in place.
 
-        Traversal is iterative (explicit stack) to avoid deep recursion, and a per‑object `visited` set prevents infinite
+        Traversal is iterative (explicit stack) to avoid deep recursion, and a per-object `visited` set prevents infinite
         loops on cyclic inputs.
 
         Args:
@@ -254,7 +254,7 @@ class Utils:
             The same `root` object for chaining.
         """
         # Depth‑first traversal without recursion.
-        stack: deque[t.Union[t.Dict, t.List]] = deque([root])
+        stack: t.Deque[t.Union[t.Dict, t.List]] = deque([root])
         # Track object identities to avoid revisiting in cycles.
         visited: t.Set[int] = {id(root)}
 

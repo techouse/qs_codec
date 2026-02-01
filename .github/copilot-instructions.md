@@ -11,9 +11,9 @@ Concise, project-specific guidance for AI coding agents working on this repo. Fo
 - Support code in `utils/` (`utils.py`, `decode_utils.py`) and enums/models folders. Option dataclasses centralize behavioral switches; never scatter ad-hoc flags.
 
 ## 2. Key Behavioral Invariants
-- DO NOT mutate caller inputs—copy/normalize (`deepcopy` for mappings, index-projection for sequences) before traversal.
+- DO NOT mutate caller inputs—copy/normalize (shallow copy for mappings; deep-copy only when a callable filter may mutate; index-projection for sequences) before traversal.
 - Cycle detection in `encode._encode` must raise `ValueError("Circular reference detected")`—preserve side-channel algorithm.
-- Depth, list, and parameter limits are security/safety features: respect `depth`, `list_limit`, `parameter_limit`, and `strict_depth` / `raise_on_limit_exceeded` exactly as tests assert.
+- Depth, list, and parameter limits are security/safety features: respect `depth`, `max_depth`, `list_limit`, `parameter_limit`, and `strict_depth` / `raise_on_limit_exceeded` exactly as tests assert. `max_depth` is capped to the current recursion limit.
 - Duplicate key handling delegated to `Duplicates` enum: COMBINE → list accumulation; FIRST/LAST semantics enforced during merge.
 - List format semantics (`ListFormat` enum) change how prefixes are generated; COMMA + `comma_round_trip=True` must emit single-element marker for round-trip fidelity.
 - Charset sentinel logic: when `charset_sentinel=True`, prepend sentinel *before* payload; obey override rules when both charset and sentinel present.
@@ -39,6 +39,7 @@ Concise, project-specific guidance for AI coding agents working on this repo. Fo
 - When altering merge or list/index logic, adjust `Utils.merge` or decoding helpers—never inline merging elsewhere.
 - New list or formatting strategies: add Enum member with associated generator/formatter; augment tests to cover serialization/deserialization round trip.
 - Performance-sensitive paths: avoid repeated regex compilation or deep copies inside tight loops; reuse existing pre-processing structure (tokenize first, structure later).
+  - `Utils.merge` is internal and may reuse dict targets for performance; do not assume it preserves caller immutability.
 
 ## 6. Testing Strategy
 - Mirror existing parametric test style in `tests/unit/*_test.py`.
