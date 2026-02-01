@@ -1,6 +1,7 @@
 import copy
 import re
 import typing as t
+from types import MappingProxyType
 
 import pytest
 
@@ -512,6 +513,11 @@ class TestUtils:
 
     def test_merges_dict_with_list(self) -> None:
         assert Utils.merge({"0": "a"}, [Undefined(), "b"]) == {"0": "a", "1": "b"}
+
+    def test_merge_with_non_dict_mapping_target(self) -> None:
+        target = MappingProxyType({"a": {"b": 1}})
+        source = {"a": {"c": 2}}
+        assert Utils.merge(target, source) == {"a": {"b": 1, "c": 2}}
 
     def test_merges_two_dicts_with_the_same_key_and_different_values(self) -> None:
         assert Utils.merge({"foo": [{"a": "a", "b": "b"}, {"a": "aa"}]}, {"foo": [Undefined(), {"b": "bb"}]}) == {
