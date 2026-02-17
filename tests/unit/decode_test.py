@@ -1370,6 +1370,63 @@ class TestListLimit:
         else:
             assert decode(query, options) == expected
 
+    @pytest.mark.parametrize(
+        "query, options, expected, raises_error, expect_overflow",
+        [
+            pytest.param(
+                "a=1,2,3",
+                DecodeOptions(comma=True, list_limit=5),
+                {"a": ["1", "2", "3"]},
+                False,
+                False,
+                id="comma-within-list-limit",
+            ),
+            pytest.param(
+                "a=1,2,3,4",
+                DecodeOptions(comma=True, list_limit=3),
+                {"a": {"0": "1", "1": "2", "2": "3", "3": "4"}},
+                False,
+                True,
+                id="comma-over-list-limit-converts-to-overflow",
+            ),
+            pytest.param(
+                "a=1,2,3,4",
+                DecodeOptions(comma=True, list_limit=3, raise_on_limit_exceeded=True),
+                None,
+                True,
+                False,
+                id="comma-over-list-limit-raises",
+            ),
+            pytest.param(
+                "a=1,2,3",
+                DecodeOptions(comma=True, list_limit=3),
+                {"a": ["1", "2", "3"]},
+                False,
+                False,
+                id="comma-at-list-limit-stays-list",
+            ),
+        ],
+    )
+    def test_comma_list_limit_parity(
+        self,
+        query: str,
+        options: DecodeOptions,
+        expected: t.Optional[t.Mapping[str, t.Any]],
+        raises_error: bool,
+        expect_overflow: bool,
+    ) -> None:
+        if raises_error:
+            with pytest.raises(ValueError, match="List limit exceeded"):
+                decode(query, options)
+            return
+
+        result = decode(query, options)
+        assert result == expected
+        if expect_overflow:
+            assert isinstance(result["a"], OverflowDict)
+        else:
+            assert isinstance(result["a"], list)
+
 
 # --- Additional tests for decoder kind and parser state isolation ---
 
