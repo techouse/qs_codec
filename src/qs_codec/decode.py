@@ -137,7 +137,8 @@ def _parse_array_value(value: t.Any, options: DecodeOptions, current_list_length
     - When ``list_limit`` is negative:
         * if ``raise_on_limit_exceeded=True``, **any** list-growth operation here (e.g., comma-splitting)
           raises immediately;
-        * if ``raise_on_limit_exceeded=False`` (default), comma-splitting still returns a list; numeric
+        * if ``raise_on_limit_exceeded=False`` (default), comma-splitting is allowed here and is normalized
+          later in ``_parse_query_string_values`` (which applies overflow conversion when needed). Numeric
           bracket indices are handled later by ``_parse_object`` (where negative ``list_limit`` disables
           numeric-index parsing only).
 
@@ -176,7 +177,10 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
         * Decode key/value via ``options.decoder`` (default: percent-decoding using the selected ``charset``).
           Keys are passed with ``kind=DecodeKind.KEY`` and values with ``kind=DecodeKind.VALUE``; a custom decoder
           may return the raw token or ``None``.
-        * Apply comma-split list logic to values (handled here). Index-based list growth from bracket segments is applied later in ``_parse_object``. When ``list_limit < 0`` and ``raise_on_limit_exceeded=True``, any comma-split that would increase the list length raises immediately; otherwise the split proceeds.
+        * Apply comma-split list logic to values (handled here). Index-based list growth from bracket segments
+          is applied later in ``_parse_object``. When ``comma=True`` yields a list longer than ``list_limit``,
+          the value either raises (``raise_on_limit_exceeded=True``) or is normalized through overflow conversion
+          (``raise_on_limit_exceeded=False``), mirroring indexed/bracket list-limit handling.
         * Interpret numeric entities for Latin-1 when requested.
         * Handle empty brackets ``[]`` as list markers (wrapping exactly once).
         * Merge duplicate keys according to ``duplicates`` policy.
@@ -284,6 +288,14 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
         # Always wrap exactly once to preserve list-of-lists semantics when comma splitting applies.
         if options.parse_lists and "[]=" in part:
             val = [val]
+
+        # Enforce comma-split list limits consistently with other list construction paths.
+        if options.comma and isinstance(val, list) and len(val) > options.list_limit:
+            if options.raise_on_limit_exceeded:
+                raise ValueError(
+                    f"List limit exceeded: Only {options.list_limit} element{'' if options.list_limit == 1 else 's'} allowed in a list."
+                )
+            val = Utils.combine([], val, options)
 
         existing: bool = key in obj
 
