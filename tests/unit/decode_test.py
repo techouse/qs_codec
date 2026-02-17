@@ -1733,3 +1733,26 @@ class TestCVE2024:
     def test_no_limit_does_not_overflow(self) -> None:
         # Verify that within limit it stays a list
         assert decode("a[]=b&a[]=c", DecodeOptions(list_limit=2)) == {"a": ["b", "c"]}
+
+
+class TestGHSA2026CommaArrayLimit:
+    def test_ghsa_w7fw_comma_poc_raises_when_limit_exceeded(self) -> None:
+        # GHSA-w7fw-mjwx-w883 / CVE-2026-2391 PoC shape (comma parsing + list limit bypass attempt)
+        # Upstream fixed in qs v6.14.2.
+        query = "a=" + ("," * 25)  # 26 items after split
+
+        with pytest.raises(ValueError, match="List limit exceeded"):
+            decode(
+                query,
+                DecodeOptions(comma=True, list_limit=5, raise_on_limit_exceeded=True),
+            )
+
+    def test_ghsa_w7fw_comma_at_limit_does_not_raise(self) -> None:
+        # Control case for the same GHSA path: exactly at list_limit should parse successfully.
+        # Matches the strict limit semantics preserved in this port.
+        result = decode(
+            "a=1,2,3,4,5",
+            DecodeOptions(comma=True, list_limit=5, raise_on_limit_exceeded=True),
+        )
+
+        assert result == {"a": ["1", "2", "3", "4", "5"]}
