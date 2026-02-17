@@ -1427,6 +1427,18 @@ class TestListLimit:
         else:
             assert isinstance(result["a"], list)
 
+    def test_comma_list_limit_raises_when_decoder_returns_oversized_list(self) -> None:
+        def _decoder(s: t.Optional[str], charset: t.Optional[Charset], *, kind: DecodeKind = DecodeKind.VALUE) -> t.Any:
+            if kind is DecodeKind.VALUE and s == "1":
+                return ["x", "y"]
+            return DecodeUtils.decode(s, charset=charset, kind=kind)
+
+        with pytest.raises(ValueError, match="List limit exceeded"):
+            decode(
+                "a=1",
+                DecodeOptions(comma=True, list_limit=1, raise_on_limit_exceeded=True, decoder=_decoder),
+            )
+
 
 # --- Additional tests for decoder kind and parser state isolation ---
 
