@@ -120,8 +120,8 @@ class EncodeOptions:
     max_depth: t.Optional[int] = None
     """Maximum nesting depth allowed during encoding.
 
-    When ``None``, the encoder derives a safe limit from the interpreter recursion limit (minus a safety margin).
-    When set, the effective limit is capped to the current recursion limit to avoid ``RecursionError``.
+    When ``None``, encoding depth is unbounded by this option.
+    When set, the value is enforced directly.
     """
 
     def __post_init__(self) -> None:
