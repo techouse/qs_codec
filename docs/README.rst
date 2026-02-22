@@ -413,9 +413,8 @@ Maximum encoding depth
 ^^^^^^^^^^^^^^^^^^^^^^
 
 You can cap how deep the encoder will traverse by setting the
-:py:attr:`max_depth <qs_codec.models.encode_options.EncodeOptions.max_depth>` option. If unset, the encoder derives a
-safe limit from the interpreter recursion limit; when set, the effective limit is capped to the current recursion
-limit to avoid ``RecursionError``.
+:py:attr:`max_depth <qs_codec.models.encode_options.EncodeOptions.max_depth>` option.
+If unset, traversal is unbounded by this option. When set, the provided limit is enforced directly.
 
 .. code:: python
 

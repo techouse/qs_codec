@@ -13,7 +13,7 @@ Concise, project-specific guidance for AI coding agents working on this repo. Fo
 ## 2. Key Behavioral Invariants
 - DO NOT mutate caller inputs—copy/normalize (shallow copy for mappings; deep-copy only when a callable filter may mutate; index-projection for sequences) before traversal.
 - Cycle detection in `encode._encode` must raise `ValueError("Circular reference detected")`—preserve side-channel algorithm.
-- Depth, list, and parameter limits are security/safety features: respect `depth`, `max_depth`, `list_limit`, `parameter_limit`, and `strict_depth` / `raise_on_limit_exceeded` exactly as tests assert. `max_depth` is capped to the current recursion limit.
+- Depth, list, and parameter limits are security/safety features: respect `depth`, `max_depth`, `list_limit`, `parameter_limit`, and `strict_depth` / `raise_on_limit_exceeded` exactly as tests assert. For encoding, `max_depth=None` means unbounded traversal (`sys.maxsize`); explicit values are enforced directly without recursion-limit capping, and exceeding an explicit `max_depth` raises `ValueError("Maximum encoding depth exceeded")`.
 - Duplicate key handling delegated to `Duplicates` enum: COMBINE → list accumulation; FIRST/LAST semantics enforced during merge.
 - List format semantics (`ListFormat` enum) change how prefixes are generated; COMMA + `comma_round_trip=True` must emit single-element marker for round-trip fidelity.
 - Charset sentinel logic: when `charset_sentinel=True`, prepend sentinel *before* payload; obey override rules when both charset and sentinel present.
