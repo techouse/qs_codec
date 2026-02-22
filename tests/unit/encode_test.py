@@ -11,7 +11,7 @@ from weakref import WeakKeyDictionary
 import pytest
 
 from qs_codec import Charset, EncodeOptions, Format, ListFormat, dumps, encode
-from qs_codec.encode import _encode, _sentinel
+from qs_codec.encode import _CycleState, _encode, _pop_current_node, _sentinel
 from qs_codec.models.undefined import Undefined
 from qs_codec.models.weak_wrapper import WeakWrapper
 from qs_codec.utils.encode_utils import EncodeUtils
@@ -867,23 +867,33 @@ class TestEncode:
         with pytest.raises(ValueError, match="Maximum encoding depth exceeded"):
             encode(data, options=EncodeOptions(max_depth=3))
 
-    def test_encode_depth_guard_caps_to_recursion_limit(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        import importlib
-
-        encode_module = importlib.import_module("qs_codec.encode")
-
-        limit = encode_module._DEPTH_MARGIN + 3
-        monkeypatch.setattr(encode_module.sys, "getrecursionlimit", lambda: limit)
-
+    def test_encode_depth_guard_does_not_cap_to_recursion_limit(self) -> None:
+        # `_get_max_encode_depth` now uses `sys.maxsize` for None and explicit values directly,
+        # so monkeypatching `sys.getrecursionlimit` is intentionally unnecessary here.
         data: t.Dict[str, t.Any] = {}
         current = data
         for _ in range(5):
             nxt: t.Dict[str, t.Any] = {}
             current["a"] = nxt
             current = nxt
+        current["leaf"] = "x"
 
-        with pytest.raises(ValueError, match="Maximum encoding depth exceeded"):
-            encode(data, options=EncodeOptions(max_depth=10_000))
+        with does_not_raise():
+            result = encode(data, options=EncodeOptions(max_depth=10_000, encode=False))
+
+        assert result.endswith("=x")
+
+    def test_encode_deep_nesting_iterative_stack_safety(self) -> None:
+        # Keep this above common recursion limits so recursion regressions still fail quickly.
+        depth = 12_000
+        data: t.Dict[str, t.Any] = {"leaf": "x"}
+        for _ in range(depth):
+            data = {"a": data}
+
+        with does_not_raise():
+            result = encode(data, options=EncodeOptions(encode=False))
+
+        assert result.endswith("=x")
 
     @pytest.mark.parametrize(
         "data, options, expected",
@@ -1852,6 +1862,93 @@ class TestEncodeInternals:
         )
 
         assert tokens == ["root%5Bchild%5D=value"]
+
+    def test_encode_cycle_state_prefers_nearest_ancestor_mapping(self) -> None:
+        value: t.Dict[str, t.Any] = {"child": "value"}
+        wrapper = WeakWrapper(value)
+
+        top_channel: WeakKeyDictionary = WeakKeyDictionary()
+        top_channel[wrapper] = 2
+
+        mid_channel: WeakKeyDictionary = WeakKeyDictionary()
+        mid_channel[_sentinel] = top_channel
+        mid_channel[wrapper] = 99
+
+        side_channel: WeakKeyDictionary = WeakKeyDictionary()
+        side_channel[_sentinel] = mid_channel
+
+        tokens = _encode(
+            value=value,
+            is_undefined=False,
+            side_channel=side_channel,
+            prefix="root",
+            comma_round_trip=False,
+            comma_compact_nulls=False,
+            encoder=EncodeUtils.encode,
+            serialize_date=EncodeUtils.serialize_date,
+            sort=None,
+            filter_=None,
+            formatter=Format.RFC3986.formatter,
+            format=Format.RFC3986,
+            generate_array_prefix=ListFormat.INDICES.generator,
+            allow_empty_lists=False,
+            strict_null_handling=False,
+            skip_nulls=False,
+            encode_dot_in_keys=False,
+            allow_dots=False,
+            encode_values_only=False,
+            charset=Charset.UTF8,
+        )
+
+        assert tokens == ["root%5Bchild%5D=value"]
+
+    def test_encode_cycle_state_bootstrap_matches_legacy_side_channel_behavior(self) -> None:
+        value: t.Dict[str, t.Any] = {"child": "value"}
+        wrapper = WeakWrapper(value)
+
+        top_channel: WeakKeyDictionary = WeakKeyDictionary()
+        top_channel[wrapper] = 99
+
+        parent_channel: WeakKeyDictionary = WeakKeyDictionary()
+        parent_channel[_sentinel] = top_channel
+
+        side_channel: WeakKeyDictionary = WeakKeyDictionary()
+        side_channel[_sentinel] = parent_channel
+
+        tokens = _encode(
+            value=value,
+            is_undefined=False,
+            side_channel=side_channel,
+            prefix="root",
+            comma_round_trip=False,
+            comma_compact_nulls=False,
+            encoder=EncodeUtils.encode,
+            serialize_date=EncodeUtils.serialize_date,
+            sort=None,
+            filter_=None,
+            formatter=Format.RFC3986.formatter,
+            format=Format.RFC3986,
+            generate_array_prefix=ListFormat.INDICES.generator,
+            allow_empty_lists=False,
+            strict_null_handling=False,
+            skip_nulls=False,
+            encode_dot_in_keys=False,
+            allow_dots=False,
+            encode_values_only=False,
+            charset=Charset.UTF8,
+        )
+
+        assert tokens == ["root%5Bchild%5D=value"]
+
+    def test_pop_current_node_noop_when_wrapper_not_present(self) -> None:
+        value: t.Dict[str, t.Any] = {"child": "value"}
+        wrapper = WeakWrapper(value)
+        state = _CycleState()
+
+        with does_not_raise():
+            _pop_current_node(state, wrapper)
+
+        assert state.entries == {}
 
     def test_encode_handles_iterable_filter_for_indexable_object(self, monkeypatch: pytest.MonkeyPatch) -> None:
         class Indexable:

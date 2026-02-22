@@ -594,6 +594,52 @@ class TestUtils:
             {"foo": ["xyzzy"]},
         ) == {"foo": {"bar": "baz", "0": "xyzzy"}}
 
+    def test_merge_mapping_target_with_scalar_source_returns_target_unchanged(self) -> None:
+        target = {"a": "b"}
+        source = "scalar"
+
+        result = Utils.merge(target, source)  # type: ignore[arg-type]
+
+        assert result == {"a": "b"}
+        assert result is target
+
+    def test_merge_structured_lists_prefers_source_when_target_slot_is_undefined(self) -> None:
+        options = DecodeOptions()
+        target = [Undefined()]
+        source = [{"from_source": 1}]
+
+        result = Utils.merge(target, source, options)
+
+        assert result == [{"from_source": 1}]
+
+    def test_merge_deep_maps_without_stack_overflow(self) -> None:
+        # Keep this above common recursion limits so recursion regressions still fail quickly.
+        depth = 12_000
+
+        left: t.Dict[str, t.Any] = {}
+        cursor = left
+        for _ in range(depth):
+            nxt: t.Dict[str, t.Any] = {}
+            cursor["a"] = nxt
+            cursor = nxt
+
+        right: t.Dict[str, t.Any] = {}
+        right_cursor = right
+        for _ in range(depth):
+            nxt = {}
+            right_cursor["a"] = nxt
+            right_cursor = nxt
+        right_cursor["leaf"] = "x"
+
+        merged = Utils.merge(left, right)
+        walk = merged
+        for _ in range(depth):
+            assert isinstance(walk, dict)
+            walk = walk["a"]
+
+        assert isinstance(walk, dict)
+        assert walk["leaf"] == "x"
+
     def test_combine_both_arrays(self) -> None:
         a: t.List[int] = [1]
         b: t.List[int] = [2]
@@ -949,6 +995,24 @@ class TestUtils:
         result = Utils.merge(target_str, source_str)  # type: ignore[arg-type]
         assert result == {"1": {"a": "x", "b": "y"}}
         assert 1 not in result
+
+    def test_merge_does_not_match_source_keys_inserted_earlier_in_same_map_pass(self) -> None:
+        target = {"3": ""}
+        source = {"1": {"a": 1}, 1: ("x",)}
+
+        result = Utils.merge(target, source)  # type: ignore[arg-type]
+
+        assert result == {"3": "", "1": {"a": 1}, 1: ("x",)}
+        assert "1" in result
+        assert 1 in result
+
+    def test_merge_normalized_collision_with_existing_key_uses_existing_target_slot(self) -> None:
+        target = {"1": {"z": 0}}
+        source = {"1": {"a": 1}, 1: ("x",)}
+
+        result = Utils.merge(target, source)  # type: ignore[arg-type]
+
+        assert result == {"1": {"z": 0, "a": 1, "0": "x"}}
 
     def test_overflow_dict_copy_preserves_type(self) -> None:
         target = OverflowDict({"0": "a"})
