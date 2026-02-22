@@ -22,7 +22,8 @@
 - Preserve or raise the coverage level tracked in `coverage.xml`; CI flags regressions.
 - Name tests `test_{feature}_{scenario}` and refresh fixtures whenever query-string semantics shift.
 - When touching cross-language behavior, run `tests/comparison/compare_outputs.sh` to confirm parity with the Node reference.
-  - For encoding depth changes, cover `EncodeOptions.max_depth` (positive int/None) and cap-to-recursion behavior.
+  - For encoding depth changes, cover `EncodeOptions.max_depth` (positive int/None): `None` means unbounded traversal
+    (`sys.maxsize`) and explicit values are enforced directly (no recursion-limit capping).
 
 ## Commit & Pull Request Guidelines
 - Follow the emoji-prefixed summaries visible in `git log` (e.g., `:arrow_up: Bump actions/setup-python from 5 to 6 (#26)`), using the imperative mood.

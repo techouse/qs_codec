@@ -19,6 +19,7 @@ Notes:
 
 import typing as t
 from collections import deque
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from decimal import Decimal
 from enum import Enum
@@ -42,6 +43,25 @@ def _numeric_key_pairs(mapping: t.Mapping[t.Any, t.Any]) -> t.List[t.Tuple[int, 
             continue
         pairs.append((numeric_key, key))
     return pairs
+
+
+@dataclass
+class _MergeFrame:
+    target: t.Any
+    source: t.Any
+    options: DecodeOptions
+    phase: str = "start"
+    merge_target: t.Optional[t.MutableMapping[t.Any, t.Any]] = None
+    merge_existing_keys: t.Set[t.Any] = field(default_factory=set)
+    pending_updates: t.Dict[t.Any, t.Any] = field(default_factory=dict)
+    source_items: t.List[t.Tuple[t.Any, t.Any]] = field(default_factory=list)
+    entry_index: int = 0
+    pending_key: t.Any = None
+    list_target: t.Dict[int, t.Any] = field(default_factory=dict)
+    list_source: t.Dict[int, t.Any] = field(default_factory=dict)
+    list_max_len: int = 0
+    list_index: int = 0
+    list_merged: t.List[t.Any] = field(default_factory=list)
 
 
 class Utils:
@@ -96,148 +116,245 @@ class Utils:
             The merged structure. May be the original `target` object when
             `source` is ``None``.
         """
-        if source is None:
-            # Nothing to merge — keep the original target as‑is.
-            return target
+        opts = options if options is not None else DecodeOptions()
+        last_result: t.Any = None
 
-        if options is None:
-            # Use default decode options when none are provided.
-            options = DecodeOptions()
+        stack: t.List[_MergeFrame] = [_MergeFrame(target=target, source=source, options=opts)]
 
-        if not isinstance(source, t.Mapping):
-            # Fast‑path: merging a non‑mapping (list/tuple/scalar) into target.
-            if isinstance(target, (list, tuple)):
-                # If the target sequence contains `Undefined`, we may need to promote it
-                # to a dict keyed by string indices for stable writes.
-                if any(isinstance(el, Undefined) for el in target):
-                    # Create an index → value view so we can overwrite by position.
-                    target_: t.Dict[int, t.Any] = dict(enumerate(target))
+        while stack:
+            frame = stack[-1]
 
-                    if isinstance(source, (list, tuple)):
-                        for i, item in enumerate(source):
-                            if not isinstance(item, Undefined):
-                                target_[i] = item
-                    else:
-                        target_[len(target_)] = source
+            if frame.phase == "start":
+                current_target = frame.target
+                current_source = frame.source
 
-                    # When list parsing is disabled, collapse to a string‑keyed dict and drop sentinels.
-                    if not options.parse_lists and any(isinstance(value, Undefined) for value in target_.values()):
-                        target = {str(i): target_[i] for i in target_ if not isinstance(target_[i], Undefined)}
-                    else:
-                        target = [el for el in target_.values() if not isinstance(el, Undefined)]
-                else:
-                    if isinstance(source, (list, tuple)):
-                        if all(isinstance(el, (t.Mapping, Undefined)) for el in target) and all(
-                            isinstance(el, (t.Mapping, Undefined)) for el in source
-                        ):
-                            target_dict: t.Dict[int, t.Any] = dict(enumerate(target))
-                            source_dict: t.Dict[int, t.Any] = dict(enumerate(source))
-                            max_len = max(len(target_dict), len(source_dict))
-                            merged_list: t.List[t.Any] = []
-                            for i in range(max_len):
-                                has_t = i in target_dict
-                                has_s = i in source_dict
-                                if has_t and has_s:
-                                    merged_list.append(Utils.merge(target_dict[i], source_dict[i], options))
-                                elif has_t:
-                                    tv = target_dict[i]
-                                    if not isinstance(tv, Undefined):
-                                        merged_list.append(tv)
-                                elif has_s:
-                                    sv = source_dict[i]
-                                    if not isinstance(sv, Undefined):
-                                        merged_list.append(sv)
-                            target = merged_list
-                        else:
-                            # Tuples are immutable; work with a list when mutating.
-                            if isinstance(target, tuple):
-                                target = list(target)
-                            target.extend(el for el in source if not isinstance(el, Undefined))
-                    elif source is not None:
-                        # Tuples are immutable; work with a list when mutating.
-                        if isinstance(target, tuple):
-                            target = list(target)
-                        target.append(source)
-            elif isinstance(target, t.Mapping):
-                if Utils.is_overflow(target):
-                    return Utils.combine(target, source, options)
+                if current_source is None:
+                    stack.pop()
+                    last_result = current_target
+                    continue
 
-                # Target is a mapping but source is a sequence — coerce indices to string keys.
-                if isinstance(source, (list, tuple)):
-                    _new = dict(target)
-                    for i, item in enumerate(source):
-                        if not isinstance(item, Undefined):
-                            _new[str(i)] = item
-                    target = _new
-            elif source is not None:
-                if not isinstance(target, (list, tuple)) and isinstance(source, (list, tuple)):
-                    return [target, *(el for el in source if not isinstance(el, Undefined))]
-                return [target, source]
+                if not isinstance(current_source, t.Mapping):
+                    # Fast-path: merging a non-mapping (list/tuple/scalar) into target.
+                    if isinstance(current_target, (list, tuple)):
+                        # If the target sequence contains `Undefined`, we may need to promote it
+                        # to a dict keyed by indices for stable writes.
+                        if any(isinstance(el, Undefined) for el in current_target):
+                            target_: t.Dict[int, t.Any] = dict(enumerate(current_target))
 
-            return target
+                            if isinstance(current_source, (list, tuple)):
+                                for i, item in enumerate(current_source):
+                                    if not isinstance(item, Undefined):
+                                        target_[i] = item
+                            else:
+                                target_[len(target_)] = current_source
 
-        # Source is a mapping but target is not — coerce target to a mapping or
-        # concatenate as a list, then proceed.
-        if target is None or not isinstance(target, t.Mapping):
-            if isinstance(target, (list, tuple)):
-                return {
-                    **{str(i): item for i, item in enumerate(target) if not isinstance(item, Undefined)},
-                    **source,
-                }
+                            # When list parsing is disabled, collapse to a string-keyed dict and drop sentinels.
+                            if not frame.options.parse_lists and any(
+                                isinstance(value, Undefined) for value in target_.values()
+                            ):
+                                result: t.Any = {
+                                    str(i): target_[i] for i in target_ if not isinstance(target_[i], Undefined)
+                                }
+                            else:
+                                result = [el for el in target_.values() if not isinstance(el, Undefined)]
+                            stack.pop()
+                            last_result = result
+                            continue
 
-            if Utils.is_overflow(source):
-                source_of = t.cast(OverflowDict, source)
-                sorted_pairs = sorted(_numeric_key_pairs(source_of), key=lambda item: item[0])
-                numeric_keys = {key for _, key in sorted_pairs}
-                result = OverflowDict()
-                offset = 0
-                if not isinstance(target, Undefined):
-                    result["0"] = target
-                    offset = 1
-                for numeric_key, key in sorted_pairs:
-                    val = source_of[key]
-                    if not isinstance(val, Undefined):
-                        # Offset ensures target occupies index "0"; source indices shift up by 1
-                        result[str(numeric_key + offset)] = val
-                for key, val in source_of.items():
-                    if key in numeric_keys:
+                        if isinstance(current_source, (list, tuple)):
+                            if all(isinstance(el, (t.Mapping, Undefined)) for el in current_target) and all(
+                                isinstance(el, (t.Mapping, Undefined)) for el in current_source
+                            ):
+                                frame.list_target = dict(enumerate(current_target))
+                                frame.list_source = dict(enumerate(current_source))
+                                frame.list_max_len = max(len(frame.list_target), len(frame.list_source))
+                                frame.list_index = 0
+                                frame.list_merged = []
+                                frame.phase = "list_iter"
+                                continue
+
+                            mutable_target = (
+                                list(current_target) if isinstance(current_target, tuple) else current_target
+                            )
+                            # Mutates in-place by design for list targets to preserve merge performance.
+                            mutable_target.extend(el for el in current_source if not isinstance(el, Undefined))
+                            stack.pop()
+                            last_result = mutable_target
+                            continue
+
+                        mutable_target = list(current_target) if isinstance(current_target, tuple) else current_target
+                        mutable_target.append(current_source)
+                        stack.pop()
+                        last_result = mutable_target
                         continue
-                    if not isinstance(val, Undefined):
-                        result[key] = val
-                return result
 
-            _res: t.List[t.Any] = []
-            _iter1 = target if isinstance(target, (list, tuple)) else [target]
-            for _el in _iter1:
-                if not isinstance(_el, Undefined):
-                    _res.append(_el)
-            _iter2 = [source]
-            for _el in _iter2:
-                if not isinstance(_el, Undefined):
-                    _res.append(_el)
-            return _res
+                    if isinstance(current_target, t.Mapping):
+                        if Utils.is_overflow(current_target):
+                            stack.pop()
+                            last_result = Utils.combine(current_target, current_source, frame.options)
+                            continue
 
-        # Prepare a mutable target we can merge into; reuse dict targets for performance.
-        merge_target: t.Dict[str, t.Any]
-        if isinstance(target, dict):
-            merge_target = target
-        else:
-            merge_target = dict(target)
+                        # Target is a mapping but source is a sequence — coerce indices to string keys.
+                        if isinstance(current_source, (list, tuple)):
+                            new_target = dict(current_target)
+                            for i, item in enumerate(current_source):
+                                if not isinstance(item, Undefined):
+                                    new_target[str(i)] = item
+                            stack.pop()
+                            last_result = new_target
+                            continue
 
-        # For overlapping keys, merge recursively; otherwise, take the new value.
-        merged_updates: t.Dict[t.Any, t.Any] = {}
-        # Prefer exact key matches; fall back to string normalization only when needed.
-        for key, value in source.items():
-            normalized_key = str(key)
-            if key in merge_target:
-                merged_updates[key] = Utils.merge(merge_target[key], value, options)
-            elif normalized_key in merge_target:
-                merged_updates[normalized_key] = Utils.merge(merge_target[normalized_key], value, options)
-            else:
-                merged_updates[key] = value
-        if merged_updates:
-            merge_target.update(merged_updates)
-        return merge_target
+                        stack.pop()
+                        last_result = current_target
+                        continue
+
+                    if not isinstance(current_target, (list, tuple)) and isinstance(current_source, (list, tuple)):
+                        stack.pop()
+                        last_result = [
+                            current_target,
+                            *(el for el in current_source if not isinstance(el, Undefined)),
+                        ]
+                        continue
+
+                    stack.pop()
+                    last_result = [current_target, current_source]
+                    continue
+
+                # Source is a mapping but target is not — coerce target to a mapping or
+                # concatenate as a list, then proceed.
+                if current_target is None or not isinstance(current_target, t.Mapping):
+                    if isinstance(current_target, (list, tuple)):
+                        stack.pop()
+                        last_result = {
+                            **{
+                                str(i): item for i, item in enumerate(current_target) if not isinstance(item, Undefined)
+                            },
+                            **current_source,
+                        }
+                        continue
+
+                    if Utils.is_overflow(current_source):
+                        source_of = t.cast(OverflowDict, current_source)
+                        sorted_pairs = sorted(_numeric_key_pairs(source_of), key=lambda item: item[0])
+                        numeric_keys = {key for _, key in sorted_pairs}
+                        result = OverflowDict()
+                        offset = 0
+                        if not isinstance(current_target, Undefined):
+                            result["0"] = current_target
+                            offset = 1
+                        for numeric_key, key in sorted_pairs:
+                            val = source_of[key]
+                            if not isinstance(val, Undefined):
+                                # Offset ensures target occupies index "0"; source indices shift up by 1.
+                                result[str(numeric_key + offset)] = val
+                        for key, val in source_of.items():
+                            if key in numeric_keys:
+                                continue
+                            if not isinstance(val, Undefined):
+                                result[key] = val
+                        stack.pop()
+                        last_result = result
+                        continue
+
+                    result_list: t.List[t.Any] = []
+                    for element in (current_target,):
+                        if not isinstance(element, Undefined):
+                            result_list.append(element)
+                    for element in (current_source,):
+                        if not isinstance(element, Undefined):
+                            result_list.append(element)
+                    stack.pop()
+                    last_result = result_list
+                    continue
+
+                # Prepare a mutable target we can merge into; reuse dict targets for performance.
+                frame.merge_target = current_target if isinstance(current_target, dict) else dict(current_target)
+                frame.merge_existing_keys = set(frame.merge_target.keys())
+                frame.pending_updates = {}
+                frame.source_items = list(current_source.items())
+                frame.entry_index = 0
+                frame.pending_key = None
+                frame.phase = "map_iter"
+                continue
+
+            if frame.phase == "map_iter":
+                merge_target = frame.merge_target
+                if merge_target is None:  # pragma: no cover - internal invariant
+                    raise RuntimeError("merge target is not initialized")  # noqa: TRY003
+
+                if frame.entry_index >= len(frame.source_items):
+                    if frame.pending_updates:
+                        merge_target.update(frame.pending_updates)
+                    stack.pop()
+                    last_result = merge_target
+                    continue
+
+                key, value = frame.source_items[frame.entry_index]
+                frame.entry_index += 1
+                normalized_key = str(key)
+
+                if key in frame.merge_existing_keys:
+                    frame.pending_key = key
+                    frame.phase = "map_wait_child"
+                    stack.append(_MergeFrame(target=merge_target[key], source=value, options=frame.options))
+                    continue
+                if normalized_key in frame.merge_existing_keys:
+                    frame.pending_key = normalized_key
+                    frame.phase = "map_wait_child"
+                    stack.append(_MergeFrame(target=merge_target[normalized_key], source=value, options=frame.options))
+                    continue
+
+                frame.pending_updates[key] = value
+                continue
+
+            if frame.phase == "map_wait_child":
+                merge_target = frame.merge_target
+                if merge_target is None:  # pragma: no cover - internal invariant
+                    raise RuntimeError("merge target is not initialized")  # noqa: TRY003
+                frame.pending_updates[frame.pending_key] = last_result
+                frame.pending_key = None
+                frame.phase = "map_iter"
+                continue
+
+            if frame.phase == "list_iter":
+                if frame.list_index >= frame.list_max_len:
+                    stack.pop()
+                    last_result = frame.list_merged
+                    continue
+
+                idx = frame.list_index
+                frame.list_index += 1
+                has_target = idx in frame.list_target
+                has_source = idx in frame.list_source
+
+                if has_target and has_source:
+                    target_value = frame.list_target[idx]
+                    source_value = frame.list_source[idx]
+
+                    if isinstance(source_value, Undefined):
+                        if not isinstance(target_value, Undefined):
+                            frame.list_merged.append(target_value)
+                        continue
+
+                    frame.phase = "list_wait_child"
+                    stack.append(_MergeFrame(target=target_value, source=source_value, options=frame.options))
+                    continue
+
+                if has_target:
+                    target_value = frame.list_target[idx]
+                    if not isinstance(target_value, Undefined):
+                        frame.list_merged.append(target_value)
+                elif has_source:
+                    source_value = frame.list_source[idx]
+                    if not isinstance(source_value, Undefined):
+                        frame.list_merged.append(source_value)
+                continue
+
+            # frame.phase == "list_wait_child"
+            frame.list_merged.append(last_result)
+            frame.phase = "list_iter"
+
+        return last_result
 
     @staticmethod
     def compact(root: t.Dict[str, t.Any]) -> t.Dict[str, t.Any]:

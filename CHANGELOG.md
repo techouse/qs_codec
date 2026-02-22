@@ -1,3 +1,13 @@
+## 1.4.1-wip
+
+* [FIX] harden encoder traversal to an iterative implementation to avoid recursion-based crashes on very deep nested input
+* [FIX] harden decode merge path (`Utils.merge`) with iterative traversal to prevent `RecursionError` on deep conflicting merges
+* [FIX] update `EncodeOptions.max_depth` semantics: `None` is unbounded by this option; explicit limits are enforced directly
+* [FIX] preserve legacy map-merge key collision semantics for mixed key types (`'1'` vs `1`) in iterative merge
+* [CHORE] optimize deep encode performance by replacing per-frame side-channel chain scans with O(1) ancestry cycle state lookups
+* [CHORE] add deep stack-safety regressions (depth 12_000) and cycle-state compatibility tests
+* [CHORE] update encoding depth documentation
+
 ## 1.4.0
 
 * [FEAT] add `EncodeOptions.max_depth` to cap encoding traversal depth (capped to the current recursion limit)

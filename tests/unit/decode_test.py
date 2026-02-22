@@ -929,6 +929,30 @@ class TestDecode:
 
         assert actual_depth == depth
 
+    def test_does_not_crash_when_merging_very_deep_keys(self) -> None:
+        # Single high-depth canary for the deep conflicting merge path.
+        depth = 12_000
+
+        path = "a" + ("[p]" * depth)
+        query = f"{path}[left]=1&{path}[right]=2"
+
+        parsed: t.Optional[t.Mapping[str, t.Any]]
+
+        with does_not_raise():
+            parsed = decode(query, DecodeOptions(depth=depth + 2, parameter_limit=10_000_000))
+
+        assert parsed is not None
+        assert "a" in parsed
+
+        current = parsed["a"]
+        for _ in range(depth):
+            assert isinstance(current, dict)
+            current = current["p"]
+
+        assert isinstance(current, dict)
+        assert current["left"] == "1"
+        assert current["right"] == "2"
+
     def test_parses_null_dicts_correctly(self) -> None:
         a: t.Dict[str, t.Any] = {"b": "c"}
         assert decode(a) == {"b": "c"}
