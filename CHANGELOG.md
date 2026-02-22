@@ -1,4 +1,4 @@
-## 1.4.1-wip
+## 1.4.1
 
 * [FIX] harden encoder traversal to an iterative implementation to avoid recursion-based crashes on very deep nested input
 * [FIX] harden decode merge path (`Utils.merge`) with iterative traversal to prevent `RecursionError` on deep conflicting merges

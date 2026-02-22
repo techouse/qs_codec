@@ -14,7 +14,7 @@ The package root re-exports the most commonly used functions and enums so you ca
 """
 
 # Package version (PEP 440). Bump in lockstep with distribution metadata.
-__version__ = "1.4.0"
+__version__ = "1.4.1"
 
 # Public API surface re-exported at the package root.
 __all__ = [
