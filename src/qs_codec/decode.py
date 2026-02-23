@@ -381,7 +381,7 @@ def _parse_object(
             # (Top‑level dot splitting is performed earlier by the key splitter.)
             clean_root: str = root[1:-1] if root.startswith("[") and root.endswith("]") else root
 
-            if options.decode_dot_in_keys:
+            if options.decode_dot_in_keys and "%2" in clean_root:
                 decoded_root: str = clean_root.replace("%2E", ".").replace("%2e", ".")
             else:
                 decoded_root = clean_root
