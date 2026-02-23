@@ -1,3 +1,7 @@
+## 1.4.2
+
+* [CHORE] optimize `decode` by skipping dot-in-keys normalization when "%2" is not present in key segments
+
 ## 1.4.1
 
 * [FIX] harden encoder traversal to an iterative implementation to avoid recursion-based crashes on very deep nested input
