@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>qs_codec.models.weak_wrapper &#8212; qs-codec 1.4.3 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=a68a9277"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for qs_codec.models.weak_wrapper</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Weakly wrap *any* object with identity equality and stable hashing.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">reprlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">t</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">threading</span><span class="w"> </span><span class="kn">import</span> <span class="n">RLock</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">weakref</span><span class="w"> </span><span class="kn">import</span> <span class="n">ReferenceType</span><span class="p">,</span> <span class="n">WeakValueDictionary</span><span class="p">,</span> <span class="n">ref</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_Proxy</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Container for the original object.</span>
+
+<span class="sd">    NOTE: Proxies must be weak-referenceable because the cache holds them in a WeakValueDictionary. That requires &quot;__weakref__&quot; in __slots__.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="s2">&quot;__weakref__&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Strong ref to the value so hash/equality can access it while a wrapper keeps this proxy alive.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;WeakWrapper&quot;</span><span class="p">,</span> <span class="s2">&quot;_proxy_cache&quot;</span><span class="p">]</span>
+
+
+<span class="c1"># Exported for tests</span>
+<span class="n">_proxy_cache</span><span class="p">:</span> <span class="s2">&quot;WeakValueDictionary[int, _Proxy]&quot;</span> <span class="o">=</span> <span class="n">WeakValueDictionary</span><span class="p">()</span>
+<span class="n">_proxy_cache_lock</span> <span class="o">=</span> <span class="n">RLock</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_proxy</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;_Proxy&quot;</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a per-object proxy, cached by id(value).&quot;&quot;&quot;</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">_proxy_cache_lock</span><span class="p">:</span>
+        <span class="n">proxy</span> <span class="o">=</span> <span class="n">_proxy_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">proxy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">proxy</span> <span class="o">=</span> <span class="n">_Proxy</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="n">_proxy_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">proxy</span>
+        <span class="k">return</span> <span class="n">proxy</span>
+
+
+<div class="viewcode-block" id="WeakWrapper">
+<a class="viewcode-back" href="../../../qs_codec.models.html#qs_codec.models.weak_wrapper.WeakWrapper">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">WeakWrapper</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Wrapper suitable for use as a WeakKeyDictionary key.</span>
+
+<span class="sd">    - Holds a *strong* reference to the proxy (keeps proxy alive while wrapper exists).</span>
+<span class="sd">    - Exposes a weakref to the proxy via `_wref` so tests can observe/force GC.</span>
+<span class="sd">    - Equality is proxy identity; hash is the proxy identity (stable across mutations).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;_proxy&quot;</span><span class="p">,</span> <span class="s2">&quot;_wref&quot;</span><span class="p">,</span> <span class="s2">&quot;__weakref__&quot;</span><span class="p">)</span>
+    <span class="n">_proxy</span><span class="p">:</span> <span class="n">_Proxy</span>
+    <span class="n">_wref</span><span class="p">:</span> <span class="n">ReferenceType</span><span class="p">[</span><span class="n">_Proxy</span><span class="p">]</span>
+
+<div class="viewcode-block" id="WeakWrapper.__init__">
+<a class="viewcode-back" href="../../../qs_codec.models.html#qs_codec.models.weak_wrapper.WeakWrapper.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the wrapper with a value.&quot;&quot;&quot;</span>
+        <span class="n">proxy</span> <span class="o">=</span> <span class="n">_get_proxy</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="c1"># Strong edge: wrapper -&gt; proxy</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_proxy&quot;</span><span class="p">,</span> <span class="n">proxy</span><span class="p">)</span>
+        <span class="c1"># Weak edge so tests can observe GC of the proxy</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_wref&quot;</span><span class="p">,</span> <span class="n">ref</span><span class="p">(</span><span class="n">proxy</span><span class="p">))</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">value</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Guard with the weakref so tests can simulate GC by swapping _wref.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wref</span><span class="p">()</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ReferenceError</span><span class="p">(</span><span class="s2">&quot;Original object has been garbage-collected&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_proxy</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a string representation of the wrapper.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wref</span><span class="p">()</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;WeakWrapper(&lt;gc&#39;d&gt;)&quot;</span>
+        <span class="c1"># Use reprlib to avoid excessive size and recursion issues without broad exception handling.</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;WeakWrapper(</span><span class="si">{</span><span class="n">reprlib</span><span class="o">.</span><span class="n">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_proxy</span><span class="o">.</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check equality by comparing the proxy identity.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">WeakWrapper</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+        <span class="c1"># Same underlying object =&gt; same cached proxy instance</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_proxy</span> <span class="ow">is</span> <span class="n">other</span><span class="o">.</span><span class="n">_proxy</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a stable hash based on the proxy identity.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_proxy</span><span class="p">)</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">qs-codec</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html">Decoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html#encoding">Encoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html#handling-none-values">Handling <code class="docutils literal notranslate"><span class="pre">None</span></code> values</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html#dealing-with-special-character-sets">Dealing with special character sets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html#rfc-3986-and-rfc-1738-space-encoding">RFC 3986 and RFC 1738 space encoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">qs_codec</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, Klemen Tusar.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>qs_codec.utils.decode_utils &#8212; qs-codec 1.4.3 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=a68a9277"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for qs_codec.utils.decode_utils</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Utilities for decoding percent‑encoded query strings and splitting composite keys into bracketed path segments.</span>
+
+<span class="sd">This mirrors the semantics of the Node `qs` library:</span>
+
+<span class="sd">- Decoding handles both UTF‑8 and Latin‑1 code paths.</span>
+<span class="sd">- Key splitting keeps bracket groups *balanced* and optionally treats dots as path separators when ``allow_dots=True``.</span>
+<span class="sd">- Top‑level dot splitting uses a character‑scanner that handles degenerate cases (leading &#39;.&#39; starts a bracket segment; &#39;.[&#39; is skipped; double dots preserve the first; trailing &#39;.&#39; is preserved) and never treats literal percent‑encoded sequences (e.g., &#39;%2E&#39;) as split points; only actual &#39;.&#39; characters at depth 0 are split.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">t</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">unquote</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..enums.charset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Charset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..enums.decode_kind</span><span class="w"> </span><span class="kn">import</span> <span class="n">DecodeKind</span>
+
+
+<div class="viewcode-block" id="DecodeUtils">
+<a class="viewcode-back" href="../../../qs_codec.utils.html#qs_codec.utils.decode_utils.DecodeUtils">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DecodeUtils</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Decode helpers compiled into a single, importable namespace.</span>
+
+<span class="sd">    All methods are classmethods so they are easy to stub/patch in tests, and</span>
+<span class="sd">    the compiled regular expressions are created once per interpreter session.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Matches either a 16‑bit JavaScript-style %uXXXX sequence or a single‑byte</span>
+    <span class="c1"># %XX sequence. Used by `unescape` to emulate legacy browser behavior.</span>
+    <span class="n">UNESCAPE_PATTERN</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Pattern</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+        <span class="sa">r</span><span class="s2">&quot;</span><span class="si">%u</span><span class="s2">(?P&lt;unicode&gt;[0-9A-Fa-f]</span><span class="si">{4}</span><span class="s2">)|%(?P&lt;hex&gt;[0-9A-Fa-f]</span><span class="si">{2}</span><span class="s2">)&quot;</span><span class="p">,</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">,</span>
+    <span class="p">)</span>
+
+<div class="viewcode-block" id="DecodeUtils.dot_to_bracket_top_level">
+<a class="viewcode-back" href="../../../qs_codec.utils.html#qs_codec.utils.decode_utils.DecodeUtils.dot_to_bracket_top_level">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dot_to_bracket_top_level</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert top-level dot segments into bracket groups *after* percent-decoding.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        - In the normal decode path, the key has already been percent-decoded by the upstream</span>
+<span class="sd">          scanner, so sequences like ``%2E``/``%2e`` are already literal ``.`` when this function</span>
+<span class="sd">          runs. As a result, with ``allow_dots=True``, any top-level ``.`` will be treated as a</span>
+<span class="sd">          separator here. This is independent of ``decode_dot_in_keys`` (which only affects how</span>
+<span class="sd">          encoded dots *inside bracket segments* are normalized later during object folding).</span>
+<span class="sd">        - If a custom decoder returns raw tokens (i.e., bypasses percent-decoding), ``%2E``/``%2e``</span>
+<span class="sd">          may still appear here; those percent sequences are preserved verbatim and are **not**</span>
+<span class="sd">          used as separators.</span>
+
+<span class="sd">        Rules</span>
+<span class="sd">        -----</span>
+<span class="sd">        - Only dots at depth == 0 split. Dots inside ``[]`` are preserved.</span>
+<span class="sd">        - Degenerate cases:</span>
+<span class="sd">          * leading ``.`` starts a bracket segment (``.a`` behaves like ``[a]``)</span>
+<span class="sd">          * ``.[`` is skipped so ``a.[b]`` behaves like ``a[b]``</span>
+<span class="sd">          * ``a..b`` preserves the first dot → ``a.[b]``</span>
+<span class="sd">          * trailing ``.`` is preserved and ignored by the splitter</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &#39;user.email.name&#39; -&gt; &#39;user[email][name]&#39;</span>
+<span class="sd">        &#39;a[b].c&#39; -&gt; &#39;a[b][c]&#39;</span>
+<span class="sd">        &#39;a[.].c&#39; -&gt; &#39;a[.][c]&#39;</span>
+<span class="sd">        &#39;a%2E[b]&#39; -&gt; &#39;a%2E[b]&#39; (only if a custom decoder left it encoded)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;.&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">s</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">s</span>
+        <span class="n">sb</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">depth</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n</span><span class="p">:</span>
+            <span class="n">ch</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">ch</span> <span class="o">==</span> <span class="s2">&quot;[&quot;</span><span class="p">:</span>
+                <span class="n">depth</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">sb</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ch</span><span class="p">)</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="n">ch</span> <span class="o">==</span> <span class="s2">&quot;]&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">depth</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">depth</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="n">sb</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ch</span><span class="p">)</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="n">ch</span> <span class="o">==</span> <span class="s2">&quot;.&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">depth</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">has_next</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="n">n</span>
+                    <span class="n">next_ch</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">has_next</span> <span class="k">else</span> <span class="s2">&quot;</span><span class="se">\0</span><span class="s2">&quot;</span>
+                    <span class="k">if</span> <span class="n">next_ch</span> <span class="o">==</span> <span class="s2">&quot;[&quot;</span><span class="p">:</span>
+                        <span class="c1"># skip the dot so &#39;a.[b]&#39; acts like &#39;a[b]&#39;</span>
+                        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="k">elif</span> <span class="n">next_ch</span> <span class="o">==</span> <span class="s2">&quot;]&quot;</span><span class="p">:</span>
+                        <span class="c1"># preserve ambiguous &#39;.]&#39; as a literal to avoid constructing &#39;[]]&#39;</span>
+                        <span class="n">sb</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+                        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="k">elif</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="c1"># If input starts with &#39;..&#39;, preserve the first dot like the &#39;a..b&#39; case.</span>
+                        <span class="k">if</span> <span class="n">has_next</span> <span class="ow">and</span> <span class="n">next_ch</span> <span class="o">==</span> <span class="s2">&quot;.&quot;</span><span class="p">:</span>
+                            <span class="n">sb</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+                            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+                            <span class="k">continue</span>
+                        <span class="c1"># leading &#39;.&#39; starts a bracket segment: &quot;.a&quot; -&gt; &quot;[a]&quot;</span>
+                        <span class="n">start</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+                        <span class="n">j</span> <span class="o">=</span> <span class="n">start</span>
+                        <span class="k">while</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">n</span> <span class="ow">and</span> <span class="n">s</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;.&quot;</span> <span class="ow">and</span> <span class="n">s</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;[&quot;</span> <span class="ow">and</span> <span class="n">s</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;]&quot;</span><span class="p">:</span>
+                            <span class="n">j</span> <span class="o">+=</span> <span class="mi">1</span>
+                        <span class="n">sb</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;[&quot;</span><span class="p">)</span>
+                        <span class="n">sb</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">j</span><span class="p">])</span>
+                        <span class="n">sb</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;]&quot;</span><span class="p">)</span>
+                        <span class="n">i</span> <span class="o">=</span> <span class="n">j</span>
+                    <span class="k">elif</span> <span class="p">(</span><span class="ow">not</span> <span class="n">has_next</span><span class="p">)</span> <span class="ow">or</span> <span class="n">next_ch</span> <span class="o">==</span> <span class="s2">&quot;.&quot;</span><span class="p">:</span>
+                        <span class="c1"># trailing dot, or first of a double dot</span>
+                        <span class="n">sb</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+                        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># normal split at top level: convert a.b → a[b]</span>
+                        <span class="n">start</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+                        <span class="n">j</span> <span class="o">=</span> <span class="n">start</span>
+                        <span class="k">while</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">n</span> <span class="ow">and</span> <span class="n">s</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;.&quot;</span> <span class="ow">and</span> <span class="n">s</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;[&quot;</span> <span class="ow">and</span> <span class="n">s</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;]&quot;</span><span class="p">:</span>
+                            <span class="n">j</span> <span class="o">+=</span> <span class="mi">1</span>
+                        <span class="n">sb</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;[&quot;</span><span class="p">)</span>
+                        <span class="n">sb</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">j</span><span class="p">])</span>
+                        <span class="n">sb</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;]&quot;</span><span class="p">)</span>
+                        <span class="n">i</span> <span class="o">=</span> <span class="n">j</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">sb</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+                    <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># No special handling for percent sequences here; characters are appended as-is.</span>
+                <span class="c1"># We never split on &#39;%2E&#39; at this stage.</span>
+                <span class="n">sb</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ch</span><span class="p">)</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sb</span><span class="p">)</span></div>
+
+
+    <span class="c1"># Precompiled pattern for %XX hex bytes (Latin-1 path fast path)</span>
+    <span class="n">HEX2_PATTERN</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Pattern</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;%([0-9A-Fa-f]</span><span class="si">{2}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DecodeUtils.unescape">
+<a class="viewcode-back" href="../../../qs_codec.utils.html#qs_codec.utils.decode_utils.DecodeUtils.unescape">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">unescape</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">string</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Emulate legacy JavaScript unescape behavior.</span>
+
+<span class="sd">        Replaces both ``%XX`` and ``%uXXXX`` escape sequences with the</span>
+<span class="sd">        corresponding code points. This function is intentionally permissive</span>
+<span class="sd">        and does not validate UTF‑8; it is used to model historical behavior</span>
+<span class="sd">        in Latin‑1 mode.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; DecodeUtils.unescape(&quot;%u0041%20%42&quot;)</span>
+<span class="sd">        &#39;A B&#39;</span>
+<span class="sd">        &gt;&gt;&gt; DecodeUtils.unescape(&quot;%7E&quot;)</span>
+<span class="sd">        &#39;~&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Fast path: nothing to unescape</span>
+        <span class="k">if</span> <span class="s2">&quot;%&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">string</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">string</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">replacer</span><span class="p">(</span><span class="n">match</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Match</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">unicode_val</span> <span class="o">:=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;unicode&quot;</span><span class="p">))</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">chr</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">unicode_val</span><span class="p">,</span> <span class="mi">16</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="n">hex_val</span> <span class="o">:=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;hex&quot;</span><span class="p">))</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">chr</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">hex_val</span><span class="p">,</span> <span class="mi">16</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">UNESCAPE_PATTERN</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">replacer</span><span class="p">,</span> <span class="n">string</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DecodeUtils.decode">
+<a class="viewcode-back" href="../../../qs_codec.utils.html#qs_codec.utils.decode_utils.DecodeUtils.decode">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">string</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">charset</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Charset</span><span class="p">]</span> <span class="o">=</span> <span class="n">Charset</span><span class="o">.</span><span class="n">UTF8</span><span class="p">,</span>
+        <span class="n">kind</span><span class="p">:</span> <span class="n">DecodeKind</span> <span class="o">=</span> <span class="n">DecodeKind</span><span class="o">.</span><span class="n">VALUE</span><span class="p">,</span>  <span class="c1"># pylint: disable=unused-argument</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decode a URL‑encoded scalar.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        The `kind` parameter is accepted for API compatibility but is currently</span>
+<span class="sd">        ignored; keys and values are decoded identically. It may be removed in</span>
+<span class="sd">        a future major release.</span>
+
+<span class="sd">        Behavior:</span>
+<span class="sd">        - Replace ``+`` with a literal space *before* decoding.</span>
+<span class="sd">        - If ``charset`` is :data:`~qs_codec.enums.charset.Charset.LATIN1`, decode only ``%XX`` byte sequences (no ``%uXXXX``). ``%uXXXX`` sequences are left as‑is to mimic older browser/JS behavior.</span>
+<span class="sd">        - Otherwise (UTF‑8), defer to :func:`urllib.parse.unquote`.</span>
+<span class="sd">        - Keys and values are decoded identically; whether a literal ``.`` acts as a key separator is decided later by the key‑splitting logic.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Optional[str]</span>
+<span class="sd">            ``None`` when the input is ``None``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">string</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="c1"># Replace &#39;+&#39; with &#39; &#39; only if present to avoid allocation.</span>
+        <span class="n">string_without_plus</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;+&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span> <span class="k">if</span> <span class="s2">&quot;+&quot;</span> <span class="ow">in</span> <span class="n">string</span> <span class="k">else</span> <span class="n">string</span>
+
+        <span class="k">if</span> <span class="n">charset</span> <span class="o">==</span> <span class="n">Charset</span><span class="o">.</span><span class="n">LATIN1</span><span class="p">:</span>
+            <span class="c1"># Only process %XX hex escape sequences for Latin-1 (no %uXXXX expansion here).</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">string_without_plus</span>
+            <span class="k">if</span> <span class="s2">&quot;%&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">s</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">s</span>
+            <span class="n">_int</span><span class="p">,</span> <span class="n">_chr</span> <span class="o">=</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">chr</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">HEX2_PATTERN</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="k">lambda</span> <span class="n">m</span><span class="p">:</span> <span class="n">_chr</span><span class="p">(</span><span class="n">_int</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="mi">16</span><span class="p">)),</span> <span class="n">s</span><span class="p">)</span>
+
+        <span class="n">s</span> <span class="o">=</span> <span class="n">string_without_plus</span>
+        <span class="k">return</span> <span class="n">s</span> <span class="k">if</span> <span class="s2">&quot;%&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">s</span> <span class="k">else</span> <span class="n">unquote</span><span class="p">(</span><span class="n">s</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DecodeUtils.split_key_into_segments">
+<a class="viewcode-back" href="../../../qs_codec.utils.html#qs_codec.utils.decode_utils.DecodeUtils.split_key_into_segments">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">split_key_into_segments</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">original_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">allow_dots</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="n">max_depth</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">strict_depth</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Split a composite key into *balanced* bracket segments.</span>
+
+<span class="sd">        - If ``allow_dots`` is True, convert **top‑level** dots to bracket groups using a character‑scanner (``a.b[c]`` → ``a[b][c]``), preserving dots inside brackets and degenerate cases.</span>
+<span class="sd">        - The *parent* (non‑bracket) prefix becomes the first segment, e.g. ``&quot;a[b][c]&quot;`` → ``[&quot;a&quot;, &quot;[b]&quot;, &quot;[c]&quot;]``.</span>
+<span class="sd">        - Bracket groups are *balanced* using a counter so nested brackets within a single group (e.g. ``&quot;[with[inner]]&quot;``) are treated as one segment.</span>
+<span class="sd">        - When ``max_depth &lt;= 0``, no splitting occurs; the key is returned as a single segment (qs semantics).</span>
+<span class="sd">        - If there are more groups beyond ``max_depth`` and ``strict_depth`` is True, an ``IndexError`` is raised. Otherwise, the remainder is added as one final segment (again mirroring qs).</span>
+<span class="sd">        - Unterminated &#39;[&#39;: the remainder after the first unmatched &#39;[&#39; is captured as a single synthetic bracket segment.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        max_depth=2: &quot;a[b][c][d]&quot; -&gt; [&quot;a&quot;, &quot;[b]&quot;, &quot;[c]&quot;, &quot;[[d]]&quot;]</span>
+<span class="sd">        unterminated: &quot;a[b&quot; -&gt; [&quot;a&quot;, &quot;[[b]&quot;]</span>
+
+<span class="sd">        This runs in O(n) time over the key string.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">max_depth</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">original_key</span><span class="p">]</span>
+
+        <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">dot_to_bracket_top_level</span><span class="p">(</span><span class="n">original_key</span><span class="p">)</span> <span class="k">if</span> <span class="n">allow_dots</span> <span class="k">else</span> <span class="n">original_key</span>
+
+        <span class="n">segments</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">first</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;[&quot;</span><span class="p">)</span>
+        <span class="n">parent</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">key</span><span class="p">[:</span><span class="n">first</span><span class="p">]</span> <span class="k">if</span> <span class="n">first</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">key</span>
+        <span class="c1"># Capture the non-bracket parent prefix (may be empty).</span>
+        <span class="k">if</span> <span class="n">parent</span><span class="p">:</span>
+            <span class="n">segments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parent</span><span class="p">)</span>
+
+        <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">open_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">first</span>
+        <span class="n">depth</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">unterminated</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">while</span> <span class="n">open_idx</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">depth</span> <span class="o">&lt;</span> <span class="n">max_depth</span><span class="p">:</span>
+            <span class="n">level</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">open_idx</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">close</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+            <span class="c1"># Balance nested &#39;[&#39; and &#39;]&#39; inside the same group,</span>
+            <span class="c1"># so &quot;[withbracket[]]&quot; is treated as *one* segment.</span>
+            <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n</span><span class="p">:</span>
+                <span class="n">ch</span> <span class="o">=</span> <span class="n">key</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">ch</span> <span class="o">==</span> <span class="s2">&quot;[&quot;</span><span class="p">:</span>
+                    <span class="n">level</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">elif</span> <span class="n">ch</span> <span class="o">==</span> <span class="s2">&quot;]&quot;</span><span class="p">:</span>
+                    <span class="n">level</span> <span class="o">-=</span> <span class="mi">1</span>
+                    <span class="k">if</span> <span class="n">level</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">close</span> <span class="o">=</span> <span class="n">i</span>
+                        <span class="k">break</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="k">if</span> <span class="n">close</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">unterminated</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># unterminated group; stop collecting; remainder handled below</span>
+                <span class="k">break</span>
+
+            <span class="c1"># Append the full balanced group, including the surrounding brackets.</span>
+            <span class="n">segments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">[</span><span class="n">open_idx</span> <span class="p">:</span> <span class="n">close</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>  <span class="c1"># includes the surrounding [ ]</span>
+            <span class="n">depth</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">open_idx</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;[&quot;</span><span class="p">,</span> <span class="n">close</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">open_idx</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># We only want to raise for true depth overflow under strict_depth,</span>
+            <span class="c1"># not for unterminated bracket groups.</span>
+            <span class="n">depth_overflow</span> <span class="o">=</span> <span class="p">(</span><span class="n">depth</span> <span class="o">&gt;=</span> <span class="n">max_depth</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">unterminated</span>
+            <span class="k">if</span> <span class="n">strict_depth</span> <span class="ow">and</span> <span class="n">depth_overflow</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Input depth exceeded depth option of </span><span class="si">{</span><span class="n">max_depth</span><span class="si">}</span><span class="s2"> and strict_depth is True&quot;</span><span class="p">)</span>
+            <span class="c1"># Stash the remainder as a single segment (qs parity)</span>
+            <span class="n">segments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;[&quot;</span> <span class="o">+</span> <span class="n">key</span><span class="p">[</span><span class="n">open_idx</span><span class="p">:]</span> <span class="o">+</span> <span class="s2">&quot;]&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">segments</span></div>
+</div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">qs-codec</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html">Decoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html#encoding">Encoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html#handling-none-values">Handling <code class="docutils literal notranslate"><span class="pre">None</span></code> values</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html#dealing-with-special-character-sets">Dealing with special character sets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html#rfc-3986-and-rfc-1738-space-encoding">RFC 3986 and RFC 1738 space encoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">qs_codec</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, Klemen Tusar.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

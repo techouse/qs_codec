@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>qs_codec.utils package &#8212; qs-codec 1.4.3 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=a68a9277"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="qs_codec.models package" href="qs_codec.models.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="qs-codec-utils-package">
+<h1>qs_codec.utils package<a class="headerlink" href="#qs-codec-utils-package" title="Link to this heading">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
+</section>
+<section id="module-qs_codec.utils.decode_utils">
+<span id="qs-codec-utils-decode-utils-module"></span><h2>qs_codec.utils.decode_utils module<a class="headerlink" href="#module-qs_codec.utils.decode_utils" title="Link to this heading">¶</a></h2>
+<p>Utilities for decoding percent‑encoded query strings and splitting composite keys into bracketed path segments.</p>
+<p>This mirrors the semantics of the Node <cite>qs</cite> library:</p>
+<ul class="simple">
+<li><p>Decoding handles both UTF‑8 and Latin‑1 code paths.</p></li>
+<li><p>Key splitting keeps bracket groups <em>balanced</em> and optionally treats dots as path separators when <code class="docutils literal notranslate"><span class="pre">allow_dots=True</span></code>.</p></li>
+<li><p>Top‑level dot splitting uses a character‑scanner that handles degenerate cases (leading ‘.’ starts a bracket segment; ‘.[’ is skipped; double dots preserve the first; trailing ‘.’ is preserved) and never treats literal percent‑encoded sequences (e.g., ‘%2E’) as split points; only actual ‘.’ characters at depth 0 are split.</p></li>
+</ul>
+<dl class="py class">
+<dt class="sig sig-object py" id="qs_codec.utils.decode_utils.DecodeUtils">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">qs_codec.utils.decode_utils.</span></span><span class="sig-name descname"><span class="pre">DecodeUtils</span></span><a class="reference internal" href="_modules/qs_codec/utils/decode_utils.html#DecodeUtils"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.utils.decode_utils.DecodeUtils" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Decode helpers compiled into a single, importable namespace.</p>
+<p>All methods are classmethods so they are easy to stub/patch in tests, and
+the compiled regular expressions are created once per interpreter session.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qs_codec.utils.decode_utils.DecodeUtils.HEX2_PATTERN">
+<span class="sig-name descname"><span class="pre">HEX2_PATTERN</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Pattern</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">re.compile('%([0-9A-Fa-f]{2})')</span></span><a class="headerlink" href="#qs_codec.utils.decode_utils.DecodeUtils.HEX2_PATTERN" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qs_codec.utils.decode_utils.DecodeUtils.UNESCAPE_PATTERN">
+<span class="sig-name descname"><span class="pre">UNESCAPE_PATTERN</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Pattern</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">re.compile('%u(?P&lt;unicode&gt;[0-9A-Fa-f]{4})|%(?P&lt;hex&gt;[0-9A-Fa-f]{2})',</span> <span class="pre">re.IGNORECASE)</span></span><a class="headerlink" href="#qs_codec.utils.decode_utils.DecodeUtils.UNESCAPE_PATTERN" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qs_codec.utils.decode_utils.DecodeUtils.decode">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">decode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.charset.Charset" title="qs_codec.enums.charset.Charset"><span class="pre">Charset</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Charset.UTF8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodeKind</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">DecodeKind.VALUE</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/qs_codec/utils/decode_utils.html#DecodeUtils.decode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.utils.decode_utils.DecodeUtils.decode" title="Link to this definition">¶</a></dt>
+<dd><p>Decode a URL‑encoded scalar.</p>
+<p class="rubric">Notes</p>
+<p>The <cite>kind</cite> parameter is accepted for API compatibility but is currently
+ignored; keys and values are decoded identically. It may be removed in
+a future major release.</p>
+<p>Behavior:
+- Replace <code class="docutils literal notranslate"><span class="pre">+</span></code> with a literal space <em>before</em> decoding.
+- If <code class="docutils literal notranslate"><span class="pre">charset</span></code> is <a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.charset.Charset.LATIN1" title="qs_codec.enums.charset.Charset.LATIN1"><code class="xref py py-data docutils literal notranslate"><span class="pre">LATIN1</span></code></a>, decode only <code class="docutils literal notranslate"><span class="pre">%XX</span></code> byte sequences (no <code class="docutils literal notranslate"><span class="pre">%uXXXX</span></code>). <code class="docutils literal notranslate"><span class="pre">%uXXXX</span></code> sequences are left as‑is to mimic older browser/JS behavior.
+- Otherwise (UTF‑8), defer to <code class="xref py py-func docutils literal notranslate"><span class="pre">urllib.parse.unquote()</span></code>.
+- Keys and values are decoded identically; whether a literal <code class="docutils literal notranslate"><span class="pre">.</span></code> acts as a key separator is decided later by the key‑splitting logic.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">None</span></code> when the input is <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Optional[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qs_codec.utils.decode_utils.DecodeUtils.dot_to_bracket_top_level">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">dot_to_bracket_top_level</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/qs_codec/utils/decode_utils.html#DecodeUtils.dot_to_bracket_top_level"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.utils.decode_utils.DecodeUtils.dot_to_bracket_top_level" title="Link to this definition">¶</a></dt>
+<dd><p>Convert top-level dot segments into bracket groups <em>after</em> percent-decoding.</p>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>In the normal decode path, the key has already been percent-decoded by the upstream
+scanner, so sequences like <code class="docutils literal notranslate"><span class="pre">%2E</span></code>/<code class="docutils literal notranslate"><span class="pre">%2e</span></code> are already literal <code class="docutils literal notranslate"><span class="pre">.</span></code> when this function
+runs. As a result, with <code class="docutils literal notranslate"><span class="pre">allow_dots=True</span></code>, any top-level <code class="docutils literal notranslate"><span class="pre">.</span></code> will be treated as a
+separator here. This is independent of <code class="docutils literal notranslate"><span class="pre">decode_dot_in_keys</span></code> (which only affects how
+encoded dots <em>inside bracket segments</em> are normalized later during object folding).</p></li>
+<li><p>If a custom decoder returns raw tokens (i.e., bypasses percent-decoding), <code class="docutils literal notranslate"><span class="pre">%2E</span></code>/<code class="docutils literal notranslate"><span class="pre">%2e</span></code>
+may still appear here; those percent sequences are preserved verbatim and are <strong>not</strong>
+used as separators.</p></li>
+</ul>
+<section id="rules">
+<h3>Rules<a class="headerlink" href="#rules" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Only dots at depth == 0 split. Dots inside <code class="docutils literal notranslate"><span class="pre">[]</span></code> are preserved.</p></li>
+<li><p>Degenerate cases:
+* leading <code class="docutils literal notranslate"><span class="pre">.</span></code> starts a bracket segment (<code class="docutils literal notranslate"><span class="pre">.a</span></code> behaves like <code class="docutils literal notranslate"><span class="pre">[a]</span></code>)
+* <code class="docutils literal notranslate"><span class="pre">.[</span></code> is skipped so <code class="docutils literal notranslate"><span class="pre">a.[b]</span></code> behaves like <code class="docutils literal notranslate"><span class="pre">a[b]</span></code>
+* <code class="docutils literal notranslate"><span class="pre">a..b</span></code> preserves the first dot → <code class="docutils literal notranslate"><span class="pre">a.[b]</span></code>
+* trailing <code class="docutils literal notranslate"><span class="pre">.</span></code> is preserved and ignored by the splitter</p></li>
+</ul>
+<p class="rubric">Examples</p>
+<p>‘user.email.name’ -&gt; ‘user[email][name]’
+‘a[b].c’ -&gt; ‘a[b][c]’
+‘a[.].c’ -&gt; ‘a[.][c]’
+‘a%2E[b]’ -&gt; ‘a%2E[b]’ (only if a custom decoder left it encoded)</p>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qs_codec.utils.decode_utils.DecodeUtils.split_key_into_segments">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">split_key_into_segments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">original_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_dots</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_depth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict_depth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/qs_codec/utils/decode_utils.html#DecodeUtils.split_key_into_segments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.utils.decode_utils.DecodeUtils.split_key_into_segments" title="Link to this definition">¶</a></dt>
+<dd><p>Split a composite key into <em>balanced</em> bracket segments.</p>
+<ul class="simple">
+<li><p>If <code class="docutils literal notranslate"><span class="pre">allow_dots</span></code> is True, convert <strong>top‑level</strong> dots to bracket groups using a character‑scanner (<code class="docutils literal notranslate"><span class="pre">a.b[c]</span></code> → <code class="docutils literal notranslate"><span class="pre">a[b][c]</span></code>), preserving dots inside brackets and degenerate cases.</p></li>
+<li><p>The <em>parent</em> (non‑bracket) prefix becomes the first segment, e.g. <code class="docutils literal notranslate"><span class="pre">&quot;a[b][c]&quot;</span></code> → <code class="docutils literal notranslate"><span class="pre">[&quot;a&quot;,</span> <span class="pre">&quot;[b]&quot;,</span> <span class="pre">&quot;[c]&quot;]</span></code>.</p></li>
+<li><p>Bracket groups are <em>balanced</em> using a counter so nested brackets within a single group (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;[with[inner]]&quot;</span></code>) are treated as one segment.</p></li>
+<li><p>When <code class="docutils literal notranslate"><span class="pre">max_depth</span> <span class="pre">&lt;=</span> <span class="pre">0</span></code>, no splitting occurs; the key is returned as a single segment (qs semantics).</p></li>
+<li><p>If there are more groups beyond <code class="docutils literal notranslate"><span class="pre">max_depth</span></code> and <code class="docutils literal notranslate"><span class="pre">strict_depth</span></code> is True, an <code class="docutils literal notranslate"><span class="pre">IndexError</span></code> is raised. Otherwise, the remainder is added as one final segment (again mirroring qs).</p></li>
+<li><p>Unterminated ‘[’: the remainder after the first unmatched ‘[’ is captured as a single synthetic bracket segment.</p></li>
+</ul>
+<p class="rubric">Examples</p>
+<p>max_depth=2: “a[b][c][d]” -&gt; [“a”, “[b]”, “[c]”, “[[d]]”]
+unterminated: “a[b” -&gt; [“a”, “[[b]”]</p>
+<p>This runs in O(n) time over the key string.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qs_codec.utils.decode_utils.DecodeUtils.unescape">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">unescape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/qs_codec/utils/decode_utils.html#DecodeUtils.unescape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.utils.decode_utils.DecodeUtils.unescape" title="Link to this definition">¶</a></dt>
+<dd><p>Emulate legacy JavaScript unescape behavior.</p>
+<p>Replaces both <code class="docutils literal notranslate"><span class="pre">%XX</span></code> and <code class="docutils literal notranslate"><span class="pre">%uXXXX</span></code> escape sequences with the
+corresponding code points. This function is intentionally permissive
+and does not validate UTF‑8; it is used to model historical behavior
+in Latin‑1 mode.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">DecodeUtils</span><span class="o">.</span><span class="n">unescape</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%u</span><span class="s2">0041</span><span class="si">%20%</span><span class="s2">42&quot;</span><span class="p">)</span>
+<span class="go">&#39;A B&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">DecodeUtils</span><span class="o">.</span><span class="n">unescape</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%7E</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="go">&#39;~&#39;</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-qs_codec.utils.encode_utils">
+<span id="qs-codec-utils-encode-utils-module"></span><h2>qs_codec.utils.encode_utils module<a class="headerlink" href="#module-qs_codec.utils.encode_utils" title="Link to this heading">¶</a></h2>
+<p>A collection of encode utility methods used by the library.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="qs_codec.utils.encode_utils.EncodeUtils">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">qs_codec.utils.encode_utils.</span></span><span class="sig-name descname"><span class="pre">EncodeUtils</span></span><a class="reference internal" href="_modules/qs_codec/utils/encode_utils.html#EncodeUtils"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.utils.encode_utils.EncodeUtils" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A collection of encode utility methods used by the library.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qs_codec.utils.encode_utils.EncodeUtils.HEX_TABLE">
+<span class="sig-name descname"><span class="pre">HEX_TABLE</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('%00',</span> <span class="pre">'%01',</span> <span class="pre">'%02',</span> <span class="pre">'%03',</span> <span class="pre">'%04',</span> <span class="pre">'%05',</span> <span class="pre">'%06',</span> <span class="pre">'%07',</span> <span class="pre">'%08',</span> <span class="pre">'%09',</span> <span class="pre">'%0A',</span> <span class="pre">'%0B',</span> <span class="pre">'%0C',</span> <span class="pre">'%0D',</span> <span class="pre">'%0E',</span> <span class="pre">'%0F',</span> <span class="pre">'%10',</span> <span class="pre">'%11',</span> <span class="pre">'%12',</span> <span class="pre">'%13',</span> <span class="pre">'%14',</span> <span class="pre">'%15',</span> <span class="pre">'%16',</span> <span class="pre">'%17',</span> <span class="pre">'%18',</span> <span class="pre">'%19',</span> <span class="pre">'%1A',</span> <span class="pre">'%1B',</span> <span class="pre">'%1C',</span> <span class="pre">'%1D',</span> <span class="pre">'%1E',</span> <span class="pre">'%1F',</span> <span class="pre">'%20',</span> <span class="pre">'%21',</span> <span class="pre">'%22',</span> <span class="pre">'%23',</span> <span class="pre">'%24',</span> <span class="pre">'%25',</span> <span class="pre">'%26',</span> <span class="pre">'%27',</span> <span class="pre">'%28',</span> <span class="pre">'%29',</span> <span class="pre">'%2A',</span> <span class="pre">'%2B',</span> <span class="pre">'%2C',</span> <span class="pre">'%2D',</span> <span class="pre">'%2E',</span> <span class="pre">'%2F',</span> <span class="pre">'%30',</span> <span class="pre">'%31',</span> <span class="pre">'%32',</span> <span class="pre">'%33',</span> <span class="pre">'%34',</span> <span class="pre">'%35',</span> <span class="pre">'%36',</span> <span class="pre">'%37',</span> <span class="pre">'%38',</span> <span class="pre">'%39',</span> <span class="pre">'%3A',</span> <span class="pre">'%3B',</span> <span class="pre">'%3C',</span> <span class="pre">'%3D',</span> <span class="pre">'%3E',</span> <span class="pre">'%3F',</span> <span class="pre">'%40',</span> <span class="pre">'%41',</span> <span class="pre">'%42',</span> <span class="pre">'%43',</span> <span class="pre">'%44',</span> <span class="pre">'%45',</span> <span class="pre">'%46',</span> <span class="pre">'%47',</span> <span class="pre">'%48',</span> <span class="pre">'%49',</span> <span class="pre">'%4A',</span> <span class="pre">'%4B',</span> <span class="pre">'%4C',</span> <span class="pre">'%4D',</span> <span class="pre">'%4E',</span> <span class="pre">'%4F',</span> <span class="pre">'%50',</span> <span class="pre">'%51',</span> <span class="pre">'%52',</span> <span class="pre">'%53',</span> <span class="pre">'%54',</span> <span class="pre">'%55',</span> <span class="pre">'%56',</span> <span class="pre">'%57',</span> <span class="pre">'%58',</span> <span class="pre">'%59',</span> <span class="pre">'%5A',</span> <span class="pre">'%5B',</span> <span class="pre">'%5C',</span> <span class="pre">'%5D',</span> <span class="pre">'%5E',</span> <span class="pre">'%5F',</span> <span class="pre">'%60',</span> <span class="pre">'%61',</span> <span class="pre">'%62',</span> <span class="pre">'%63',</span> <span class="pre">'%64',</span> <span class="pre">'%65',</span> <span class="pre">'%66',</span> <span class="pre">'%67',</span> <span class="pre">'%68',</span> <span class="pre">'%69',</span> <span class="pre">'%6A',</span> <span class="pre">'%6B',</span> <span class="pre">'%6C',</span> <span class="pre">'%6D',</span> <span class="pre">'%6E',</span> <span class="pre">'%6F',</span> <span class="pre">'%70',</span> <span class="pre">'%71',</span> <span class="pre">'%72',</span> <span class="pre">'%73',</span> <span class="pre">'%74',</span> <span class="pre">'%75',</span> <span class="pre">'%76',</span> <span class="pre">'%77',</span> <span class="pre">'%78',</span> <span class="pre">'%79',</span> <span class="pre">'%7A',</span> <span class="pre">'%7B',</span> <span class="pre">'%7C',</span> <span class="pre">'%7D',</span> <span class="pre">'%7E',</span> <span class="pre">'%7F',</span> <span class="pre">'%80',</span> <span class="pre">'%81',</span> <span class="pre">'%82',</span> <span class="pre">'%83',</span> <span class="pre">'%84',</span> <span class="pre">'%85',</span> <span class="pre">'%86',</span> <span class="pre">'%87',</span> <span class="pre">'%88',</span> <span class="pre">'%89',</span> <span class="pre">'%8A',</span> <span class="pre">'%8B',</span> <span class="pre">'%8C',</span> <span class="pre">'%8D',</span> <span class="pre">'%8E',</span> <span class="pre">'%8F',</span> <span class="pre">'%90',</span> <span class="pre">'%91',</span> <span class="pre">'%92',</span> <span class="pre">'%93',</span> <span class="pre">'%94',</span> <span class="pre">'%95',</span> <span class="pre">'%96',</span> <span class="pre">'%97',</span> <span class="pre">'%98',</span> <span class="pre">'%99',</span> <span class="pre">'%9A',</span> <span class="pre">'%9B',</span> <span class="pre">'%9C',</span> <span class="pre">'%9D',</span> <span class="pre">'%9E',</span> <span class="pre">'%9F',</span> <span class="pre">'%A0',</span> <span class="pre">'%A1',</span> <span class="pre">'%A2',</span> <span class="pre">'%A3',</span> <span class="pre">'%A4',</span> <span class="pre">'%A5',</span> <span class="pre">'%A6',</span> <span class="pre">'%A7',</span> <span class="pre">'%A8',</span> <span class="pre">'%A9',</span> <span class="pre">'%AA',</span> <span class="pre">'%AB',</span> <span class="pre">'%AC',</span> <span class="pre">'%AD',</span> <span class="pre">'%AE',</span> <span class="pre">'%AF',</span> <span class="pre">'%B0',</span> <span class="pre">'%B1',</span> <span class="pre">'%B2',</span> <span class="pre">'%B3',</span> <span class="pre">'%B4',</span> <span class="pre">'%B5',</span> <span class="pre">'%B6',</span> <span class="pre">'%B7',</span> <span class="pre">'%B8',</span> <span class="pre">'%B9',</span> <span class="pre">'%BA',</span> <span class="pre">'%BB',</span> <span class="pre">'%BC',</span> <span class="pre">'%BD',</span> <span class="pre">'%BE',</span> <span class="pre">'%BF',</span> <span class="pre">'%C0',</span> <span class="pre">'%C1',</span> <span class="pre">'%C2',</span> <span class="pre">'%C3',</span> <span class="pre">'%C4',</span> <span class="pre">'%C5',</span> <span class="pre">'%C6',</span> <span class="pre">'%C7',</span> <span class="pre">'%C8',</span> <span class="pre">'%C9',</span> <span class="pre">'%CA',</span> <span class="pre">'%CB',</span> <span class="pre">'%CC',</span> <span class="pre">'%CD',</span> <span class="pre">'%CE',</span> <span class="pre">'%CF',</span> <span class="pre">'%D0',</span> <span class="pre">'%D1',</span> <span class="pre">'%D2',</span> <span class="pre">'%D3',</span> <span class="pre">'%D4',</span> <span class="pre">'%D5',</span> <span class="pre">'%D6',</span> <span class="pre">'%D7',</span> <span class="pre">'%D8',</span> <span class="pre">'%D9',</span> <span class="pre">'%DA',</span> <span class="pre">'%DB',</span> <span class="pre">'%DC',</span> <span class="pre">'%DD',</span> <span class="pre">'%DE',</span> <span class="pre">'%DF',</span> <span class="pre">'%E0',</span> <span class="pre">'%E1',</span> <span class="pre">'%E2',</span> <span class="pre">'%E3',</span> <span class="pre">'%E4',</span> <span class="pre">'%E5',</span> <span class="pre">'%E6',</span> <span class="pre">'%E7',</span> <span class="pre">'%E8',</span> <span class="pre">'%E9',</span> <span class="pre">'%EA',</span> <span class="pre">'%EB',</span> <span class="pre">'%EC',</span> <span class="pre">'%ED',</span> <span class="pre">'%EE',</span> <span class="pre">'%EF',</span> <span class="pre">'%F0',</span> <span class="pre">'%F1',</span> <span class="pre">'%F2',</span> <span class="pre">'%F3',</span> <span class="pre">'%F4',</span> <span class="pre">'%F5',</span> <span class="pre">'%F6',</span> <span class="pre">'%F7',</span> <span class="pre">'%F8',</span> <span class="pre">'%F9',</span> <span class="pre">'%FA',</span> <span class="pre">'%FB',</span> <span class="pre">'%FC',</span> <span class="pre">'%FD',</span> <span class="pre">'%FE',</span> <span class="pre">'%FF')</span></span><a class="headerlink" href="#qs_codec.utils.encode_utils.EncodeUtils.HEX_TABLE" title="Link to this definition">¶</a></dt>
+<dd><p>Hex table of all 256 characters</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qs_codec.utils.encode_utils.EncodeUtils.RFC1738_SAFE_CHARS">
+<span class="sig-name descname"><span class="pre">RFC1738_SAFE_CHARS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{40,</span> <span class="pre">41,</span> <span class="pre">45,</span> <span class="pre">46,</span> <span class="pre">48,</span> <span class="pre">49,</span> <span class="pre">50,</span> <span class="pre">51,</span> <span class="pre">52,</span> <span class="pre">53,</span> <span class="pre">54,</span> <span class="pre">55,</span> <span class="pre">56,</span> <span class="pre">57,</span> <span class="pre">65,</span> <span class="pre">66,</span> <span class="pre">67,</span> <span class="pre">68,</span> <span class="pre">69,</span> <span class="pre">70,</span> <span class="pre">71,</span> <span class="pre">72,</span> <span class="pre">73,</span> <span class="pre">74,</span> <span class="pre">75,</span> <span class="pre">76,</span> <span class="pre">77,</span> <span class="pre">78,</span> <span class="pre">79,</span> <span class="pre">80,</span> <span class="pre">81,</span> <span class="pre">82,</span> <span class="pre">83,</span> <span class="pre">84,</span> <span class="pre">85,</span> <span class="pre">86,</span> <span class="pre">87,</span> <span class="pre">88,</span> <span class="pre">89,</span> <span class="pre">90,</span> <span class="pre">95,</span> <span class="pre">97,</span> <span class="pre">98,</span> <span class="pre">99,</span> <span class="pre">100,</span> <span class="pre">101,</span> <span class="pre">102,</span> <span class="pre">103,</span> <span class="pre">104,</span> <span class="pre">105,</span> <span class="pre">106,</span> <span class="pre">107,</span> <span class="pre">108,</span> <span class="pre">109,</span> <span class="pre">110,</span> <span class="pre">111,</span> <span class="pre">112,</span> <span class="pre">113,</span> <span class="pre">114,</span> <span class="pre">115,</span> <span class="pre">116,</span> <span class="pre">117,</span> <span class="pre">118,</span> <span class="pre">119,</span> <span class="pre">120,</span> <span class="pre">121,</span> <span class="pre">122,</span> <span class="pre">126}</span></span><a class="headerlink" href="#qs_codec.utils.encode_utils.EncodeUtils.RFC1738_SAFE_CHARS" title="Link to this definition">¶</a></dt>
+<dd><p>0-9, A-Z, a-z, -, ., _, ~, (, )</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qs_codec.utils.encode_utils.EncodeUtils.RFC1738_SAFE_POINTS">
+<span class="sig-name descname"><span class="pre">RFC1738_SAFE_POINTS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{40,</span> <span class="pre">41,</span> <span class="pre">42,</span> <span class="pre">43,</span> <span class="pre">45,</span> <span class="pre">46,</span> <span class="pre">47,</span> <span class="pre">48,</span> <span class="pre">49,</span> <span class="pre">50,</span> <span class="pre">51,</span> <span class="pre">52,</span> <span class="pre">53,</span> <span class="pre">54,</span> <span class="pre">55,</span> <span class="pre">56,</span> <span class="pre">57,</span> <span class="pre">64,</span> <span class="pre">65,</span> <span class="pre">66,</span> <span class="pre">67,</span> <span class="pre">68,</span> <span class="pre">69,</span> <span class="pre">70,</span> <span class="pre">71,</span> <span class="pre">72,</span> <span class="pre">73,</span> <span class="pre">74,</span> <span class="pre">75,</span> <span class="pre">76,</span> <span class="pre">77,</span> <span class="pre">78,</span> <span class="pre">79,</span> <span class="pre">80,</span> <span class="pre">81,</span> <span class="pre">82,</span> <span class="pre">83,</span> <span class="pre">84,</span> <span class="pre">85,</span> <span class="pre">86,</span> <span class="pre">87,</span> <span class="pre">88,</span> <span class="pre">89,</span> <span class="pre">90,</span> <span class="pre">95,</span> <span class="pre">97,</span> <span class="pre">98,</span> <span class="pre">99,</span> <span class="pre">100,</span> <span class="pre">101,</span> <span class="pre">102,</span> <span class="pre">103,</span> <span class="pre">104,</span> <span class="pre">105,</span> <span class="pre">106,</span> <span class="pre">107,</span> <span class="pre">108,</span> <span class="pre">109,</span> <span class="pre">110,</span> <span class="pre">111,</span> <span class="pre">112,</span> <span class="pre">113,</span> <span class="pre">114,</span> <span class="pre">115,</span> <span class="pre">116,</span> <span class="pre">117,</span> <span class="pre">118,</span> <span class="pre">119,</span> <span class="pre">120,</span> <span class="pre">121,</span> <span class="pre">122}</span></span><a class="headerlink" href="#qs_codec.utils.encode_utils.EncodeUtils.RFC1738_SAFE_POINTS" title="Link to this definition">¶</a></dt>
+<dd><p>0-9, A-Z, a-z, &#64;, <a href="#id1"><span class="problematic" id="id2">*</span></a>, _, -, +, ., /, (, )</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qs_codec.utils.encode_utils.EncodeUtils.SAFE_ALPHA">
+<span class="sig-name descname"><span class="pre">SAFE_ALPHA</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{48,</span> <span class="pre">49,</span> <span class="pre">50,</span> <span class="pre">51,</span> <span class="pre">52,</span> <span class="pre">53,</span> <span class="pre">54,</span> <span class="pre">55,</span> <span class="pre">56,</span> <span class="pre">57,</span> <span class="pre">65,</span> <span class="pre">66,</span> <span class="pre">67,</span> <span class="pre">68,</span> <span class="pre">69,</span> <span class="pre">70,</span> <span class="pre">71,</span> <span class="pre">72,</span> <span class="pre">73,</span> <span class="pre">74,</span> <span class="pre">75,</span> <span class="pre">76,</span> <span class="pre">77,</span> <span class="pre">78,</span> <span class="pre">79,</span> <span class="pre">80,</span> <span class="pre">81,</span> <span class="pre">82,</span> <span class="pre">83,</span> <span class="pre">84,</span> <span class="pre">85,</span> <span class="pre">86,</span> <span class="pre">87,</span> <span class="pre">88,</span> <span class="pre">89,</span> <span class="pre">90,</span> <span class="pre">97,</span> <span class="pre">98,</span> <span class="pre">99,</span> <span class="pre">100,</span> <span class="pre">101,</span> <span class="pre">102,</span> <span class="pre">103,</span> <span class="pre">104,</span> <span class="pre">105,</span> <span class="pre">106,</span> <span class="pre">107,</span> <span class="pre">108,</span> <span class="pre">109,</span> <span class="pre">110,</span> <span class="pre">111,</span> <span class="pre">112,</span> <span class="pre">113,</span> <span class="pre">114,</span> <span class="pre">115,</span> <span class="pre">116,</span> <span class="pre">117,</span> <span class="pre">118,</span> <span class="pre">119,</span> <span class="pre">120,</span> <span class="pre">121,</span> <span class="pre">122}</span></span><a class="headerlink" href="#qs_codec.utils.encode_utils.EncodeUtils.SAFE_ALPHA" title="Link to this definition">¶</a></dt>
+<dd><p>0-9, A-Z, a-z</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qs_codec.utils.encode_utils.EncodeUtils.SAFE_CHARS">
+<span class="sig-name descname"><span class="pre">SAFE_CHARS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{45,</span> <span class="pre">46,</span> <span class="pre">48,</span> <span class="pre">49,</span> <span class="pre">50,</span> <span class="pre">51,</span> <span class="pre">52,</span> <span class="pre">53,</span> <span class="pre">54,</span> <span class="pre">55,</span> <span class="pre">56,</span> <span class="pre">57,</span> <span class="pre">65,</span> <span class="pre">66,</span> <span class="pre">67,</span> <span class="pre">68,</span> <span class="pre">69,</span> <span class="pre">70,</span> <span class="pre">71,</span> <span class="pre">72,</span> <span class="pre">73,</span> <span class="pre">74,</span> <span class="pre">75,</span> <span class="pre">76,</span> <span class="pre">77,</span> <span class="pre">78,</span> <span class="pre">79,</span> <span class="pre">80,</span> <span class="pre">81,</span> <span class="pre">82,</span> <span class="pre">83,</span> <span class="pre">84,</span> <span class="pre">85,</span> <span class="pre">86,</span> <span class="pre">87,</span> <span class="pre">88,</span> <span class="pre">89,</span> <span class="pre">90,</span> <span class="pre">95,</span> <span class="pre">97,</span> <span class="pre">98,</span> <span class="pre">99,</span> <span class="pre">100,</span> <span class="pre">101,</span> <span class="pre">102,</span> <span class="pre">103,</span> <span class="pre">104,</span> <span class="pre">105,</span> <span class="pre">106,</span> <span class="pre">107,</span> <span class="pre">108,</span> <span class="pre">109,</span> <span class="pre">110,</span> <span class="pre">111,</span> <span class="pre">112,</span> <span class="pre">113,</span> <span class="pre">114,</span> <span class="pre">115,</span> <span class="pre">116,</span> <span class="pre">117,</span> <span class="pre">118,</span> <span class="pre">119,</span> <span class="pre">120,</span> <span class="pre">121,</span> <span class="pre">122,</span> <span class="pre">126}</span></span><a class="headerlink" href="#qs_codec.utils.encode_utils.EncodeUtils.SAFE_CHARS" title="Link to this definition">¶</a></dt>
+<dd><p>0-9, A-Z, a-z, -, ., _, ~</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qs_codec.utils.encode_utils.EncodeUtils.SAFE_POINTS">
+<span class="sig-name descname"><span class="pre">SAFE_POINTS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{42,</span> <span class="pre">43,</span> <span class="pre">45,</span> <span class="pre">46,</span> <span class="pre">47,</span> <span class="pre">48,</span> <span class="pre">49,</span> <span class="pre">50,</span> <span class="pre">51,</span> <span class="pre">52,</span> <span class="pre">53,</span> <span class="pre">54,</span> <span class="pre">55,</span> <span class="pre">56,</span> <span class="pre">57,</span> <span class="pre">64,</span> <span class="pre">65,</span> <span class="pre">66,</span> <span class="pre">67,</span> <span class="pre">68,</span> <span class="pre">69,</span> <span class="pre">70,</span> <span class="pre">71,</span> <span class="pre">72,</span> <span class="pre">73,</span> <span class="pre">74,</span> <span class="pre">75,</span> <span class="pre">76,</span> <span class="pre">77,</span> <span class="pre">78,</span> <span class="pre">79,</span> <span class="pre">80,</span> <span class="pre">81,</span> <span class="pre">82,</span> <span class="pre">83,</span> <span class="pre">84,</span> <span class="pre">85,</span> <span class="pre">86,</span> <span class="pre">87,</span> <span class="pre">88,</span> <span class="pre">89,</span> <span class="pre">90,</span> <span class="pre">95,</span> <span class="pre">97,</span> <span class="pre">98,</span> <span class="pre">99,</span> <span class="pre">100,</span> <span class="pre">101,</span> <span class="pre">102,</span> <span class="pre">103,</span> <span class="pre">104,</span> <span class="pre">105,</span> <span class="pre">106,</span> <span class="pre">107,</span> <span class="pre">108,</span> <span class="pre">109,</span> <span class="pre">110,</span> <span class="pre">111,</span> <span class="pre">112,</span> <span class="pre">113,</span> <span class="pre">114,</span> <span class="pre">115,</span> <span class="pre">116,</span> <span class="pre">117,</span> <span class="pre">118,</span> <span class="pre">119,</span> <span class="pre">120,</span> <span class="pre">121,</span> <span class="pre">122}</span></span><a class="headerlink" href="#qs_codec.utils.encode_utils.EncodeUtils.SAFE_POINTS" title="Link to this definition">¶</a></dt>
+<dd><p>0-9, A-Z, a-z, &#64;, <a href="#id3"><span class="problematic" id="id4">*</span></a>, _, -, +, ., /</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qs_codec.utils.encode_utils.EncodeUtils.encode">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">encode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.charset.Charset" title="qs_codec.enums.charset.Charset"><span class="pre">Charset</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Charset.UTF8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.format.Format" title="qs_codec.enums.format.Format"><span class="pre">Format</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Format.RFC3986</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/qs_codec/utils/encode_utils.html#EncodeUtils.encode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.utils.encode_utils.EncodeUtils.encode" title="Link to this definition">¶</a></dt>
+<dd><p>Encode a scalar value to a URL‑encoded string.</p>
+<ul class="simple">
+<li><p>Accepts numbers, <cite>Decimal</cite>, <cite>Enum</cite>, <cite>str</cite>, <cite>bool</cite>, and <cite>bytes</cite>. Any other type (including <cite>None</cite>) yields an empty string, matching the Node <cite>qs</cite> behavior.</p></li>
+<li><p>For <cite>Charset.LATIN1</cite>, the output mirrors the JS <cite>%uXXXX</cite> + numeric entity trick so the result can be safely transported as latin‑1.</p></li>
+<li><p>Otherwise, values are encoded as UTF‑8 using <cite>_encode_string</cite>.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qs_codec.utils.encode_utils.EncodeUtils.escape">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">escape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.format.Format" title="qs_codec.enums.format.Format"><span class="pre">Format</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Format.RFC3986</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/qs_codec/utils/encode_utils.html#EncodeUtils.escape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.utils.encode_utils.EncodeUtils.escape" title="Link to this definition">¶</a></dt>
+<dd><p>Emulate the legacy JavaScript escaping behavior.</p>
+<p>This function operates on UTF‑16 <em>code units</em> to emulate JavaScript’s legacy <cite>%uXXXX</cite> behavior. Non‑BMP code
+points are first expanded into surrogate pairs via <cite>_to_surrogates</cite>, then each code unit is processed.</p>
+<ul class="simple">
+<li><p>Safe set: when <cite>format == Format.RFC1738</cite>, the characters <cite>(</cite> and <cite>)</cite> are additionally treated as safe. Otherwise, the RFC3986 safe set is used.</p></li>
+<li><p>ASCII characters in the safe set are emitted unchanged.</p></li>
+<li><p>Code units &amp;lt; 256 are emitted as <cite>%XX</cite>.</p></li>
+<li><p>Other code units are emitted as <cite>%uXXXX</cite>.</p></li>
+</ul>
+<p>Reference: <a class="reference external" href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/escape">https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/escape</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qs_codec.utils.encode_utils.EncodeUtils.serialize_date">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">serialize_date</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/qs_codec/utils/encode_utils.html#EncodeUtils.serialize_date"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.utils.encode_utils.EncodeUtils.serialize_date" title="Link to this definition">¶</a></dt>
+<dd><p>Serialize a <cite>datetime</cite> to ISO‑8601 using <cite>datetime.isoformat()</cite>.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-qs_codec.utils.utils">
+<span id="qs-codec-utils-utils-module"></span><h2>qs_codec.utils.utils module<a class="headerlink" href="#module-qs_codec.utils.utils" title="Link to this heading">¶</a></h2>
+<p>Utility helpers shared across the <cite>qs_codec</cite> decode/encode internals.</p>
+<p>The functions in this module are intentionally small, allocation‑aware, and careful about container mutation to match the
+behavior (and performance characteristics) of the original JavaScript <cite>qs</cite> library.</p>
+<p>Key responsibilities:
+- Merging decoded key/value pairs into nested Python containers (<cite>merge</cite>)
+- Removing the library’s <cite>Undefined</cite> sentinel values (<cite>compact</cite> and helpers)
+- Minimal deep‑equality for cycle detection guards (<cite>_dicts_are_equal</cite>)
+- Small helpers for list/value composition (<cite>combine</cite>, <cite>apply</cite>)
+- Primitive checks used by the encoder (<cite>is_non_nullish_primitive</cite>)</p>
+<p>Notes:
+- <cite>Undefined</cite> marks entries that should be <em>omitted</em> from output structures. We remove these in place where possible to minimize allocations.
+- Many helpers accept both <cite>list</cite> and <cite>tuple</cite>; tuples are converted to lists on mutation because Python tuples are immutable.
+- Several routines use an object‑identity <cite>visited</cite> set to avoid infinite recursion when user inputs contain cycles.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="qs_codec.utils.utils.Utils">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">qs_codec.utils.utils.</span></span><span class="sig-name descname"><span class="pre">Utils</span></span><a class="reference internal" href="_modules/qs_codec/utils/utils.html#Utils"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.utils.utils.Utils" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Namespace container for stateless utility routines.</p>
+<p>All methods are <a href="#id5"><span class="problematic" id="id6">`</span></a>&#64;staticmethod`s to keep call sites simple and to make the functions easy to reuse across modules
+without constructing objects.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="qs_codec.utils.utils.Utils.apply">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Any</span></span></span><a class="reference internal" href="_modules/qs_codec/utils/utils.html#Utils.apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.utils.utils.Utils.apply" title="Link to this definition">¶</a></dt>
+<dd><p>Map a callable over a value or sequence.</p>
+<p>If <cite>val</cite> is a list/tuple, returns a list of mapped results; otherwise returns
+the single mapped value.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qs_codec.utils.utils.Utils.combine">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">combine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions" title="qs_codec.models.decode_options.DecodeOptions"><span class="pre">DecodeOptions</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/qs_codec/utils/utils.html#Utils.combine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.utils.utils.Utils.combine" title="Link to this definition">¶</a></dt>
+<dd><p>Concatenate two values, treating non-sequences as singletons.</p>
+<p>If <cite>list_limit</cite> is exceeded, converts the list to an <cite>OverflowDict</cite>
+(a dict with numeric keys) to prevent memory exhaustion.
+When <cite>options</cite> is provided, its <code class="docutils literal notranslate"><span class="pre">list_limit</span></code> controls when a list is
+converted into an <code class="xref py py-class docutils literal notranslate"><span class="pre">OverflowDict</span></code> (a dict with numeric keys) to
+prevent unbounded growth. If <code class="docutils literal notranslate"><span class="pre">options</span></code> is <code class="docutils literal notranslate"><span class="pre">None</span></code>, the default
+<code class="docutils literal notranslate"><span class="pre">list_limit</span></code> from <code class="xref py py-class docutils literal notranslate"><span class="pre">DecodeOptions</span></code> is used.
+A negative <code class="docutils literal notranslate"><span class="pre">list_limit</span></code> is treated as “overflow immediately”: any
+non-empty combined result will be converted to <code class="xref py py-class docutils literal notranslate"><span class="pre">OverflowDict</span></code>.
+This helper never raises an exception when the limit is exceeded; even
+if <code class="xref py py-class docutils literal notranslate"><span class="pre">DecodeOptions</span></code> has <code class="docutils literal notranslate"><span class="pre">raise_on_limit_exceeded</span></code> set to
+<code class="docutils literal notranslate"><span class="pre">True</span></code>, <code class="docutils literal notranslate"><span class="pre">combine</span></code> will still handle overflow only by converting the
+list to <code class="xref py py-class docutils literal notranslate"><span class="pre">OverflowDict</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qs_codec.utils.utils.Utils.compact">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">compact</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/qs_codec/utils/utils.html#Utils.compact"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.utils.utils.Utils.compact" title="Link to this definition">¶</a></dt>
+<dd><p>Remove all <cite>Undefined</cite> sentinels from a nested container in place.</p>
+<p>Traversal is iterative (explicit stack) to avoid deep recursion, and a per-object <cite>visited</cite> set prevents infinite
+loops on cyclic inputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>root</strong> – Dictionary to clean. It is mutated and also returned.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The same <cite>root</cite> object for chaining.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qs_codec.utils.utils.Utils.is_non_nullish_primitive">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">is_non_nullish_primitive</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_nulls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/qs_codec/utils/utils.html#Utils.is_non_nullish_primitive"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.utils.utils.Utils.is_non_nullish_primitive" title="Link to this definition">¶</a></dt>
+<dd><p>Return True if <cite>val</cite> is considered a primitive for encoding purposes.</p>
+<p>Rules:
+- <cite>None</cite> and <cite>Undefined</cite> are not primitives.
+- Strings are primitives; if <cite>skip_nulls</cite> is True, the empty string is not.
+- Numbers, booleans, <cite>Enum</cite>, <cite>datetime</cite>, and <cite>timedelta</cite> are primitives.
+- Any non‑container object is treated as primitive.</p>
+<p>This mirrors the behavior expected by the original <cite>qs</cite> encoder.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qs_codec.utils.utils.Utils.is_overflow">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">is_overflow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/qs_codec/utils/utils.html#Utils.is_overflow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.utils.utils.Utils.is_overflow" title="Link to this definition">¶</a></dt>
+<dd><p>Check if an object is an OverflowDict.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qs_codec.utils.utils.Utils.merge">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">merge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Any</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions" title="qs_codec.models.decode_options.DecodeOptions"><span class="pre">DecodeOptions</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Any</span></span></span><a class="reference internal" href="_modules/qs_codec/utils/utils.html#Utils.merge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.utils.utils.Utils.merge" title="Link to this definition">¶</a></dt>
+<dd><p>Merge <cite>source</cite> into <cite>target</cite> in a qs‑compatible way.</p>
+<p>This function mirrors how the original JavaScript <cite>qs</cite> library builds nested structures while parsing query strings.
+It accepts mappings, sequences (<code class="docutils literal notranslate"><span class="pre">list</span></code> / <code class="docutils literal notranslate"><span class="pre">tuple</span></code>), and scalars on either side and returns a merged value.</p>
+<section id="rules-high-level">
+<h3>Rules (high level)<a class="headerlink" href="#rules-high-level" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>If <cite>source</cite> is <code class="docutils literal notranslate"><span class="pre">None</span></code>: return <cite>target</cite> unchanged.</p></li>
+<li><p>If <cite>source</cite> is <strong>not</strong> a mapping:
+* <cite>target</cite> is a sequence → append/extend, skipping <code class="xref py py-class docutils literal notranslate"><span class="pre">Undefined</span></code>.
+* <cite>target</cite> is a mapping → write items from the sequence under string indices (“0”, “1”, …).
+* otherwise → return <code class="docutils literal notranslate"><span class="pre">[target,</span> <span class="pre">source]</span></code> (skipping <code class="xref py py-class docutils literal notranslate"><span class="pre">Undefined</span></code> where applicable).</p></li>
+<li><p>If <cite>source</cite> <strong>is</strong> a mapping:
+* <cite>target</cite> is not a mapping → if <cite>target</cite> is a sequence, coerce it to an index‑keyed dict and merge; otherwise, concatenate as a list <code class="docutils literal notranslate"><span class="pre">[target,</span> <span class="pre">source]</span></code> while skipping <code class="xref py py-class docutils literal notranslate"><span class="pre">Undefined</span></code>.
+* <cite>target</cite> is a mapping → deep‑merge keys; where keys collide, merge values recursively.</p></li>
+</ul>
+</section>
+<section id="list-handling">
+<h3>List handling<a class="headerlink" href="#list-handling" title="Link to this heading">¶</a></h3>
+<p>When a list that already contains <code class="xref py py-class docutils literal notranslate"><span class="pre">Undefined</span></code> must receive new values and <code class="docutils literal notranslate"><span class="pre">options.parse_lists</span></code> is <code class="docutils literal notranslate"><span class="pre">False</span></code>,
+the list is promoted to a dict with string indices so positions can be addressed deterministically. Otherwise,
+sentinels are simply removed as we go.</p>
+<dl class="field-list simple">
+<dt class="field-odd">param target<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Existing value to merge into.</p>
+</dd>
+<dt class="field-even">type target<span class="colon">:</span></dt>
+<dd class="field-even"><p>mapping | list | tuple | Any | None</p>
+</dd>
+<dt class="field-odd">param source<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Incoming value.</p>
+</dd>
+<dt class="field-even">type source<span class="colon">:</span></dt>
+<dd class="field-even"><p>mapping | list | tuple | Any | None</p>
+</dd>
+<dt class="field-odd">param options<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Options that affect list promotion/handling.</p>
+</dd>
+<dt class="field-even">type options<span class="colon">:</span></dt>
+<dd class="field-even"><p>DecodeOptions | None</p>
+</dd>
+<dt class="field-odd">returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The merged structure. May be the original <cite>target</cite> object when
+<cite>source</cite> is <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt class="field-even">rtype<span class="colon">:</span></dt>
+<dd class="field-even"><p>mapping | list | tuple | Any</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qs_codec.utils.utils.Utils.normalize_comma_elem">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">normalize_comma_elem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">e</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/qs_codec/utils/utils.html#Utils.normalize_comma_elem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.utils.utils.Utils.normalize_comma_elem" title="Link to this definition">¶</a></dt>
+<dd><p>Normalize a value for inclusion in a comma‑joined list.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-qs_codec.utils">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-qs_codec.utils" title="Link to this heading">¶</a></h2>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">qs-codec</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="README.html">Decoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#encoding">Encoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#handling-none-values">Handling <code class="docutils literal notranslate"><span class="pre">None</span></code> values</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#dealing-with-special-character-sets">Dealing with special character sets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#rfc-3986-and-rfc-1738-space-encoding">RFC 3986 and RFC 1738 space encoding</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">qs_codec</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="qs_codec.html">qs_codec package</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">qs_codec</a><ul>
+  <li><a href="qs_codec.html">qs_codec package</a><ul>
+      <li>Previous: <a href="qs_codec.models.html" title="previous chapter">qs_codec.models package</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, Klemen Tusar.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/qs_codec.utils.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

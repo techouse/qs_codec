@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Decoding &#8212; qs-codec 1.4.3 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=a68a9277"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="qs_codec" href="modules.html" />
+    <link rel="prev" title="qs-codec" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="decoding">
+<h1>Decoding<a class="headerlink" href="#decoding" title="Link to this heading">¶</a></h1>
+<section id="dictionaries">
+<h2>dictionaries<a class="headerlink" href="#dictionaries" title="Link to this heading">¶</a></h2>
+<p><a class="reference internal" href="qs_codec.html#module-qs_codec.decode" title="qs_codec.decode"><code class="xref py py-attr docutils literal notranslate"><span class="pre">decode</span></code></a> allows you to create nested <code class="docutils literal notranslate"><span class="pre">dict</span></code>s within your query
+strings, by surrounding the name of sub-keys with square brackets
+<code class="docutils literal notranslate"><span class="pre">[]</span></code>. For example, the string <code class="docutils literal notranslate"><span class="pre">'foo[bar]=baz'</span></code> converts to:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;foo[bar]=baz&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;foo&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;bar&#39;</span><span class="p">:</span> <span class="s1">&#39;baz&#39;</span><span class="p">}}</span>
+</pre></div>
+</div>
+<p>URI encoded strings work too:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;a%5Bb%5D=c&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="s1">&#39;c&#39;</span><span class="p">}}</span>
+</pre></div>
+</div>
+<p>You can also nest your <code class="docutils literal notranslate"><span class="pre">dict</span></code>s, like <code class="docutils literal notranslate"><span class="pre">'foo[bar][baz]=foobarbaz'</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;foo[bar][baz]=foobarbaz&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;foo&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;bar&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;baz&#39;</span><span class="p">:</span> <span class="s1">&#39;foobarbaz&#39;</span><span class="p">}}}</span>
+</pre></div>
+</div>
+<p>By default, when nesting <code class="docutils literal notranslate"><span class="pre">dict</span></code>s qs will only decode up to 5
+children deep. This means if you attempt to decode a string like
+<code class="docutils literal notranslate"><span class="pre">'a[b][c][d][e][f][g][h][i]=j'</span></code> your resulting <code class="docutils literal notranslate"><span class="pre">dict</span></code> will be:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;a[b][c][d][e][f][g][h][i]=j&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="p">{</span>
+    <span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;b&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;d&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;e&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;f&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;[g][h][i]&quot;</span><span class="p">:</span> <span class="s2">&quot;j&quot;</span><span class="p">}}}}}}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>This depth can be overridden by setting the <a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.depth" title="qs_codec.models.decode_options.DecodeOptions.depth"><code class="xref py py-attr docutils literal notranslate"><span class="pre">depth</span></code></a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+    <span class="s1">&#39;a[b][c][d][e][f][g][h][i]=j&#39;</span><span class="p">,</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">DecodeOptions</span><span class="p">(</span><span class="n">depth</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;[c][d][e][f][g][h][i]&#39;</span><span class="p">:</span> <span class="s1">&#39;j&#39;</span><span class="p">}}}</span>
+</pre></div>
+</div>
+<p>You can configure <a class="reference internal" href="qs_codec.html#module-qs_codec.decode" title="qs_codec.decode"><code class="xref py py-attr docutils literal notranslate"><span class="pre">decode</span></code></a> to throw an error
+when parsing nested input beyond this depth using <a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.strict_depth" title="qs_codec.models.decode_options.DecodeOptions.strict_depth"><code class="xref py py-attr docutils literal notranslate"><span class="pre">strict_depth</span></code></a> (defaults to <code class="docutils literal notranslate"><span class="pre">False</span></code>):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+        <span class="s1">&#39;a[b][c][d][e][f][g][h][i]=j&#39;</span><span class="p">,</span>
+        <span class="n">qs</span><span class="o">.</span><span class="n">DecodeOptions</span><span class="p">(</span><span class="n">depth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">strict_depth</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="p">)</span>
+<span class="k">except</span> <span class="ne">IndexError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;Input depth exceeded depth option of 1 and strict_depth is True&#39;</span>
+</pre></div>
+</div>
+<p>The depth limit helps mitigate abuse when <a class="reference internal" href="qs_codec.html#module-qs_codec.decode" title="qs_codec.decode"><code class="xref py py-attr docutils literal notranslate"><span class="pre">decode</span></code></a> is used to parse user input, and it is recommended
+to keep it a reasonably small number. <a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.strict_depth" title="qs_codec.models.decode_options.DecodeOptions.strict_depth"><code class="xref py py-attr docutils literal notranslate"><span class="pre">strict_depth</span></code></a>
+adds a layer of protection by throwing an <code class="docutils literal notranslate"><span class="pre">IndexError</span></code> when the limit is exceeded, allowing you to catch and handle such cases.</p>
+<p>For similar reasons, by default <a class="reference internal" href="qs_codec.html#module-qs_codec.decode" title="qs_codec.decode"><code class="xref py py-attr docutils literal notranslate"><span class="pre">decode</span></code></a> will only parse up to 1000 parameters. This can be overridden by passing a
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.parameter_limit" title="qs_codec.models.decode_options.DecodeOptions.parameter_limit"><code class="xref py py-attr docutils literal notranslate"><span class="pre">parameter_limit</span></code></a> option:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+    <span class="s1">&#39;a=b&amp;c=d&#39;</span><span class="p">,</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">DecodeOptions</span><span class="p">(</span><span class="n">parameter_limit</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;b&#39;</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>To bypass the leading question mark, use
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.ignore_query_prefix" title="qs_codec.models.decode_options.DecodeOptions.ignore_query_prefix"><code class="xref py py-attr docutils literal notranslate"><span class="pre">ignore_query_prefix</span></code></a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+    <span class="s1">&#39;?a=b&amp;c=d&#39;</span><span class="p">,</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">DecodeOptions</span><span class="p">(</span><span class="n">ignore_query_prefix</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="s1">&#39;d&#39;</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>An optional <a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.delimiter" title="qs_codec.models.decode_options.DecodeOptions.delimiter"><code class="xref py py-attr docutils literal notranslate"><span class="pre">delimiter</span></code></a> can also be passed:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+    <span class="s1">&#39;a=b;c=d&#39;</span><span class="p">,</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">DecodeOptions</span><span class="p">(</span><span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;;&#39;</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="s1">&#39;d&#39;</span><span class="p">}</span>
+</pre></div>
+</div>
+<p><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.delimiter" title="qs_codec.models.decode_options.DecodeOptions.delimiter"><code class="xref py py-attr docutils literal notranslate"><span class="pre">delimiter</span></code></a> can be a regular expression too:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+    <span class="s1">&#39;a=b;c=d&#39;</span><span class="p">,</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">DecodeOptions</span><span class="p">(</span><span class="n">delimiter</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[;,]&#39;</span><span class="p">)),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="s1">&#39;d&#39;</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>Option <a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.allow_dots" title="qs_codec.models.decode_options.DecodeOptions.allow_dots"><code class="xref py py-attr docutils literal notranslate"><span class="pre">allow_dots</span></code></a>
+can be used to enable dot notation:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+    <span class="s1">&#39;a.b=c&#39;</span><span class="p">,</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">DecodeOptions</span><span class="p">(</span><span class="n">allow_dots</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="s1">&#39;c&#39;</span><span class="p">}}</span>
+</pre></div>
+</div>
+<p>Option <a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.decode_dot_in_keys" title="qs_codec.models.decode_options.DecodeOptions.decode_dot_in_keys"><code class="xref py py-attr docutils literal notranslate"><span class="pre">decode_dot_in_keys</span></code></a>
+can be used to decode dots in keys.</p>
+<p><strong>Note:</strong> it implies <a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.allow_dots" title="qs_codec.models.decode_options.DecodeOptions.allow_dots"><code class="xref py py-attr docutils literal notranslate"><span class="pre">allow_dots</span></code></a>, so
+<a class="reference internal" href="qs_codec.html#module-qs_codec.decode" title="qs_codec.decode"><code class="xref py py-attr docutils literal notranslate"><span class="pre">decode</span></code></a> will error if you set <a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.decode_dot_in_keys" title="qs_codec.models.decode_options.DecodeOptions.decode_dot_in_keys"><code class="xref py py-attr docutils literal notranslate"><span class="pre">decode_dot_in_keys</span></code></a>
+to <code class="docutils literal notranslate"><span class="pre">True</span></code>, and <a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.allow_dots" title="qs_codec.models.decode_options.DecodeOptions.allow_dots"><code class="xref py py-attr docutils literal notranslate"><span class="pre">allow_dots</span></code></a> to <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+    <span class="s1">&#39;name</span><span class="si">%252E</span><span class="s1">obj.first=John&amp;name</span><span class="si">%252E</span><span class="s1">obj.last=Doe&#39;</span><span class="p">,</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">DecodeOptions</span><span class="p">(</span><span class="n">decode_dot_in_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;name.obj&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;first&#39;</span><span class="p">:</span> <span class="s1">&#39;John&#39;</span><span class="p">,</span> <span class="s1">&#39;last&#39;</span><span class="p">:</span> <span class="s1">&#39;Doe&#39;</span><span class="p">}}</span>
+</pre></div>
+</div>
+<p>Option <a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.allow_empty_lists" title="qs_codec.models.decode_options.DecodeOptions.allow_empty_lists"><code class="xref py py-attr docutils literal notranslate"><span class="pre">allow_empty_lists</span></code></a> can
+be used to allow empty <code class="docutils literal notranslate"><span class="pre">list</span></code> values in a <code class="docutils literal notranslate"><span class="pre">dict</span></code></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+    <span class="s1">&#39;foo[]&amp;bar=baz&#39;</span><span class="p">,</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">DecodeOptions</span><span class="p">(</span><span class="n">allow_empty_lists</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;foo&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;bar&#39;</span><span class="p">:</span> <span class="s1">&#39;baz&#39;</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>Option <a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.duplicates" title="qs_codec.models.decode_options.DecodeOptions.duplicates"><code class="xref py py-attr docutils literal notranslate"><span class="pre">duplicates</span></code></a> can be used to
+change the behavior when duplicate keys are encountered</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;foo=bar&amp;foo=baz&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;foo&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;bar&#39;</span><span class="p">,</span> <span class="s1">&#39;baz&#39;</span><span class="p">]}</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+    <span class="s1">&#39;foo=bar&amp;foo=baz&#39;</span><span class="p">,</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">DecodeOptions</span><span class="p">(</span><span class="n">duplicates</span><span class="o">=</span><span class="n">qs</span><span class="o">.</span><span class="n">Duplicates</span><span class="o">.</span><span class="n">COMBINE</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;foo&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;bar&#39;</span><span class="p">,</span> <span class="s1">&#39;baz&#39;</span><span class="p">]}</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+    <span class="s1">&#39;foo=bar&amp;foo=baz&#39;</span><span class="p">,</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">DecodeOptions</span><span class="p">(</span><span class="n">duplicates</span><span class="o">=</span><span class="n">qs</span><span class="o">.</span><span class="n">Duplicates</span><span class="o">.</span><span class="n">FIRST</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;foo&#39;</span><span class="p">:</span> <span class="s1">&#39;bar&#39;</span><span class="p">}</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+    <span class="s1">&#39;foo=bar&amp;foo=baz&#39;</span><span class="p">,</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">DecodeOptions</span><span class="p">(</span><span class="n">duplicates</span><span class="o">=</span><span class="n">qs</span><span class="o">.</span><span class="n">Duplicates</span><span class="o">.</span><span class="n">LAST</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;foo&#39;</span><span class="p">:</span> <span class="s1">&#39;baz&#39;</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>If you have to deal with legacy browsers or services, there’s also
+support for decoding percent-encoded octets as <a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.charset.Charset.LATIN1" title="qs_codec.enums.charset.Charset.LATIN1"><code class="xref py py-attr docutils literal notranslate"><span class="pre">LATIN1</span></code></a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+    <span class="s1">&#39;a=%A7&#39;</span><span class="p">,</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">DecodeOptions</span><span class="p">(</span><span class="n">charset</span><span class="o">=</span><span class="n">qs</span><span class="o">.</span><span class="n">Charset</span><span class="o">.</span><span class="n">LATIN1</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;§&#39;</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>Some services add an initial <code class="docutils literal notranslate"><span class="pre">utf8=✓</span></code> value to forms so that old
+Internet Explorer versions are more likely to submit the form as utf-8.
+Additionally, the server can check the value against wrong encodings of
+the checkmark character and detect that a query string or
+<code class="docutils literal notranslate"><span class="pre">application/x-www-form-urlencoded</span></code> body was <em>not</em> sent as <code class="docutils literal notranslate"><span class="pre">utf-8</span></code>,
+e.g. if the form had an <code class="docutils literal notranslate"><span class="pre">accept-charset</span></code> parameter or the containing
+page had a different character set.</p>
+<p><a class="reference internal" href="qs_codec.html#module-qs_codec.decode" title="qs_codec.decode"><code class="xref py py-attr docutils literal notranslate"><span class="pre">decode</span></code></a> supports this mechanism via the
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.charset_sentinel" title="qs_codec.models.decode_options.DecodeOptions.charset_sentinel"><code class="xref py py-attr docutils literal notranslate"><span class="pre">charset_sentinel</span></code></a> option.
+If specified, the <code class="docutils literal notranslate"><span class="pre">utf8</span></code> parameter will be omitted from the returned
+<code class="docutils literal notranslate"><span class="pre">dict</span></code>. It will be used to switch to <a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.charset.Charset.LATIN1" title="qs_codec.enums.charset.Charset.LATIN1"><code class="xref py py-attr docutils literal notranslate"><span class="pre">LATIN1</span></code></a> or
+<a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.charset.Charset.UTF8" title="qs_codec.enums.charset.Charset.UTF8"><code class="xref py py-attr docutils literal notranslate"><span class="pre">UTF8</span></code></a> mode depending on how the checkmark is encoded.</p>
+<p><strong>Important</strong>: When you specify both the <a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.charset" title="qs_codec.models.decode_options.DecodeOptions.charset"><code class="xref py py-attr docutils literal notranslate"><span class="pre">charset</span></code></a>
+option and the <a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.charset_sentinel" title="qs_codec.models.decode_options.DecodeOptions.charset_sentinel"><code class="xref py py-attr docutils literal notranslate"><span class="pre">charset_sentinel</span></code></a> option, the
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.charset" title="qs_codec.models.decode_options.DecodeOptions.charset"><code class="xref py py-attr docutils literal notranslate"><span class="pre">charset</span></code></a> will be overridden when the request contains a
+<code class="docutils literal notranslate"><span class="pre">utf8</span></code> parameter from which the actual charset can be deduced. In that
+sense the <a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.charset" title="qs_codec.models.decode_options.DecodeOptions.charset"><code class="xref py py-attr docutils literal notranslate"><span class="pre">charset</span></code></a> will behave as the default charset
+rather than the authoritative charset.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+    <span class="s1">&#39;utf8=</span><span class="si">%E</span><span class="s1">2%9C%93&amp;a=%C3%B8&#39;</span><span class="p">,</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">DecodeOptions</span><span class="p">(</span>
+        <span class="n">charset</span><span class="o">=</span><span class="n">qs</span><span class="o">.</span><span class="n">Charset</span><span class="o">.</span><span class="n">LATIN1</span><span class="p">,</span>
+        <span class="n">charset_sentinel</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;ø&#39;</span><span class="p">}</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+    <span class="s1">&#39;utf8=</span><span class="si">%26%</span><span class="s1">2310003%3B&amp;a=</span><span class="si">%F</span><span class="s1">8&#39;</span><span class="p">,</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">DecodeOptions</span><span class="p">(</span>
+        <span class="n">charset</span><span class="o">=</span><span class="n">qs</span><span class="o">.</span><span class="n">Charset</span><span class="o">.</span><span class="n">UTF8</span><span class="p">,</span>
+        <span class="n">charset_sentinel</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;ø&#39;</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>If you want to decode the <a class="reference external" href="https://www.w3schools.com/html/html_entities.asp">&amp;#…;</a> syntax to the actual character, you can specify the
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.interpret_numeric_entities" title="qs_codec.models.decode_options.DecodeOptions.interpret_numeric_entities"><code class="xref py py-attr docutils literal notranslate"><span class="pre">interpret_numeric_entities</span></code></a>
+option as well:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+    <span class="s1">&#39;a=</span><span class="si">%26%</span><span class="s1">239786%3B&#39;</span><span class="p">,</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">DecodeOptions</span><span class="p">(</span>
+        <span class="n">charset</span><span class="o">=</span><span class="n">qs</span><span class="o">.</span><span class="n">Charset</span><span class="o">.</span><span class="n">LATIN1</span><span class="p">,</span>
+        <span class="n">interpret_numeric_entities</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;☺&#39;</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>It also works when the charset has been detected in
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.charset_sentinel" title="qs_codec.models.decode_options.DecodeOptions.charset_sentinel"><code class="xref py py-attr docutils literal notranslate"><span class="pre">charset_sentinel</span></code></a> mode.</p>
+</section>
+<section id="lists">
+<h2>lists<a class="headerlink" href="#lists" title="Link to this heading">¶</a></h2>
+<p><a class="reference internal" href="qs_codec.html#module-qs_codec.decode" title="qs_codec.decode"><code class="xref py py-attr docutils literal notranslate"><span class="pre">decode</span></code></a> can also decode <code class="docutils literal notranslate"><span class="pre">list</span></code>s using a similar <code class="docutils literal notranslate"><span class="pre">[]</span></code> notation:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;a[]=b&amp;a[]=c&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">]}</span>
+</pre></div>
+</div>
+<p>You may specify an index as well:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;a[1]=c&amp;a[0]=b&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">]}</span>
+</pre></div>
+</div>
+<p>Note that the only difference between an index in a <code class="docutils literal notranslate"><span class="pre">list</span></code> and a key
+in a <code class="docutils literal notranslate"><span class="pre">dict</span></code> is that the value between the brackets must be a number to
+create a <code class="docutils literal notranslate"><span class="pre">list</span></code>. When creating <code class="docutils literal notranslate"><span class="pre">list</span></code>s with specific indices,
+<a class="reference internal" href="qs_codec.html#module-qs_codec.decode" title="qs_codec.decode"><code class="xref py py-attr docutils literal notranslate"><span class="pre">decode</span></code></a> will compact a sparse <code class="docutils literal notranslate"><span class="pre">list</span></code> to
+only the existing values preserving their order:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;a[1]=b&amp;a[15]=c&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">]}</span>
+</pre></div>
+</div>
+<p>Note that an empty <code class="docutils literal notranslate"><span class="pre">str</span></code>ing is also a value and will be preserved:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;a[]=&amp;a[]=b&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">]}</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;a[0]=b&amp;a[1]=&amp;a[2]=c&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">]}</span>
+</pre></div>
+</div>
+<p><a class="reference internal" href="qs_codec.html#module-qs_codec.decode" title="qs_codec.decode"><code class="xref py py-attr docutils literal notranslate"><span class="pre">decode</span></code></a> will also limit specifying indices
+in a <code class="docutils literal notranslate"><span class="pre">list</span></code> to a maximum index of <code class="docutils literal notranslate"><span class="pre">20</span></code>. Any <code class="docutils literal notranslate"><span class="pre">list</span></code> members with an
+index of greater than <code class="docutils literal notranslate"><span class="pre">20</span></code> will instead be converted to a <code class="docutils literal notranslate"><span class="pre">dict</span></code> with
+the index as the key. This is needed to handle cases when someone sent,
+for example, <code class="docutils literal notranslate"><span class="pre">a[999999999]</span></code> and it will take significant time to iterate
+over this huge <code class="docutils literal notranslate"><span class="pre">list</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;a[100]=b&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;100&#39;</span><span class="p">:</span> <span class="s1">&#39;b&#39;</span><span class="p">}}</span>
+</pre></div>
+</div>
+<p>This limit can be overridden by passing an <a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.list_limit" title="qs_codec.models.decode_options.DecodeOptions.list_limit"><code class="xref py py-attr docutils literal notranslate"><span class="pre">list_limit</span></code></a>
+option:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+    <span class="s1">&#39;a[1]=b&#39;</span><span class="p">,</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">DecodeOptions</span><span class="p">(</span><span class="n">list_limit</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;1&#39;</span><span class="p">:</span> <span class="s1">&#39;b&#39;</span><span class="p">}}</span>
+</pre></div>
+</div>
+<p>To disable <code class="docutils literal notranslate"><span class="pre">list</span></code> parsing entirely, set <a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.parse_lists" title="qs_codec.models.decode_options.DecodeOptions.parse_lists"><code class="xref py py-attr docutils literal notranslate"><span class="pre">parse_lists</span></code></a>
+to <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+    <span class="s1">&#39;a[]=b&#39;</span><span class="p">,</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">DecodeOptions</span><span class="p">(</span><span class="n">parse_lists</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;0&#39;</span><span class="p">:</span> <span class="s1">&#39;b&#39;</span><span class="p">}}</span>
+</pre></div>
+</div>
+<p>If you mix notations, <a class="reference internal" href="qs_codec.html#module-qs_codec.decode" title="qs_codec.decode"><code class="xref py py-attr docutils literal notranslate"><span class="pre">decode</span></code></a> will merge the two items into a <code class="docutils literal notranslate"><span class="pre">dict</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;a[0]=b&amp;a[b]=c&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;0&#39;</span><span class="p">:</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="s1">&#39;c&#39;</span><span class="p">}}</span>
+</pre></div>
+</div>
+<p>You can also create <code class="docutils literal notranslate"><span class="pre">list</span></code>s of <code class="docutils literal notranslate"><span class="pre">dict</span></code>s:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;a[][b]=c&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">[{</span><span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="s1">&#39;c&#39;</span><span class="p">}]}</span>
+</pre></div>
+</div>
+<p>(<a class="reference internal" href="qs_codec.html#module-qs_codec.decode" title="qs_codec.decode"><code class="xref py py-attr docutils literal notranslate"><span class="pre">decode</span></code></a> <em>cannot convert nested ``dict``s, such as ``’a={b:1},{c:d}’``</em>)</p>
+</section>
+<section id="primitive-values-int-bool-none-etc">
+<h2>primitive values (<code class="docutils literal notranslate"><span class="pre">int</span></code>, <code class="docutils literal notranslate"><span class="pre">bool</span></code>, <code class="docutils literal notranslate"><span class="pre">None</span></code>, etc.)<a class="headerlink" href="#primitive-values-int-bool-none-etc" title="Link to this heading">¶</a></h2>
+<p>By default, all values are parsed as <code class="docutils literal notranslate"><span class="pre">str</span></code>ings.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+    <span class="s1">&#39;a=15&amp;b=true&amp;c=null&#39;</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;15&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="s1">&#39;true&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="s1">&#39;null&#39;</span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="encoding">
+<h1>Encoding<a class="headerlink" href="#encoding" title="Link to this heading">¶</a></h1>
+<p>When encoding, <a class="reference internal" href="qs_codec.html#module-qs_codec.encode" title="qs_codec.encode"><code class="xref py py-attr docutils literal notranslate"><span class="pre">encode</span></code></a> by default URI encodes output. <code class="docutils literal notranslate"><span class="pre">dict</span></code>s are
+encoded as you would expect:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;b&#39;</span><span class="p">})</span> <span class="o">==</span> <span class="s1">&#39;a=b&#39;</span>
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="s1">&#39;c&#39;</span><span class="p">}})</span> <span class="o">==</span> <span class="s1">&#39;a%5Bb%5D=c&#39;</span>
+</pre></div>
+</div>
+<p>This encoding can be disabled by setting the <a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encode" title="qs_codec.models.encode_options.EncodeOptions.encode"><code class="xref py py-attr docutils literal notranslate"><span class="pre">encode</span></code></a>
+option to <code class="docutils literal notranslate"><span class="pre">False</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="s1">&#39;c&#39;</span><span class="p">}},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span><span class="n">encode</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;a[b]=c&#39;</span>
+</pre></div>
+</div>
+<p>Encoding can be disabled for keys by setting the
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encode_values_only" title="qs_codec.models.encode_options.EncodeOptions.encode_values_only"><code class="xref py py-attr docutils literal notranslate"><span class="pre">encode_values_only</span></code></a> option to <code class="docutils literal notranslate"><span class="pre">True</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span>
+        <span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e=f&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;f&#39;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">[</span><span class="s1">&#39;g&#39;</span><span class="p">],</span>
+            <span class="p">[</span><span class="s1">&#39;h&#39;</span><span class="p">]</span>
+        <span class="p">]</span>
+    <span class="p">},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span><span class="n">encode_values_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;a=b&amp;c[0]=d&amp;c[1]=e%3Df&amp;f[0][0]=g&amp;f[1][0]=h&#39;</span>
+</pre></div>
+</div>
+<section id="maximum-encoding-depth">
+<h2>Maximum encoding depth<a class="headerlink" href="#maximum-encoding-depth" title="Link to this heading">¶</a></h2>
+<p>You can cap how deep the encoder will traverse by setting the
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.max_depth" title="qs_codec.models.encode_options.EncodeOptions.max_depth"><code class="xref py py-attr docutils literal notranslate"><span class="pre">max_depth</span></code></a> option.
+If unset, traversal is unbounded by this option. When set, the provided limit is enforced directly.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="s1">&#39;d&#39;</span><span class="p">}}},</span> <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span><span class="n">max_depth</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+<span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;Maximum encoding depth exceeded&#39;</span>
+</pre></div>
+</div>
+<p>This encoding can also be replaced by a custom <code class="docutils literal notranslate"><span class="pre">Callable</span></code> in the
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encoder" title="qs_codec.models.encode_options.EncodeOptions.encoder"><code class="xref py py-attr docutils literal notranslate"><span class="pre">encoder</span></code></a> option:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">t</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">custom_encoder</span><span class="p">(</span>
+    <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">charset</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">qs</span><span class="o">.</span><span class="n">Charset</span><span class="p">],</span>
+    <span class="nb">format</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">qs</span><span class="o">.</span><span class="n">Format</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="o">==</span> <span class="s1">&#39;č&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;c&#39;</span>
+    <span class="k">return</span> <span class="n">value</span>
+
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="s1">&#39;č&#39;</span><span class="p">}},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span><span class="n">encoder</span><span class="o">=</span><span class="n">custom_encoder</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;a[b]=c&#39;</span>
+</pre></div>
+</div>
+<p>(Note: the <a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encoder" title="qs_codec.models.encode_options.EncodeOptions.encoder"><code class="xref py py-attr docutils literal notranslate"><span class="pre">encoder</span></code></a> option does not apply if
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encode" title="qs_codec.models.encode_options.EncodeOptions.encode"><code class="xref py py-attr docutils literal notranslate"><span class="pre">encode</span></code></a> is <code class="docutils literal notranslate"><span class="pre">False</span></code>).</p>
+<p>Similar to <a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encoder" title="qs_codec.models.encode_options.EncodeOptions.encoder"><code class="xref py py-attr docutils literal notranslate"><span class="pre">encoder</span></code></a> there is a
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.decoder" title="qs_codec.models.decode_options.DecodeOptions.decoder"><code class="xref py py-attr docutils literal notranslate"><span class="pre">decoder</span></code></a> option for <a class="reference internal" href="qs_codec.html#module-qs_codec.decode" title="qs_codec.decode"><code class="xref py py-attr docutils literal notranslate"><span class="pre">decode</span></code></a>
+to override decoding of properties and values:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">t</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">custom_decoder</span><span class="p">(</span>
+    <span class="n">value</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span>
+    <span class="n">charset</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">qs</span><span class="o">.</span><span class="n">Charset</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">value</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+    <span class="s1">&#39;foo=123&#39;</span><span class="p">,</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">DecodeOptions</span><span class="p">(</span><span class="n">decoder</span><span class="o">=</span><span class="n">custom_decoder</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;foo&#39;</span><span class="p">:</span> <span class="mi">123</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>Examples beyond this point will be shown as though the output is not URI
+encoded for clarity. Please note that the return values in these cases
+<em>will</em> be URI encoded during real usage.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">list</span></code>s are encoded, they follow the
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.list_format" title="qs_codec.models.encode_options.EncodeOptions.list_format"><code class="xref py py-attr docutils literal notranslate"><span class="pre">list_format</span></code></a> option, which defaults to
+<a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.list_format.ListFormat.INDICES" title="qs_codec.enums.list_format.ListFormat.INDICES"><code class="xref py py-attr docutils literal notranslate"><span class="pre">INDICES</span></code></a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">]},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span><span class="n">encode</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;a[0]=b&amp;a[1]=c&amp;a[2]=d&#39;</span>
+</pre></div>
+</div>
+<p>You may override this by setting the <a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.indices" title="qs_codec.models.encode_options.EncodeOptions.indices"><code class="xref py py-attr docutils literal notranslate"><span class="pre">indices</span></code></a> option to
+<code class="docutils literal notranslate"><span class="pre">False</span></code>, or to be more explicit, the <a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.list_format" title="qs_codec.models.encode_options.EncodeOptions.list_format"><code class="xref py py-attr docutils literal notranslate"><span class="pre">list_format</span></code></a>
+option to <a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.list_format.ListFormat.REPEAT" title="qs_codec.enums.list_format.ListFormat.REPEAT"><code class="xref py py-attr docutils literal notranslate"><span class="pre">REPEAT</span></code></a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">]},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span>
+        <span class="n">encode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">indices</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;a=b&amp;a=c&amp;a=d&#39;</span>
+</pre></div>
+</div>
+<p>You may use the <a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.list_format" title="qs_codec.models.encode_options.EncodeOptions.list_format"><code class="xref py py-attr docutils literal notranslate"><span class="pre">list_format</span></code></a> option to specify the
+format of the output <code class="docutils literal notranslate"><span class="pre">list</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="c1"># ListFormat.INDICES</span>
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">]},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span>
+        <span class="n">encode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">list_format</span><span class="o">=</span><span class="n">qs</span><span class="o">.</span><span class="n">ListFormat</span><span class="o">.</span><span class="n">INDICES</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;a[0]=b&amp;a[1]=c&#39;</span>
+
+<span class="c1"># ListFormat.BRACKETS</span>
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">]},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span>
+        <span class="n">encode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">list_format</span><span class="o">=</span><span class="n">qs</span><span class="o">.</span><span class="n">ListFormat</span><span class="o">.</span><span class="n">BRACKETS</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;a[]=b&amp;a[]=c&#39;</span>
+
+<span class="c1"># ListFormat.REPEAT</span>
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">]},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span>
+        <span class="n">encode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">list_format</span><span class="o">=</span><span class="n">qs</span><span class="o">.</span><span class="n">ListFormat</span><span class="o">.</span><span class="n">REPEAT</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;a=b&amp;a=c&#39;</span>
+
+<span class="c1"># ListFormat.COMMA</span>
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">]},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span>
+        <span class="n">encode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">list_format</span><span class="o">=</span><span class="n">qs</span><span class="o">.</span><span class="n">ListFormat</span><span class="o">.</span><span class="n">COMMA</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;a=b,c&#39;</span>
+</pre></div>
+</div>
+<p><strong>Note:</strong> When using <a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.list_format" title="qs_codec.models.encode_options.EncodeOptions.list_format"><code class="xref py py-attr docutils literal notranslate"><span class="pre">list_format</span></code></a> set to
+<a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.list_format.ListFormat.COMMA" title="qs_codec.enums.list_format.ListFormat.COMMA"><code class="xref py py-attr docutils literal notranslate"><span class="pre">COMMA</span></code></a>, you can also pass the
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.comma_round_trip" title="qs_codec.models.encode_options.EncodeOptions.comma_round_trip"><code class="xref py py-attr docutils literal notranslate"><span class="pre">comma_round_trip</span></code></a> option set to <code class="docutils literal notranslate"><span class="pre">True</span></code> or
+<code class="docutils literal notranslate"><span class="pre">False</span></code>, to append <code class="docutils literal notranslate"><span class="pre">[]</span></code> on single-item <code class="docutils literal notranslate"><span class="pre">list</span></code>s so they can round-trip through a decoding.
+Set <a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.comma_compact_nulls" title="qs_codec.models.encode_options.EncodeOptions.comma_compact_nulls"><code class="xref py py-attr docutils literal notranslate"><span class="pre">comma_compact_nulls</span></code></a> to <code class="docutils literal notranslate"><span class="pre">True</span></code> with the same
+format when you’d like to drop <code class="docutils literal notranslate"><span class="pre">None</span></code> entries instead of keeping empty slots (e.g.
+<code class="docutils literal notranslate"><span class="pre">[True,</span> <span class="pre">False,</span> <span class="pre">None,</span> <span class="pre">True]</span></code> becomes <code class="docutils literal notranslate"><span class="pre">true,false,true</span></code>).</p>
+<p><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.list_format.ListFormat.BRACKETS" title="qs_codec.enums.list_format.ListFormat.BRACKETS"><code class="xref py py-attr docutils literal notranslate"><span class="pre">BRACKETS</span></code></a> notation is used for encoding <code class="docutils literal notranslate"><span class="pre">dict</span></code>s by default:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">:</span> <span class="s1">&#39;f&#39;</span><span class="p">}}},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span><span class="n">encode</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;a[b][c]=d&amp;a[b][e]=f&#39;</span>
+</pre></div>
+</div>
+<p>You may override this to use dot notation by setting the
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.allow_dots" title="qs_codec.models.encode_options.EncodeOptions.allow_dots"><code class="xref py py-attr docutils literal notranslate"><span class="pre">allow_dots</span></code></a> option to <code class="docutils literal notranslate"><span class="pre">True</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">:</span> <span class="s1">&#39;f&#39;</span><span class="p">}}},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span><span class="n">encode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">allow_dots</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;a.b.c=d&amp;a.b.e=f&#39;</span>
+</pre></div>
+</div>
+<p>You may encode dots in keys of <code class="docutils literal notranslate"><span class="pre">dict</span></code>s by setting
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encode_dot_in_keys" title="qs_codec.models.encode_options.EncodeOptions.encode_dot_in_keys"><code class="xref py py-attr docutils literal notranslate"><span class="pre">encode_dot_in_keys</span></code></a> to <code class="docutils literal notranslate"><span class="pre">True</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;name.obj&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;first&#39;</span><span class="p">:</span> <span class="s1">&#39;John&#39;</span><span class="p">,</span> <span class="s1">&#39;last&#39;</span><span class="p">:</span> <span class="s1">&#39;Doe&#39;</span><span class="p">}},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span>
+        <span class="n">allow_dots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">encode_dot_in_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;name</span><span class="si">%252E</span><span class="s1">obj.first=John&amp;name</span><span class="si">%252E</span><span class="s1">obj.last=Doe&#39;</span>
+</pre></div>
+</div>
+<p><strong>Caveat:</strong> When both <a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encode_values_only" title="qs_codec.models.encode_options.EncodeOptions.encode_values_only"><code class="xref py py-attr docutils literal notranslate"><span class="pre">encode_values_only</span></code></a>
+and <a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encode_dot_in_keys" title="qs_codec.models.encode_options.EncodeOptions.encode_dot_in_keys"><code class="xref py py-attr docutils literal notranslate"><span class="pre">encode_dot_in_keys</span></code></a> are set to
+<code class="docutils literal notranslate"><span class="pre">True</span></code>, only dots in keys and nothing else will be encoded!</p>
+<p>You may allow empty <code class="docutils literal notranslate"><span class="pre">list</span></code> values by setting the
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.allow_empty_lists" title="qs_codec.models.encode_options.EncodeOptions.allow_empty_lists"><code class="xref py py-attr docutils literal notranslate"><span class="pre">allow_empty_lists</span></code></a> option to <code class="docutils literal notranslate"><span class="pre">True</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;foo&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;bar&#39;</span><span class="p">:</span> <span class="s1">&#39;baz&#39;</span><span class="p">,</span> <span class="p">},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span>
+        <span class="n">encode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">allow_empty_lists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;foo[]&amp;bar=baz&#39;</span>
+</pre></div>
+</div>
+<p>Empty <code class="docutils literal notranslate"><span class="pre">str</span></code>ings and <code class="docutils literal notranslate"><span class="pre">None</span></code> values will be omitted, but the equals sign (<code class="docutils literal notranslate"><span class="pre">=</span></code>) remains in place:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">})</span> <span class="o">==</span> <span class="s1">&#39;a=&#39;</span>
+</pre></div>
+</div>
+<p>Keys with no values (such as an empty <code class="docutils literal notranslate"><span class="pre">dict</span></code> or <code class="docutils literal notranslate"><span class="pre">list</span></code>) will return nothing:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">[]})</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">{}})</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">[{}]})</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="p">[]}})</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="p">{}}})</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span>
+</pre></div>
+</div>
+<p><a class="reference internal" href="qs_codec.models.html#qs_codec.models.undefined.Undefined" title="qs_codec.models.undefined.Undefined"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Undefined</span></code></a> properties will be omitted entirely:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="n">qs</span><span class="o">.</span><span class="n">Undefined</span><span class="p">()})</span> <span class="o">==</span> <span class="s1">&#39;a=&#39;</span>
+</pre></div>
+</div>
+<p>The query string may optionally be prepended with a question mark (<code class="docutils literal notranslate"><span class="pre">?</span></code>) by setting
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.add_query_prefix" title="qs_codec.models.encode_options.EncodeOptions.add_query_prefix"><code class="xref py py-attr docutils literal notranslate"><span class="pre">add_query_prefix</span></code></a> to <code class="docutils literal notranslate"><span class="pre">True</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="s1">&#39;d&#39;</span><span class="p">},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span><span class="n">add_query_prefix</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;?a=b&amp;c=d&#39;</span>
+</pre></div>
+</div>
+<p>The <a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.delimiter" title="qs_codec.models.encode_options.EncodeOptions.delimiter"><code class="xref py py-attr docutils literal notranslate"><span class="pre">delimiter</span></code></a> may be overridden as well:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="p">},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span><span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;;&#39;</span><span class="p">)</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;a=b;c=d&#39;</span>
+</pre></div>
+</div>
+<p>If you only want to override the serialization of <a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime-objects">datetime</a>
+objects, you can provide a <code class="docutils literal notranslate"><span class="pre">Callable</span></code> in the
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.serialize_date" title="qs_codec.models.encode_options.EncodeOptions.serialize_date"><code class="xref py py-attr docutils literal notranslate"><span class="pre">serialize_date</span></code></a> option:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+
+<span class="c1"># First case: encoding a datetime object to an ISO 8601 string</span>
+<span class="k">assert</span> <span class="p">(</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="p">(</span>
+                <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">UTC</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="o">.</span><span class="n">major</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="o">.</span><span class="n">minor</span> <span class="o">&gt;=</span> <span class="mi">11</span>
+                <span class="k">else</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">},</span>
+        <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span><span class="n">encode</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="o">==</span> <span class="s2">&quot;a=1970-01-01T00:00:07+00:00&quot;</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="o">.</span><span class="n">major</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="o">.</span><span class="n">minor</span> <span class="o">&gt;=</span> <span class="mi">11</span>
+    <span class="k">else</span> <span class="s2">&quot;a=1970-01-01T00:00:07&quot;</span>
+<span class="p">)</span>
+
+<span class="c1"># Second case: encoding a datetime object to a timestamp string</span>
+<span class="k">assert</span> <span class="p">(</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="p">(</span>
+                <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">UTC</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="o">.</span><span class="n">major</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="o">.</span><span class="n">minor</span> <span class="o">&gt;=</span> <span class="mi">11</span>
+                <span class="k">else</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">},</span>
+        <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span><span class="n">encode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">serialize_date</span><span class="o">=</span><span class="k">lambda</span> <span class="n">date</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">date</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()))),</span>
+    <span class="p">)</span>
+    <span class="o">==</span> <span class="s2">&quot;a=7&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>To affect the order of parameter keys, you can set a <code class="docutils literal notranslate"><span class="pre">Callable</span></code> in the
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.sort" title="qs_codec.models.encode_options.EncodeOptions.sort"><code class="xref py py-attr docutils literal notranslate"><span class="pre">sort</span></code></a> option:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">:</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="s1">&#39;f&#39;</span><span class="p">},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span>
+        <span class="n">encode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">sort</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="p">(</span><span class="n">a</span> <span class="o">&gt;</span> <span class="n">b</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">a</span> <span class="o">&lt;</span> <span class="n">b</span><span class="p">)</span>
+    <span class="p">)</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;a=c&amp;b=f&amp;z=y&#39;</span>
+</pre></div>
+</div>
+<p>Finally, you can use the <a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.filter" title="qs_codec.models.encode_options.EncodeOptions.filter"><code class="xref py py-attr docutils literal notranslate"><span class="pre">filter</span></code></a> option to restrict
+which keys will be included in the encoded output. If you pass a <code class="docutils literal notranslate"><span class="pre">Callable</span></code>, it will be called for each key to obtain
+the replacement value. Otherwise, if you pass a <code class="docutils literal notranslate"><span class="pre">list</span></code>, it will be used to select properties and <code class="docutils literal notranslate"><span class="pre">list</span></code> indices to
+be encoded:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+
+<span class="c1"># First case: using a Callable as filter</span>
+<span class="k">assert</span> <span class="p">(</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="s2">&quot;d&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;e&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;f&quot;</span><span class="p">:</span> <span class="p">(</span>
+                    <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="mi">123</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">UTC</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="o">.</span><span class="n">major</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="o">.</span><span class="n">minor</span> <span class="o">&gt;=</span> <span class="mi">11</span>
+                    <span class="k">else</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="mi">123</span><span class="p">)</span>
+                <span class="p">),</span>
+                <span class="s2">&quot;g&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+            <span class="p">},</span>
+        <span class="p">},</span>
+        <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span>
+            <span class="n">encode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="k">lambda</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;b&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;e[f]&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">timestamp</span><span class="p">())</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span> <span class="k">else</span> <span class="n">value</span><span class="p">,</span>
+                <span class="s2">&quot;e[g][0]&quot;</span><span class="p">:</span> <span class="n">value</span> <span class="o">*</span> <span class="mi">2</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="k">else</span> <span class="n">value</span><span class="p">,</span>
+            <span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">value</span><span class="p">),</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="o">==</span> <span class="s2">&quot;a=b&amp;c=d&amp;e[f]=123&amp;e[g][0]=4&quot;</span>
+<span class="p">)</span>
+
+<span class="c1"># Second case: using a list as filter</span>
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">:</span> <span class="s1">&#39;f&#39;</span><span class="p">},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span>
+        <span class="n">encode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="nb">filter</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">]</span>
+    <span class="p">)</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;a=b&amp;e=f&#39;</span>
+
+<span class="c1"># Third case: using a list as filter with indices</span>
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span>
+        <span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;e&#39;</span><span class="p">:</span> <span class="s1">&#39;f&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span>
+        <span class="n">encode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="nb">filter</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="p">)</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;a[0]=b&amp;a[2]=d&#39;</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="handling-none-values">
+<h1>Handling <code class="docutils literal notranslate"><span class="pre">None</span></code> values<a class="headerlink" href="#handling-none-values" title="Link to this heading">¶</a></h1>
+<p>By default, <code class="docutils literal notranslate"><span class="pre">None</span></code> values are treated like empty <code class="docutils literal notranslate"><span class="pre">str</span></code>ings:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">})</span> <span class="o">==</span> <span class="s1">&#39;a=&amp;b=&#39;</span>
+</pre></div>
+</div>
+<p>To distinguish between <code class="docutils literal notranslate"><span class="pre">None</span></code> values and empty <code class="docutils literal notranslate"><span class="pre">str</span></code>s use the
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.strict_null_handling" title="qs_codec.models.encode_options.EncodeOptions.strict_null_handling"><code class="xref py py-attr docutils literal notranslate"><span class="pre">strict_null_handling</span></code></a> flag.
+In the result string the <code class="docutils literal notranslate"><span class="pre">None</span></code> values have no <code class="docutils literal notranslate"><span class="pre">=</span></code> sign:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span><span class="n">strict_null_handling</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;a&amp;b=&#39;</span>
+</pre></div>
+</div>
+<p>To decode values without <code class="docutils literal notranslate"><span class="pre">=</span></code> back to <code class="docutils literal notranslate"><span class="pre">None</span></code> use the
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.strict_null_handling" title="qs_codec.models.decode_options.DecodeOptions.strict_null_handling"><code class="xref py py-attr docutils literal notranslate"><span class="pre">strict_null_handling</span></code></a> flag:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+    <span class="s1">&#39;a&amp;b=&#39;</span><span class="p">,</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">DecodeOptions</span><span class="p">(</span><span class="n">strict_null_handling</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>To completely skip rendering keys with <code class="docutils literal notranslate"><span class="pre">None</span></code> values, use the
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.skip_nulls" title="qs_codec.models.encode_options.EncodeOptions.skip_nulls"><code class="xref py py-attr docutils literal notranslate"><span class="pre">skip_nulls</span></code></a> flag:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span><span class="n">skip_nulls</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;a=b&#39;</span>
+</pre></div>
+</div>
+<p>If you’re communicating with legacy systems, you can switch to
+<a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.charset.Charset.LATIN1" title="qs_codec.enums.charset.Charset.LATIN1"><code class="xref py py-attr docutils literal notranslate"><span class="pre">LATIN1</span></code></a> using the
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.charset" title="qs_codec.models.encode_options.EncodeOptions.charset"><code class="xref py py-attr docutils literal notranslate"><span class="pre">charset</span></code></a> option:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;æ&#39;</span><span class="p">:</span> <span class="s1">&#39;æ&#39;</span><span class="p">},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span><span class="n">charset</span><span class="o">=</span><span class="n">qs</span><span class="o">.</span><span class="n">Charset</span><span class="o">.</span><span class="n">LATIN1</span><span class="p">)</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;</span><span class="si">%E</span><span class="s1">6=</span><span class="si">%E</span><span class="s1">6&#39;</span>
+</pre></div>
+</div>
+<p>Characters that don’t exist in <a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.charset.Charset.LATIN1" title="qs_codec.enums.charset.Charset.LATIN1"><code class="xref py py-attr docutils literal notranslate"><span class="pre">LATIN1</span></code></a>
+will be converted to numeric entities, similar to what browsers do:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;☺&#39;</span><span class="p">},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span><span class="n">charset</span><span class="o">=</span><span class="n">qs</span><span class="o">.</span><span class="n">Charset</span><span class="o">.</span><span class="n">LATIN1</span><span class="p">)</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;a=</span><span class="si">%26%</span><span class="s1">239786%3B&#39;</span>
+</pre></div>
+</div>
+<p>You can use the <a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.charset_sentinel" title="qs_codec.models.encode_options.EncodeOptions.charset_sentinel"><code class="xref py py-attr docutils literal notranslate"><span class="pre">charset_sentinel</span></code></a>
+option to announce the character by including an <code class="docutils literal notranslate"><span class="pre">utf8=✓</span></code> parameter with the proper
+encoding of the checkmark, similar to what Ruby on Rails and others do when submitting forms.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;☺&#39;</span><span class="p">},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span><span class="n">charset_sentinel</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;utf8=</span><span class="si">%E</span><span class="s1">2%9C%93&amp;a=</span><span class="si">%E</span><span class="s1">2</span><span class="si">%98%</span><span class="s1">BA&#39;</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;æ&#39;</span><span class="p">},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span><span class="n">charset</span><span class="o">=</span><span class="n">qs</span><span class="o">.</span><span class="n">Charset</span><span class="o">.</span><span class="n">LATIN1</span><span class="p">,</span> <span class="n">charset_sentinel</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;utf8=</span><span class="si">%26%</span><span class="s1">2310003%3B&amp;a=</span><span class="si">%E</span><span class="s1">6&#39;</span>
+</pre></div>
+</div>
+</section>
+<section id="dealing-with-special-character-sets">
+<h1>Dealing with special character sets<a class="headerlink" href="#dealing-with-special-character-sets" title="Link to this heading">¶</a></h1>
+<p>By default, the encoding and decoding of characters is done in
+<a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.charset.Charset.UTF8" title="qs_codec.enums.charset.Charset.UTF8"><code class="xref py py-attr docutils literal notranslate"><span class="pre">UTF8</span></code></a>, and
+<a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.charset.Charset.LATIN1" title="qs_codec.enums.charset.Charset.LATIN1"><code class="xref py py-attr docutils literal notranslate"><span class="pre">LATIN1</span></code></a> support is also built in via
+the <a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.charset" title="qs_codec.models.encode_options.EncodeOptions.charset"><code class="xref py py-attr docutils literal notranslate"><span class="pre">charset</span></code></a>
+and <a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.charset" title="qs_codec.models.decode_options.DecodeOptions.charset"><code class="xref py py-attr docutils literal notranslate"><span class="pre">charset</span></code></a> parameter,
+respectively.</p>
+<p>If you wish to encode query strings to a different character set (i.e.
+<a class="reference external" href="https://en.wikipedia.org/wiki/Shift_JIS">Shift JIS</a>)</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">codecs</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">t</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">custom_encoder</span><span class="p">(</span>
+    <span class="n">string</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">charset</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">qs</span><span class="o">.</span><span class="n">Charset</span><span class="p">],</span>
+    <span class="nb">format</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">qs</span><span class="o">.</span><span class="n">Format</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">string</span><span class="p">:</span>
+        <span class="n">buf</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">=</span> <span class="n">codecs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="s1">&#39;shift_jis&#39;</span><span class="p">)</span>
+        <span class="n">result</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">{:02x}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">buf</span><span class="p">]</span>
+        <span class="k">return</span> <span class="s1">&#39;%&#39;</span> <span class="o">+</span> <span class="s1">&#39;%&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s1">&#39;&#39;</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;こんにちは！&#39;</span><span class="p">},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span><span class="n">encoder</span><span class="o">=</span><span class="n">custom_encoder</span><span class="p">)</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;%61=</span><span class="si">%82%</span><span class="s1">b1</span><span class="si">%82%</span><span class="s1">f1</span><span class="si">%82%</span><span class="s1">c9</span><span class="si">%82%</span><span class="s1">bf</span><span class="si">%82%</span><span class="s1">cd</span><span class="si">%81%</span><span class="s1">49&#39;</span>
+</pre></div>
+</div>
+<p>This also works for decoding of query strings:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">codecs</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">t</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">custom_decoder</span><span class="p">(</span>
+    <span class="n">string</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">charset</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">qs</span><span class="o">.</span><span class="n">Charset</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="n">string</span><span class="p">:</span>
+        <span class="n">result</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">while</span> <span class="n">string</span><span class="p">:</span>
+            <span class="n">match</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Match</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;%([0-9A-F]</span><span class="si">{2}</span><span class="s1">)&#39;</span><span class="p">,</span> <span class="n">string</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="mi">16</span><span class="p">))</span>
+                <span class="n">string</span> <span class="o">=</span> <span class="n">string</span><span class="p">[</span><span class="n">match</span><span class="o">.</span><span class="n">end</span><span class="p">():]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="n">buf</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">=</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">codecs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span> <span class="s1">&#39;shift_jis&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span>
+    <span class="s1">&#39;%61=</span><span class="si">%82%</span><span class="s1">b1</span><span class="si">%82%</span><span class="s1">f1</span><span class="si">%82%</span><span class="s1">c9</span><span class="si">%82%</span><span class="s1">bf</span><span class="si">%82%</span><span class="s1">cd</span><span class="si">%81%</span><span class="s1">49&#39;</span><span class="p">,</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">DecodeOptions</span><span class="p">(</span><span class="n">decoder</span><span class="o">=</span><span class="n">custom_decoder</span><span class="p">)</span>
+<span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;こんにちは！&#39;</span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="rfc-3986-and-rfc-1738-space-encoding">
+<h1>RFC 3986 and RFC 1738 space encoding<a class="headerlink" href="#rfc-3986-and-rfc-1738-space-encoding" title="Link to this heading">¶</a></h1>
+<p>The default <a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.format" title="qs_codec.models.encode_options.EncodeOptions.format"><code class="xref py py-attr docutils literal notranslate"><span class="pre">format</span></code></a> is
+<a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.format.Format.RFC3986" title="qs_codec.enums.format.Format.RFC3986"><code class="xref py py-attr docutils literal notranslate"><span class="pre">RFC3986</span></code></a> which encodes
+<code class="docutils literal notranslate"><span class="pre">'</span> <span class="pre">'</span></code> to <code class="docutils literal notranslate"><span class="pre">%20</span></code> which is backward compatible. You can also set the
+<a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.format" title="qs_codec.models.encode_options.EncodeOptions.format"><code class="xref py py-attr docutils literal notranslate"><span class="pre">format</span></code></a> to
+<a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.format.Format.RFC1738" title="qs_codec.enums.format.Format.RFC1738"><code class="xref py py-attr docutils literal notranslate"><span class="pre">RFC1738</span></code></a> which encodes <code class="docutils literal notranslate"><span class="pre">'</span> <span class="pre">'</span></code> to <code class="docutils literal notranslate"><span class="pre">+</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qs</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;b c&#39;</span><span class="p">},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span><span class="nb">format</span><span class="o">=</span><span class="n">qs</span><span class="o">.</span><span class="n">Format</span><span class="o">.</span><span class="n">RFC3986</span><span class="p">)</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;a=b</span><span class="si">%20c</span><span class="s1">&#39;</span>
+
+<span class="k">assert</span> <span class="n">qs</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+    <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;b c&#39;</span><span class="p">},</span>
+    <span class="n">qs</span><span class="o">.</span><span class="n">EncodeOptions</span><span class="p">(</span><span class="nb">format</span><span class="o">=</span><span class="n">qs</span><span class="o">.</span><span class="n">Format</span><span class="o">.</span><span class="n">RFC1738</span><span class="p">)</span>
+<span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;a=b+c&#39;</span>
+</pre></div>
+</div>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">qs-codec</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Decoding</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#dictionaries">dictionaries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#lists">lists</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#primitive-values-int-bool-none-etc">primitive values (<code class="docutils literal notranslate"><span class="pre">int</span></code>, <code class="docutils literal notranslate"><span class="pre">bool</span></code>, <code class="docutils literal notranslate"><span class="pre">None</span></code>, etc.)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#encoding">Encoding</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#maximum-encoding-depth">Maximum encoding depth</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#handling-none-values">Handling <code class="docutils literal notranslate"><span class="pre">None</span></code> values</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#dealing-with-special-character-sets">Dealing with special character sets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#rfc-3986-and-rfc-1738-space-encoding">RFC 3986 and RFC 1738 space encoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">qs_codec</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">qs-codec</a></li>
+      <li>Next: <a href="modules.html" title="next chapter">qs_codec</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, Klemen Tusar.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/README.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

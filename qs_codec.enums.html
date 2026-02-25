@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>qs_codec.enums package &#8212; qs-codec 1.4.3 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=a68a9277"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="qs_codec.models package" href="qs_codec.models.html" />
+    <link rel="prev" title="qs_codec package" href="qs_codec.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="qs-codec-enums-package">
+<h1>qs_codec.enums package<a class="headerlink" href="#qs-codec-enums-package" title="Link to this heading">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
+</section>
+<section id="module-qs_codec.enums.charset">
+<span id="qs-codec-enums-charset-module"></span><h2>qs_codec.enums.charset module<a class="headerlink" href="#module-qs_codec.enums.charset" title="Link to this heading">¶</a></h2>
+<p>Definitions for character set handling.</p>
+<p>This module exposes <a class="reference internal" href="#qs_codec.enums.charset.Charset" title="qs_codec.enums.charset.Charset"><code class="xref py py-class docutils literal notranslate"><span class="pre">Charset</span></code></a>, an enum of supported character sets used by the
+encoder/decoder. Each member’s value is the canonical Python codec name (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;utf-8&quot;</span></code>)
+that can be passed directly to <code class="docutils literal notranslate"><span class="pre">str.encode</span></code> / <code class="docutils literal notranslate"><span class="pre">bytes.decode</span></code>.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="qs_codec.enums.charset.Charset">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">qs_codec.enums.charset.</span></span><span class="sig-name descname"><span class="pre">Charset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qs_codec/enums/charset.html#Charset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.enums.charset.Charset" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_CharsetDataMixin</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>Supported character sets for query-string processing.</p>
+<p>Each enum member’s value is the codec string understood by Python’s encoding APIs.
+Prefer accessing <code class="xref py py-attr docutils literal notranslate"><span class="pre">encoding</span></code> instead of hard-coding literals.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qs_codec.enums.charset.Charset.LATIN1">
+<span class="sig-name descname"><span class="pre">LATIN1</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_CharsetDataMixin(encoding='iso-8859-1')</span></span><a class="headerlink" href="#qs_codec.enums.charset.Charset.LATIN1" title="Link to this definition">¶</a></dt>
+<dd><p>ISO-8859-1 (Latin-1) character encoding.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qs_codec.enums.charset.Charset.UTF8">
+<span class="sig-name descname"><span class="pre">UTF8</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_CharsetDataMixin(encoding='utf-8')</span></span><a class="headerlink" href="#qs_codec.enums.charset.Charset.UTF8" title="Link to this definition">¶</a></dt>
+<dd><p>UTF-8 character encoding.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-qs_codec.enums.duplicates">
+<span id="qs-codec-enums-duplicates-module"></span><h2>qs_codec.enums.duplicates module<a class="headerlink" href="#module-qs_codec.enums.duplicates" title="Link to this heading">¶</a></h2>
+<p>Duplicate-key handling strategies used during decoding.</p>
+<p>When a query string contains the same key multiple times, decoders need a policy
+to resolve them. The <code class="docutils literal notranslate"><span class="pre">Duplicates</span></code> enum is referenced by <code class="docutils literal notranslate"><span class="pre">DecodeOptions</span></code> to
+control that behavior.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="qs_codec.enums.duplicates.Duplicates">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">qs_codec.enums.duplicates.</span></span><span class="sig-name descname"><span class="pre">Duplicates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qs_codec/enums/duplicates.html#Duplicates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.enums.duplicates.Duplicates" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>Defines how to resolve duplicate keys produced during parsing.</p>
+<p>This is consulted by the decoder when more than one value is encountered for
+the same key. It does not affect encoding.</p>
+<section id="members">
+<h3>Members<a class="headerlink" href="#members" title="Link to this heading">¶</a></h3>
+<dl class="simple">
+<dt>COMBINE</dt><dd><p>Combine duplicate keys into a single list of values (preserves order).</p>
+</dd>
+<dt>FIRST</dt><dd><p>Keep only the first occurrence and discard subsequent ones.</p>
+</dd>
+<dt>LAST</dt><dd><p>Keep only the last occurrence, overwriting prior ones.</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qs_codec.enums.duplicates.Duplicates.COMBINE">
+<span class="sig-name descname"><span class="pre">COMBINE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></span><a class="headerlink" href="#qs_codec.enums.duplicates.Duplicates.COMBINE" title="Link to this definition">¶</a></dt>
+<dd><p>Combine duplicate keys into a single list of values (preserves order).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qs_codec.enums.duplicates.Duplicates.FIRST">
+<span class="sig-name descname"><span class="pre">FIRST</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></span><a class="headerlink" href="#qs_codec.enums.duplicates.Duplicates.FIRST" title="Link to this definition">¶</a></dt>
+<dd><p>Keep only the first value encountered for the key.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qs_codec.enums.duplicates.Duplicates.LAST">
+<span class="sig-name descname"><span class="pre">LAST</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></span><a class="headerlink" href="#qs_codec.enums.duplicates.Duplicates.LAST" title="Link to this definition">¶</a></dt>
+<dd><p>Keep only the last value encountered for the key.</p>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+</section>
+<section id="module-qs_codec.enums.format">
+<span id="qs-codec-enums-format-module"></span><h2>qs_codec.enums.format module<a class="headerlink" href="#module-qs_codec.enums.format" title="Link to this heading">¶</a></h2>
+<p>URI component formatting strategies.</p>
+<p>This module defines the <a class="reference internal" href="#qs_codec.enums.format.Format" title="qs_codec.enums.format.Format"><code class="xref py py-class docutils literal notranslate"><span class="pre">Format</span></code></a> enum that specifies how space and other
+characters are normalized in a <em>percent-encoded</em> query string after encoding.
+Two common profiles are provided:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#qs_codec.enums.format.Format.RFC1738" title="qs_codec.enums.format.Format.RFC1738"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Format.RFC1738</span></code></a> – replaces “%20” with “+” in the final output.</p></li>
+<li><p><a class="reference internal" href="#qs_codec.enums.format.Format.RFC3986" title="qs_codec.enums.format.Format.RFC3986"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Format.RFC3986</span></code></a> – leaves “%20” as-is (default on the web today).</p></li>
+</ul>
+<p>Use the functions on <a class="reference internal" href="#qs_codec.enums.format.Formatter" title="qs_codec.enums.format.Formatter"><code class="xref py py-class docutils literal notranslate"><span class="pre">Formatter</span></code></a> if you need direct access to the
+formatting operations.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="qs_codec.enums.format.Format">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">qs_codec.enums.format.</span></span><span class="sig-name descname"><span class="pre">Format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qs_codec/enums/format.html#Format"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.enums.format.Format" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_FormatDataMixin</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>Supported URI component formatting profiles.</p>
+<p>Each enum value packs a <code class="docutils literal notranslate"><span class="pre">(format_name,</span> <span class="pre">formatter)</span></code> tuple. After raw
+percent-encoding is performed by the encoder, the selected profile’s
+<code class="docutils literal notranslate"><span class="pre">formatter</span></code> is called to adjust the final textual representation (e.g.,
+mapping <code class="docutils literal notranslate"><span class="pre">&quot;%20&quot;</span></code> to <code class="docutils literal notranslate"><span class="pre">&quot;+&quot;</span></code> for RFC 1738).</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qs_codec.enums.format.Format.RFC1738">
+<span class="sig-name descname"><span class="pre">RFC1738</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_FormatDataMixin(format_name='RFC1738',</span> <span class="pre">formatter=&lt;function</span> <span class="pre">Formatter.rfc1738&gt;)</span></span><a class="headerlink" href="#qs_codec.enums.format.Format.RFC1738" title="Link to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://datatracker.ietf.org/doc/html/rfc1738">RFC 1738</a>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qs_codec.enums.format.Format.RFC3986">
+<span class="sig-name descname"><span class="pre">RFC3986</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_FormatDataMixin(format_name='RFC3986',</span> <span class="pre">formatter=&lt;function</span> <span class="pre">Formatter.rfc3986&gt;)</span></span><a class="headerlink" href="#qs_codec.enums.format.Format.RFC3986" title="Link to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://datatracker.ietf.org/doc/html/rfc3986">RFC 3986</a>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="qs_codec.enums.format.Formatter">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">qs_codec.enums.format.</span></span><span class="sig-name descname"><span class="pre">Formatter</span></span><a class="reference internal" href="_modules/qs_codec/enums/format.html#Formatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.enums.format.Formatter" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Formatting helpers used by <a class="reference internal" href="#qs_codec.enums.format.Format" title="qs_codec.enums.format.Format"><code class="xref py py-class docutils literal notranslate"><span class="pre">Format</span></code></a>.</p>
+<p>These functions expect <strong>already percent-encoded</strong> input and adjust only
+the representation of spaces (and related normalization) according to the
+selected RFC profile. They do not perform percent-encoding themselves.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="qs_codec.enums.format.Formatter.rfc1738">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">rfc1738</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/qs_codec/enums/format.html#Formatter.rfc1738"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.enums.format.Formatter.rfc1738" title="Link to this definition">¶</a></dt>
+<dd><p>Apply RFC 1738 post-processing.</p>
+<p>Replaces occurrences of <code class="docutils literal notranslate"><span class="pre">&quot;%20&quot;</span></code> with <code class="docutils literal notranslate"><span class="pre">&quot;+&quot;</span></code> to match the historical
+<code class="docutils literal notranslate"><span class="pre">application/x-www-form-urlencoded</span></code> semantics described in RFC 1738.
+The input is assumed to already be percent-encoded; only the space
+representation is changed.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qs_codec.enums.format.Formatter.rfc3986">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">rfc3986</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/qs_codec/enums/format.html#Formatter.rfc3986"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.enums.format.Formatter.rfc3986" title="Link to this definition">¶</a></dt>
+<dd><p>Apply RFC 3986 post-processing.</p>
+<p>Returns the input unchanged (spaces remain encoded as <code class="docutils literal notranslate"><span class="pre">&quot;%20&quot;</span></code>). This is
+the modern, conservative representation used by most tooling today.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-qs_codec.enums.list_format">
+<span id="qs-codec-enums-list-format-module"></span><h2>qs_codec.enums.list_format module<a class="headerlink" href="#module-qs_codec.enums.list_format" title="Link to this heading">¶</a></h2>
+<p>List formatting strategies for query‑string arrays.</p>
+<p>This module defines small generator functions and an enum that the encoder
+uses to format list (array) keys, e.g., <code class="docutils literal notranslate"><span class="pre">foo[]=1</span></code>, <code class="docutils literal notranslate"><span class="pre">foo[0]=1</span></code>, <code class="docutils literal notranslate"><span class="pre">foo=1,2</span></code>,
+or repeated keys <code class="docutils literal notranslate"><span class="pre">foo=1&amp;foo=2</span></code>.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="qs_codec.enums.list_format.ListFormat">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">qs_codec.enums.list_format.</span></span><span class="sig-name descname"><span class="pre">ListFormat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qs_codec/enums/list_format.html#ListFormat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.enums.list_format.ListFormat" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_ListFormatDataMixin</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>Available list formatting options for the encoder.</p>
+<p>Each member pairs a stable name with a generator function from
+<a class="reference internal" href="#qs_codec.enums.list_format.ListFormatGenerator" title="qs_codec.enums.list_format.ListFormatGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListFormatGenerator</span></code></a>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">BRACKETS</span></code>: <code class="docutils literal notranslate"><span class="pre">foo[]</span></code> for each element.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">INDICES</span></code>: <code class="docutils literal notranslate"><span class="pre">foo[0]</span></code>, <code class="docutils literal notranslate"><span class="pre">foo[1]</span></code>, …</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">REPEAT</span></code>: repeat the key per value (<code class="docutils literal notranslate"><span class="pre">foo=1&amp;foo=2</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">COMMA</span></code>: single key with comma‑joined values (<code class="docutils literal notranslate"><span class="pre">foo=1,2</span></code>).</p></li>
+</ul>
+<p>These options control only how keys are produced; value encoding and
+delimiter handling are governed by other options.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qs_codec.enums.list_format.ListFormat.BRACKETS">
+<span class="sig-name descname"><span class="pre">BRACKETS</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_ListFormatDataMixin(list_format_name='BRACKETS',</span> <span class="pre">generator=&lt;function</span> <span class="pre">ListFormatGenerator.brackets&gt;)</span></span><a class="headerlink" href="#qs_codec.enums.list_format.ListFormat.BRACKETS" title="Link to this definition">¶</a></dt>
+<dd><p>Use brackets to represent list items, for example <code class="docutils literal notranslate"><span class="pre">foo[]=123&amp;foo[]=456&amp;foo[]=789</span></code>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qs_codec.enums.list_format.ListFormat.COMMA">
+<span class="sig-name descname"><span class="pre">COMMA</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_ListFormatDataMixin(list_format_name='COMMA',</span> <span class="pre">generator=&lt;function</span> <span class="pre">ListFormatGenerator.comma&gt;)</span></span><a class="headerlink" href="#qs_codec.enums.list_format.ListFormat.COMMA" title="Link to this definition">¶</a></dt>
+<dd><p>Use commas to represent list items, for example <code class="docutils literal notranslate"><span class="pre">foo=123,456,789</span></code>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qs_codec.enums.list_format.ListFormat.INDICES">
+<span class="sig-name descname"><span class="pre">INDICES</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_ListFormatDataMixin(list_format_name='INDICES',</span> <span class="pre">generator=&lt;function</span> <span class="pre">ListFormatGenerator.indices&gt;)</span></span><a class="headerlink" href="#qs_codec.enums.list_format.ListFormat.INDICES" title="Link to this definition">¶</a></dt>
+<dd><p>Use indices to represent list items, for example <code class="docutils literal notranslate"><span class="pre">foo[0]=123&amp;foo[1]=456&amp;foo[2]=789</span></code>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qs_codec.enums.list_format.ListFormat.REPEAT">
+<span class="sig-name descname"><span class="pre">REPEAT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_ListFormatDataMixin(list_format_name='REPEAT',</span> <span class="pre">generator=&lt;function</span> <span class="pre">ListFormatGenerator.repeat&gt;)</span></span><a class="headerlink" href="#qs_codec.enums.list_format.ListFormat.REPEAT" title="Link to this definition">¶</a></dt>
+<dd><p>Use a repeat key to represent list items, for example <code class="docutils literal notranslate"><span class="pre">foo=123&amp;foo=456&amp;foo=789</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="qs_codec.enums.list_format.ListFormatGenerator">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">qs_codec.enums.list_format.</span></span><span class="sig-name descname"><span class="pre">ListFormatGenerator</span></span><a class="reference internal" href="_modules/qs_codec/enums/list_format.html#ListFormatGenerator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.enums.list_format.ListFormatGenerator" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Factory of tiny helpers that format a list element key segment.</p>
+<p>Each static method returns the string that should be appended to the
+current key <code class="docutils literal notranslate"><span class="pre">prefix</span></code> to represent <em>one</em> element in a list. The encoder
+selects the method based on the chosen <a class="reference internal" href="#qs_codec.enums.list_format.ListFormat" title="qs_codec.enums.list_format.ListFormat"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListFormat</span></code></a> variant.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="qs_codec.enums.list_format.ListFormatGenerator.brackets">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">brackets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/qs_codec/enums/list_format.html#ListFormatGenerator.brackets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.enums.list_format.ListFormatGenerator.brackets" title="Link to this definition">¶</a></dt>
+<dd><p>Return the key for a list element using empty brackets.</p>
+<p class="rubric">Example</p>
+<p><code class="docutils literal notranslate"><span class="pre">prefix='foo'</span></code> → <code class="docutils literal notranslate"><span class="pre">'foo[]'</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>prefix</strong> – The current key prefix (e.g., <code class="docutils literal notranslate"><span class="pre">'foo'</span></code>).</p></li>
+<li><p><strong>key</strong> – Unused for this strategy.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The formatted key segment.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qs_codec.enums.list_format.ListFormatGenerator.comma">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">comma</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/qs_codec/enums/list_format.html#ListFormatGenerator.comma"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.enums.list_format.ListFormatGenerator.comma" title="Link to this definition">¶</a></dt>
+<dd><p>Return the key for comma‑separated lists (no change).</p>
+<p>The encoder will join values with commas instead of repeating the key.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>prefix</strong> – Current key prefix.</p></li>
+<li><p><strong>key</strong> – Unused for this strategy.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The unchanged prefix.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qs_codec.enums.list_format.ListFormatGenerator.indices">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">indices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/qs_codec/enums/list_format.html#ListFormatGenerator.indices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.enums.list_format.ListFormatGenerator.indices" title="Link to this definition">¶</a></dt>
+<dd><p>Return the key for an indexed list element.</p>
+<p class="rubric">Example</p>
+<p><code class="docutils literal notranslate"><span class="pre">prefix='foo'</span></code>, <code class="docutils literal notranslate"><span class="pre">key='0'</span></code> → <code class="docutils literal notranslate"><span class="pre">'foo[0]'</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>prefix</strong> – Current key prefix.</p></li>
+<li><p><strong>key</strong> – The numeric index string for this element.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The formatted key.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="qs_codec.enums.list_format.ListFormatGenerator.repeat">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">repeat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/qs_codec/enums/list_format.html#ListFormatGenerator.repeat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.enums.list_format.ListFormatGenerator.repeat" title="Link to this definition">¶</a></dt>
+<dd><p>Return the key for “repeat key” lists (no change).</p>
+<p class="rubric">Example</p>
+<p><code class="docutils literal notranslate"><span class="pre">prefix='foo'</span></code> → <code class="docutils literal notranslate"><span class="pre">'foo'</span></code> (the key is repeated per element)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>prefix</strong> – Current key prefix.</p></li>
+<li><p><strong>key</strong> – Unused for this strategy.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The unchanged prefix.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-qs_codec.enums.sentinel">
+<span id="qs-codec-enums-sentinel-module"></span><h2>qs_codec.enums.sentinel module<a class="headerlink" href="#module-qs_codec.enums.sentinel" title="Link to this heading">¶</a></h2>
+<p>Sentinel values and their percent-encoded forms.</p>
+<p>Browsers sometimes include an <code class="docutils literal notranslate"><span class="pre">utf8=…</span></code> “sentinel” in
+<code class="docutils literal notranslate"><span class="pre">application/x-www-form-urlencoded</span></code> submissions to signal the character
+encoding that was used. This module exposes those sentinels as an <code class="docutils literal notranslate"><span class="pre">Enum</span></code>,
+where each member carries both the raw token (what the page emits) and the
+fully URL-encoded fragment (what appears on the wire).</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="qs_codec.enums.sentinel.Sentinel">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">qs_codec.enums.sentinel.</span></span><span class="sig-name descname"><span class="pre">Sentinel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qs_codec/enums/sentinel.html#Sentinel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.enums.sentinel.Sentinel" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_SentinelDataMixin</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>All supported <code class="docutils literal notranslate"><span class="pre">utf8</span></code> sentinels.</p>
+<dl class="simple">
+<dt>Each enum member provides:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">raw</span></code>: the source token a browser starts with, and</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">encoded</span></code>: the final, percent-encoded <code class="docutils literal notranslate"><span class="pre">utf8=…</span></code> fragment.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qs_codec.enums.sentinel.Sentinel.CHARSET">
+<span class="sig-name descname"><span class="pre">CHARSET</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_SentinelDataMixin(raw='✓',</span> <span class="pre">encoded='utf8=%E2%9C%93')</span></span><a class="headerlink" href="#qs_codec.enums.sentinel.Sentinel.CHARSET" title="Link to this definition">¶</a></dt>
+<dd><p>UTF‑8 sentinel indicating the request is UTF‑8 encoded.</p>
+<p>This is the percent‑encoded UTF‑8 sequence for ✓, yielding the fragment
+<code class="docutils literal notranslate"><span class="pre">utf8=%E2%9C%93</span></code>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="qs_codec.enums.sentinel.Sentinel.ISO">
+<span class="sig-name descname"><span class="pre">ISO</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_SentinelDataMixin(raw='&amp;#10003;',</span> <span class="pre">encoded='utf8=%26%2310003%3B')</span></span><a class="headerlink" href="#qs_codec.enums.sentinel.Sentinel.ISO" title="Link to this definition">¶</a></dt>
+<dd><p>HTML‑entity sentinel used by non‑UTF‑8 submissions.</p>
+<p>When a check mark (✓) appears but the page/form encoding is <code class="docutils literal notranslate"><span class="pre">iso-8859-1</span></code>
+(or another charset that lacks ✓), browsers first HTML‑entity‑escape it as
+<code class="docutils literal notranslate"><span class="pre">&quot;&amp;#10003;&quot;</span></code> and then URL‑encode it, producing <code class="docutils literal notranslate"><span class="pre">utf8=%26%2310003%3B</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-qs_codec.enums">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-qs_codec.enums" title="Link to this heading">¶</a></h2>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">qs-codec</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="README.html">Decoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#encoding">Encoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#handling-none-values">Handling <code class="docutils literal notranslate"><span class="pre">None</span></code> values</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#dealing-with-special-character-sets">Dealing with special character sets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#rfc-3986-and-rfc-1738-space-encoding">RFC 3986 and RFC 1738 space encoding</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">qs_codec</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="qs_codec.html">qs_codec package</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">qs_codec</a><ul>
+  <li><a href="qs_codec.html">qs_codec package</a><ul>
+      <li>Previous: <a href="qs_codec.html" title="previous chapter">qs_codec package</a></li>
+      <li>Next: <a href="qs_codec.models.html" title="next chapter">qs_codec.models package</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, Klemen Tusar.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/qs_codec.enums.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

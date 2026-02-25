@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>qs_codec package &#8212; qs-codec 1.4.3 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=a68a9277"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="qs_codec.enums package" href="qs_codec.enums.html" />
+    <link rel="prev" title="qs_codec" href="modules.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="qs-codec-package">
+<h1>qs_codec package<a class="headerlink" href="#qs-codec-package" title="Link to this heading">¶</a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="qs_codec.enums.html">qs_codec.enums package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qs_codec.enums.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qs_codec.enums.html#module-qs_codec.enums.charset">qs_codec.enums.charset module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.charset.Charset"><code class="docutils literal notranslate"><span class="pre">Charset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.charset.Charset.LATIN1"><code class="docutils literal notranslate"><span class="pre">Charset.LATIN1</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.charset.Charset.UTF8"><code class="docutils literal notranslate"><span class="pre">Charset.UTF8</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="qs_codec.enums.html#module-qs_codec.enums.duplicates">qs_codec.enums.duplicates module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.duplicates.Duplicates"><code class="docutils literal notranslate"><span class="pre">Duplicates</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.duplicates.Duplicates.COMBINE"><code class="docutils literal notranslate"><span class="pre">Duplicates.COMBINE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.duplicates.Duplicates.FIRST"><code class="docutils literal notranslate"><span class="pre">Duplicates.FIRST</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.duplicates.Duplicates.LAST"><code class="docutils literal notranslate"><span class="pre">Duplicates.LAST</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="qs_codec.enums.html#module-qs_codec.enums.format">qs_codec.enums.format module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.format.Format"><code class="docutils literal notranslate"><span class="pre">Format</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.format.Format.RFC1738"><code class="docutils literal notranslate"><span class="pre">Format.RFC1738</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.format.Format.RFC3986"><code class="docutils literal notranslate"><span class="pre">Format.RFC3986</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.format.Formatter"><code class="docutils literal notranslate"><span class="pre">Formatter</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.format.Formatter.rfc1738"><code class="docutils literal notranslate"><span class="pre">Formatter.rfc1738()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.format.Formatter.rfc3986"><code class="docutils literal notranslate"><span class="pre">Formatter.rfc3986()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="qs_codec.enums.html#module-qs_codec.enums.list_format">qs_codec.enums.list_format module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.list_format.ListFormat"><code class="docutils literal notranslate"><span class="pre">ListFormat</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.list_format.ListFormat.BRACKETS"><code class="docutils literal notranslate"><span class="pre">ListFormat.BRACKETS</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.list_format.ListFormat.COMMA"><code class="docutils literal notranslate"><span class="pre">ListFormat.COMMA</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.list_format.ListFormat.INDICES"><code class="docutils literal notranslate"><span class="pre">ListFormat.INDICES</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.list_format.ListFormat.REPEAT"><code class="docutils literal notranslate"><span class="pre">ListFormat.REPEAT</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.list_format.ListFormatGenerator"><code class="docutils literal notranslate"><span class="pre">ListFormatGenerator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.list_format.ListFormatGenerator.brackets"><code class="docutils literal notranslate"><span class="pre">ListFormatGenerator.brackets()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.list_format.ListFormatGenerator.comma"><code class="docutils literal notranslate"><span class="pre">ListFormatGenerator.comma()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.list_format.ListFormatGenerator.indices"><code class="docutils literal notranslate"><span class="pre">ListFormatGenerator.indices()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.list_format.ListFormatGenerator.repeat"><code class="docutils literal notranslate"><span class="pre">ListFormatGenerator.repeat()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="qs_codec.enums.html#module-qs_codec.enums.sentinel">qs_codec.enums.sentinel module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.sentinel.Sentinel"><code class="docutils literal notranslate"><span class="pre">Sentinel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.sentinel.Sentinel.CHARSET"><code class="docutils literal notranslate"><span class="pre">Sentinel.CHARSET</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.sentinel.Sentinel.ISO"><code class="docutils literal notranslate"><span class="pre">Sentinel.ISO</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="qs_codec.enums.html#module-qs_codec.enums">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="qs_codec.models.html">qs_codec.models package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qs_codec.models.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qs_codec.models.html#module-qs_codec.models.decode_options">qs_codec.models.decode_options module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions"><code class="docutils literal notranslate"><span class="pre">DecodeOptions</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.allow_dots"><code class="docutils literal notranslate"><span class="pre">DecodeOptions.allow_dots</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.allow_empty_lists"><code class="docutils literal notranslate"><span class="pre">DecodeOptions.allow_empty_lists</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.charset"><code class="docutils literal notranslate"><span class="pre">DecodeOptions.charset</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.charset_sentinel"><code class="docutils literal notranslate"><span class="pre">DecodeOptions.charset_sentinel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.comma"><code class="docutils literal notranslate"><span class="pre">DecodeOptions.comma</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.decode"><code class="docutils literal notranslate"><span class="pre">DecodeOptions.decode()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.decode_dot_in_keys"><code class="docutils literal notranslate"><span class="pre">DecodeOptions.decode_dot_in_keys</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.decode_key"><code class="docutils literal notranslate"><span class="pre">DecodeOptions.decode_key()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.decode_value"><code class="docutils literal notranslate"><span class="pre">DecodeOptions.decode_value()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.decoder"><code class="docutils literal notranslate"><span class="pre">DecodeOptions.decoder()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.delimiter"><code class="docutils literal notranslate"><span class="pre">DecodeOptions.delimiter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.depth"><code class="docutils literal notranslate"><span class="pre">DecodeOptions.depth</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.duplicates"><code class="docutils literal notranslate"><span class="pre">DecodeOptions.duplicates</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.ignore_query_prefix"><code class="docutils literal notranslate"><span class="pre">DecodeOptions.ignore_query_prefix</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.interpret_numeric_entities"><code class="docutils literal notranslate"><span class="pre">DecodeOptions.interpret_numeric_entities</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.legacy_decoder"><code class="docutils literal notranslate"><span class="pre">DecodeOptions.legacy_decoder</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.list_limit"><code class="docutils literal notranslate"><span class="pre">DecodeOptions.list_limit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.parameter_limit"><code class="docutils literal notranslate"><span class="pre">DecodeOptions.parameter_limit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.parse_lists"><code class="docutils literal notranslate"><span class="pre">DecodeOptions.parse_lists</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.raise_on_limit_exceeded"><code class="docutils literal notranslate"><span class="pre">DecodeOptions.raise_on_limit_exceeded</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.strict_depth"><code class="docutils literal notranslate"><span class="pre">DecodeOptions.strict_depth</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.strict_null_handling"><code class="docutils literal notranslate"><span class="pre">DecodeOptions.strict_null_handling</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="qs_codec.models.html#module-qs_codec.models.encode_options">qs_codec.models.encode_options module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions"><code class="docutils literal notranslate"><span class="pre">EncodeOptions</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.add_query_prefix"><code class="docutils literal notranslate"><span class="pre">EncodeOptions.add_query_prefix</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.allow_dots"><code class="docutils literal notranslate"><span class="pre">EncodeOptions.allow_dots</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.allow_empty_lists"><code class="docutils literal notranslate"><span class="pre">EncodeOptions.allow_empty_lists</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.charset"><code class="docutils literal notranslate"><span class="pre">EncodeOptions.charset</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.charset_sentinel"><code class="docutils literal notranslate"><span class="pre">EncodeOptions.charset_sentinel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.comma_compact_nulls"><code class="docutils literal notranslate"><span class="pre">EncodeOptions.comma_compact_nulls</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.comma_round_trip"><code class="docutils literal notranslate"><span class="pre">EncodeOptions.comma_round_trip</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.delimiter"><code class="docutils literal notranslate"><span class="pre">EncodeOptions.delimiter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encode"><code class="docutils literal notranslate"><span class="pre">EncodeOptions.encode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encode_dot_in_keys"><code class="docutils literal notranslate"><span class="pre">EncodeOptions.encode_dot_in_keys</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encode_values_only"><code class="docutils literal notranslate"><span class="pre">EncodeOptions.encode_values_only</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encoder"><code class="docutils literal notranslate"><span class="pre">EncodeOptions.encoder</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.filter"><code class="docutils literal notranslate"><span class="pre">EncodeOptions.filter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.format"><code class="docutils literal notranslate"><span class="pre">EncodeOptions.format</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.indices"><code class="docutils literal notranslate"><span class="pre">EncodeOptions.indices</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.list_format"><code class="docutils literal notranslate"><span class="pre">EncodeOptions.list_format</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.max_depth"><code class="docutils literal notranslate"><span class="pre">EncodeOptions.max_depth</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.serialize_date"><code class="docutils literal notranslate"><span class="pre">EncodeOptions.serialize_date()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.skip_nulls"><code class="docutils literal notranslate"><span class="pre">EncodeOptions.skip_nulls</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.sort"><code class="docutils literal notranslate"><span class="pre">EncodeOptions.sort</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.strict_null_handling"><code class="docutils literal notranslate"><span class="pre">EncodeOptions.strict_null_handling</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="qs_codec.models.html#module-qs_codec.models.undefined">qs_codec.models.undefined module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.undefined.Undefined"><code class="docutils literal notranslate"><span class="pre">Undefined</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="qs_codec.models.html#module-qs_codec.models.weak_wrapper">qs_codec.models.weak_wrapper module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.weak_wrapper.WeakWrapper"><code class="docutils literal notranslate"><span class="pre">WeakWrapper</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.weak_wrapper.WeakWrapper.__init__"><code class="docutils literal notranslate"><span class="pre">WeakWrapper.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.weak_wrapper.WeakWrapper.value"><code class="docutils literal notranslate"><span class="pre">WeakWrapper.value</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="qs_codec.models.html#module-qs_codec.models">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="qs_codec.utils.html">qs_codec.utils package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="qs_codec.utils.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="qs_codec.utils.html#module-qs_codec.utils.decode_utils">qs_codec.utils.decode_utils module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.decode_utils.DecodeUtils"><code class="docutils literal notranslate"><span class="pre">DecodeUtils</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.decode_utils.DecodeUtils.HEX2_PATTERN"><code class="docutils literal notranslate"><span class="pre">DecodeUtils.HEX2_PATTERN</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.decode_utils.DecodeUtils.UNESCAPE_PATTERN"><code class="docutils literal notranslate"><span class="pre">DecodeUtils.UNESCAPE_PATTERN</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.decode_utils.DecodeUtils.decode"><code class="docutils literal notranslate"><span class="pre">DecodeUtils.decode()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.decode_utils.DecodeUtils.dot_to_bracket_top_level"><code class="docutils literal notranslate"><span class="pre">DecodeUtils.dot_to_bracket_top_level()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.decode_utils.DecodeUtils.split_key_into_segments"><code class="docutils literal notranslate"><span class="pre">DecodeUtils.split_key_into_segments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.decode_utils.DecodeUtils.unescape"><code class="docutils literal notranslate"><span class="pre">DecodeUtils.unescape()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="qs_codec.utils.html#module-qs_codec.utils.encode_utils">qs_codec.utils.encode_utils module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.encode_utils.EncodeUtils"><code class="docutils literal notranslate"><span class="pre">EncodeUtils</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.encode_utils.EncodeUtils.HEX_TABLE"><code class="docutils literal notranslate"><span class="pre">EncodeUtils.HEX_TABLE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.encode_utils.EncodeUtils.RFC1738_SAFE_CHARS"><code class="docutils literal notranslate"><span class="pre">EncodeUtils.RFC1738_SAFE_CHARS</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.encode_utils.EncodeUtils.RFC1738_SAFE_POINTS"><code class="docutils literal notranslate"><span class="pre">EncodeUtils.RFC1738_SAFE_POINTS</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.encode_utils.EncodeUtils.SAFE_ALPHA"><code class="docutils literal notranslate"><span class="pre">EncodeUtils.SAFE_ALPHA</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.encode_utils.EncodeUtils.SAFE_CHARS"><code class="docutils literal notranslate"><span class="pre">EncodeUtils.SAFE_CHARS</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.encode_utils.EncodeUtils.SAFE_POINTS"><code class="docutils literal notranslate"><span class="pre">EncodeUtils.SAFE_POINTS</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.encode_utils.EncodeUtils.encode"><code class="docutils literal notranslate"><span class="pre">EncodeUtils.encode()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.encode_utils.EncodeUtils.escape"><code class="docutils literal notranslate"><span class="pre">EncodeUtils.escape()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.encode_utils.EncodeUtils.serialize_date"><code class="docutils literal notranslate"><span class="pre">EncodeUtils.serialize_date()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="qs_codec.utils.html#module-qs_codec.utils.utils">qs_codec.utils.utils module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.utils.Utils"><code class="docutils literal notranslate"><span class="pre">Utils</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.utils.Utils.apply"><code class="docutils literal notranslate"><span class="pre">Utils.apply()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.utils.Utils.combine"><code class="docutils literal notranslate"><span class="pre">Utils.combine()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.utils.Utils.compact"><code class="docutils literal notranslate"><span class="pre">Utils.compact()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.utils.Utils.is_non_nullish_primitive"><code class="docutils literal notranslate"><span class="pre">Utils.is_non_nullish_primitive()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.utils.Utils.is_overflow"><code class="docutils literal notranslate"><span class="pre">Utils.is_overflow()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.utils.Utils.merge"><code class="docutils literal notranslate"><span class="pre">Utils.merge()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="qs_codec.utils.html#qs_codec.utils.utils.Utils.normalize_comma_elem"><code class="docutils literal notranslate"><span class="pre">Utils.normalize_comma_elem()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="qs_codec.utils.html#module-qs_codec.utils">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
+</section>
+<section id="module-qs_codec.decode">
+<span id="qs-codec-decode-module"></span><h2>qs_codec.decode module<a class="headerlink" href="#module-qs_codec.decode" title="Link to this heading">¶</a></h2>
+<p>Query string <strong>decoder</strong> (a.k.a. parser) with feature parity to the Node.js <cite>qs</cite> package.</p>
+<section id="highlights">
+<h3>Highlights<a class="headerlink" href="#highlights" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Accepts either a raw query string or a pre-tokenized mapping (mirrors <cite>qs.parse</cite>).</p></li>
+<li><p>Supports RFC 3986 / 1738 percent-decoding via <cite>DecodeOptions.decoder</cite>.</p></li>
+<li><p>Handles bracket notation, indices, dotted keys (opt-in), and duplicate keys strategies.</p></li>
+<li><p>Respects list parsing limits, depth limits, and charset sentinels (<cite>utf8=%E2%9C%93</cite> / <cite>utf8=%26%2310003%3B</cite>).</p></li>
+<li><p>Returns plain <cite>dict</cite> / <cite>list</cite> containers and never mutates the caller’s input.</p></li>
+</ul>
+<p>This module intentionally keeps the control flow close to the original reference implementation
+so that behavior across ports stays predictable and easy to verify with shared test vectors.</p>
+</section>
+<dl class="py function">
+<dt class="sig sig-object py" id="qs_codec.decode.decode">
+<span class="sig-prename descclassname"><span class="pre">qs_codec.decode.</span></span><span class="sig-name descname"><span class="pre">decode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions" title="qs_codec.models.decode_options.DecodeOptions"><span class="pre">DecodeOptions</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/qs_codec/decode.html#decode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.decode.decode" title="Link to this definition">¶</a></dt>
+<dd><p>Decode a query string (or a pre-tokenized mapping) into a nested <code class="docutils literal notranslate"><span class="pre">Dict[str,</span> <span class="pre">Any]</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – Either a raw query string (<code class="docutils literal notranslate"><span class="pre">str</span></code>) or an already-parsed mapping (<code class="docutils literal notranslate"><span class="pre">Mapping[str,</span> <span class="pre">Any]</span></code>).
+Passing a mapping is useful in tests or when a custom tokenizer is used upstream.</p></li>
+<li><p><strong>options</strong> – <code class="docutils literal notranslate"><span class="pre">DecodeOptions</span></code> controlling delimiter, duplicates policy, list &amp; depth limits, dot-notation, decoding charset, and more.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A freshly-allocated mapping containing nested dicts/lists/values.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Any]</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If <code class="docutils literal notranslate"><span class="pre">value</span></code> is neither <code class="docutils literal notranslate"><span class="pre">str</span></code> nor <code class="docutils literal notranslate"><span class="pre">Mapping</span></code>, or when limits are violated under <code class="docutils literal notranslate"><span class="pre">raise_on_limit_exceeded=True</span></code>.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Empty/falsey <code class="docutils literal notranslate"><span class="pre">value</span></code> returns an empty dict.</p></li>
+<li><p>When the <em>number of top-level tokens</em> exceeds <code class="docutils literal notranslate"><span class="pre">list_limit</span></code> and <code class="docutils literal notranslate"><span class="pre">parse_lists</span></code> is enabled, the parser temporarily <strong>disables list parsing</strong> for this invocation to avoid quadratic work. This mirrors the behavior of other ports and keeps large flat query strings efficient.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="qs_codec.decode.load">
+<span class="sig-prename descclassname"><span class="pre">qs_codec.decode.</span></span><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions" title="qs_codec.models.decode_options.DecodeOptions"><span class="pre">DecodeOptions</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#qs_codec.decode.load" title="Link to this definition">¶</a></dt>
+<dd><p>Decode a query string (or a pre-tokenized mapping) into a nested <code class="docutils literal notranslate"><span class="pre">Dict[str,</span> <span class="pre">Any]</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – Either a raw query string (<code class="docutils literal notranslate"><span class="pre">str</span></code>) or an already-parsed mapping (<code class="docutils literal notranslate"><span class="pre">Mapping[str,</span> <span class="pre">Any]</span></code>).
+Passing a mapping is useful in tests or when a custom tokenizer is used upstream.</p></li>
+<li><p><strong>options</strong> – <code class="docutils literal notranslate"><span class="pre">DecodeOptions</span></code> controlling delimiter, duplicates policy, list &amp; depth limits, dot-notation, decoding charset, and more.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A freshly-allocated mapping containing nested dicts/lists/values.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Any]</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If <code class="docutils literal notranslate"><span class="pre">value</span></code> is neither <code class="docutils literal notranslate"><span class="pre">str</span></code> nor <code class="docutils literal notranslate"><span class="pre">Mapping</span></code>, or when limits are violated under <code class="docutils literal notranslate"><span class="pre">raise_on_limit_exceeded=True</span></code>.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Empty/falsey <code class="docutils literal notranslate"><span class="pre">value</span></code> returns an empty dict.</p></li>
+<li><p>When the <em>number of top-level tokens</em> exceeds <code class="docutils literal notranslate"><span class="pre">list_limit</span></code> and <code class="docutils literal notranslate"><span class="pre">parse_lists</span></code> is enabled, the parser temporarily <strong>disables list parsing</strong> for this invocation to avoid quadratic work. This mirrors the behavior of other ports and keeps large flat query strings efficient.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="qs_codec.decode.loads">
+<span class="sig-prename descclassname"><span class="pre">qs_codec.decode.</span></span><span class="sig-name descname"><span class="pre">loads</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions" title="qs_codec.models.decode_options.DecodeOptions"><span class="pre">DecodeOptions</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/qs_codec/decode.html#loads"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.decode.loads" title="Link to this definition">¶</a></dt>
+<dd><p>Alias for <code class="docutils literal notranslate"><span class="pre">decode</span></code>. Decodes a query string into a <code class="docutils literal notranslate"><span class="pre">Dict[str,</span> <span class="pre">Any]</span></code>.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">decode</span></code> if you want to pass a <code class="docutils literal notranslate"><span class="pre">Dict[str,</span> <span class="pre">Any]</span></code>.</p>
+</dd></dl>
+
+</section>
+<section id="module-qs_codec.encode">
+<span id="qs-codec-encode-module"></span><h2>qs_codec.encode module<a class="headerlink" href="#module-qs_codec.encode" title="Link to this heading">¶</a></h2>
+<p>Query‑string <em>encoder</em> (stringifier).</p>
+<p>This module converts Python mappings and sequences into a percent‑encoded query string with feature parity to the
+Node.js <cite>qs</cite> package where it makes sense for Python. It supports:</p>
+<ul class="simple">
+<li><p>Stable, deterministic key ordering with an optional custom comparator.</p></li>
+<li><p>Multiple list encodings (indices, brackets, repeat key, comma) including the “comma round‑trip” behavior to preserve single‑element lists.</p></li>
+<li><p>Custom per‑scalar encoder and <cite>datetime</cite> serializer hooks.</p></li>
+<li><p>RFC 3986 vs RFC 1738 formatting and optional charset sentinels.</p></li>
+<li><p>Dots vs brackets in key paths (<cite>allow_dots</cite>, <cite>encode_dot_in_keys</cite>).</p></li>
+<li><p>Strict/null handling, empty‑list emission, and cycle detection.</p></li>
+</ul>
+<p>Nothing in this module mutates caller objects: inputs are shallow‑normalized and deep‑copied only where safe/necessary to honor options.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="qs_codec.encode.dumps">
+<span class="sig-prename descclassname"><span class="pre">qs_codec.encode.</span></span><span class="sig-name descname"><span class="pre">dumps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions" title="qs_codec.models.encode_options.EncodeOptions"><span class="pre">EncodeOptions</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">EncodeOptions(allow_dots=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_query_prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_empty_lists</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;ListFormat.INDICES:</span> <span class="pre">list_format_name='INDICES'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">ListFormatGenerator.indices&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;Charset.UTF8:</span> <span class="pre">encoding='utf-8'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charset_sentinel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delimiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'&amp;'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encode_dot_in_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encode_values_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;Format.RFC3986:</span> <span class="pre">format_name='RFC3986'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">formatter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">Formatter.rfc3986&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_nulls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">serialize_date</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">EncodeUtils.serialize_date&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">EncodeOptions.encoder.&lt;locals&gt;.&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict_null_handling</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comma_round_trip</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comma_compact_nulls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_depth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#qs_codec.encode.dumps" title="Link to this definition">¶</a></dt>
+<dd><p>Stringify a Python value into a query string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – The object to encode. Accepted shapes:
+* Mapping -&gt; encoded as-is.
+* Sequence (list/tuple) -&gt; treated as an object with string indices.
+* Other/None -&gt; treated as empty input.</p></li>
+<li><p><strong>options</strong> – Encoding behavior (parity with the Node.js <cite>qs</cite> API).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The encoded query string (possibly prefixed with “?” if requested), or an empty string when there is nothing to encode.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Caller input is not mutated. When a mapping is provided it is shallow-copied (deep-copied only when a callable
+filter is used). Root sequences are projected to a temporary mapping and deep-copied first when a callable
+filter is used.</p></li>
+<li><p>If a callable <cite>filter</cite> is provided, it can transform the root object.</p></li>
+<li><p>If an iterable filter is provided, it selects which <em>root</em> keys to emit.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="qs_codec.encode.encode">
+<span class="sig-prename descclassname"><span class="pre">qs_codec.encode.</span></span><span class="sig-name descname"><span class="pre">encode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions" title="qs_codec.models.encode_options.EncodeOptions"><span class="pre">EncodeOptions</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">EncodeOptions(allow_dots=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_query_prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_empty_lists</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;ListFormat.INDICES:</span> <span class="pre">list_format_name='INDICES'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">ListFormatGenerator.indices&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;Charset.UTF8:</span> <span class="pre">encoding='utf-8'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charset_sentinel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delimiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'&amp;'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encode_dot_in_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encode_values_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;Format.RFC3986:</span> <span class="pre">format_name='RFC3986'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">formatter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">Formatter.rfc3986&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_nulls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">serialize_date</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">EncodeUtils.serialize_date&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">EncodeOptions.encoder.&lt;locals&gt;.&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict_null_handling</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comma_round_trip</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comma_compact_nulls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_depth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/qs_codec/encode.html#encode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#qs_codec.encode.encode" title="Link to this definition">¶</a></dt>
+<dd><p>Stringify a Python value into a query string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – The object to encode. Accepted shapes:
+* Mapping -&gt; encoded as-is.
+* Sequence (list/tuple) -&gt; treated as an object with string indices.
+* Other/None -&gt; treated as empty input.</p></li>
+<li><p><strong>options</strong> – Encoding behavior (parity with the Node.js <cite>qs</cite> API).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The encoded query string (possibly prefixed with “?” if requested), or an empty string when there is nothing to encode.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Caller input is not mutated. When a mapping is provided it is shallow-copied (deep-copied only when a callable
+filter is used). Root sequences are projected to a temporary mapping and deep-copied first when a callable
+filter is used.</p></li>
+<li><p>If a callable <cite>filter</cite> is provided, it can transform the root object.</p></li>
+<li><p>If an iterable filter is provided, it selects which <em>root</em> keys to emit.</p></li>
+</ul>
+</dd></dl>
+
+</section>
+<section id="module-contents">
+<h2>Module contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<p>Query string encoding/decoding for Python.</p>
+<p>This package is a Python port of the popular <cite>qs</cite> library for JavaScript/Node.js.
+It strives to match <cite>qs</cite> semantics and edge cases — including list/array formats,
+duplicate key handling, RFC 3986 vs RFC 1738 formatting, character set sentinels,
+and other interoperability details.</p>
+<p>The package root re-exports the most commonly used functions and enums so you can:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">qs_codec</span><span class="w"> </span><span class="kn">import</span> <span class="n">encode</span><span class="p">,</span> <span class="n">decode</span><span class="p">,</span> <span class="n">ListFormat</span><span class="p">,</span> <span class="n">EncodeOptions</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">encode</span><span class="p">({</span><span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]},</span> <span class="n">options</span><span class="o">=</span><span class="n">EncodeOptions</span><span class="p">(</span><span class="n">list_format</span><span class="o">=</span><span class="n">ListFormat</span><span class="o">.</span><span class="n">brackets</span><span class="p">))</span>
+<span class="go">&#39;a[]=1&amp;a[]=2&amp;a[]=3&#39;</span>
+</pre></div>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">qs_codec.</span></span><span class="sig-name descname"><span class="pre">Charset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qs_codec/enums/charset.html#Charset"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_CharsetDataMixin</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>Supported character sets for query-string processing.</p>
+<p>Each enum member’s value is the codec string understood by Python’s encoding APIs.
+Prefer accessing <code class="xref py py-attr docutils literal notranslate"><span class="pre">encoding</span></code> instead of hard-coding literals.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">LATIN1</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_CharsetDataMixin(encoding='iso-8859-1')</span></span></dt>
+<dd><p>ISO-8859-1 (Latin-1) character encoding.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">UTF8</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_CharsetDataMixin(encoding='utf-8')</span></span></dt>
+<dd><p>UTF-8 character encoding.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">qs_codec.</span></span><span class="sig-name descname"><span class="pre">DecodeKind</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qs_codec/enums/decode_kind.html#DecodeKind"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>Decoding context for query string tokens.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">KEY</span></span></dt>
+<dd><p>Decode a <em>key</em> (or key segment). Note that the default scalar decoder
+(<code class="docutils literal notranslate"><span class="pre">qs_codec.utils.decode_utils.decode</span></code>) ignores <cite>kind</cite> and fully
+decodes percent-encoded dots (<code class="docutils literal notranslate"><span class="pre">%2E</span></code>/<code class="docutils literal notranslate"><span class="pre">%2e</span></code>). Dot-splitting behavior is
+applied later by higher-level parser options.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">VALUE</span></span></dt>
+<dd><p>Decode a <em>value</em>. Implementations typically perform full percent decoding.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">KEY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'key'</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">VALUE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'value'</span></span></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">qs_codec.</span></span><span class="sig-name descname"><span class="pre">DecodeOptions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">allow_dots:</span> <span class="pre">bool</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">decode_dot_in_keys:</span> <span class="pre">bool</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">allow_empty_lists:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">list_limit:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">20,</span> <span class="pre">charset:</span> <span class="pre">~qs_codec.enums.charset.Charset</span> <span class="pre">=</span> <span class="pre">Charset.UTF8,</span> <span class="pre">charset_sentinel:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">comma:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">delimiter:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">~typing.Pattern[str]</span> <span class="pre">=</span> <span class="pre">'&amp;',</span> <span class="pre">depth:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">5,</span> <span class="pre">parameter_limit:</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">1000,</span> <span class="pre">duplicates:</span> <span class="pre">~qs_codec.enums.duplicates.Duplicates</span> <span class="pre">=</span> <span class="pre">Duplicates.COMBINE,</span> <span class="pre">ignore_query_prefix:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">interpret_numeric_entities:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">parse_lists:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True,</span> <span class="pre">strict_depth:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">strict_null_handling:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">raise_on_limit_exceeded:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">decoder:</span> <span class="pre">~typing.Callable[[...],</span> <span class="pre">~typing.Any</span> <span class="pre">|</span> <span class="pre">None]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">&lt;bound</span> <span class="pre">method</span> <span class="pre">DecodeUtils.decode</span> <span class="pre">of</span> <span class="pre">&lt;class</span> <span class="pre">'qs_codec.utils.decode_utils.DecodeUtils'&gt;&gt;,</span> <span class="pre">legacy_decoder:</span> <span class="pre">~typing.Callable[[...],</span> <span class="pre">~typing.Any</span> <span class="pre">|</span> <span class="pre">None]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qs_codec/models/decode_options.html#DecodeOptions"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Options that configure the output of <code class="docutils literal notranslate"><span class="pre">decode</span></code>.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">allow_dots</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span></dt>
+<dd><p>Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> to decode dot <code class="docutils literal notranslate"><span class="pre">dict</span></code> notation in the encoded input.
+When <code class="docutils literal notranslate"><span class="pre">None</span></code> (default), it inherits the value of <code class="docutils literal notranslate"><span class="pre">decode_dot_in_keys</span></code>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">allow_empty_lists</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span></dt>
+<dd><p>Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> to allow empty <code class="docutils literal notranslate"><span class="pre">list</span></code> values inside <code class="docutils literal notranslate"><span class="pre">dict</span></code>s in the encoded input.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">charset</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.charset.Charset" title="qs_codec.enums.charset.Charset"><span class="pre">Charset</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_CharsetDataMixin(encoding='utf-8')</span></span></dt>
+<dd><p>The character encoding to use when decoding the input.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">charset_sentinel</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span></dt>
+<dd><p>Some services add an initial <code class="docutils literal notranslate"><span class="pre">utf8=✓</span></code> value to forms so that old InternetExplorer versions are more likely to
+submit the form as <code class="docutils literal notranslate"><span class="pre">utf-8</span></code>. Additionally, the server can check the value against wrong encodings of the checkmark
+character and detect that a query string or <code class="docutils literal notranslate"><span class="pre">application/x-www-form-urlencoded</span></code> body was <em>not</em> sent as <code class="docutils literal notranslate"><span class="pre">utf-8</span></code>,
+e.g. if the form had an <code class="docutils literal notranslate"><span class="pre">accept-charset</span></code> parameter or the containing page had a different character set.</p>
+<p><code class="docutils literal notranslate"><span class="pre">qs_codec</span></code> supports this mechanism via the <code class="docutils literal notranslate"><span class="pre">charset_sentinel</span></code> option.
+If specified, the <code class="docutils literal notranslate"><span class="pre">utf-8</span></code> parameter will be omitted from the returned <code class="docutils literal notranslate"><span class="pre">dict</span></code>.
+It will be used to switch to <code class="docutils literal notranslate"><span class="pre">LATIN1</span></code> or <code class="docutils literal notranslate"><span class="pre">UTF8</span></code> mode depending on how the checkmark is encoded.</p>
+<p>Important: When you specify both the <code class="docutils literal notranslate"><span class="pre">charset</span></code> option and the <code class="docutils literal notranslate"><span class="pre">charset_sentinel</span></code> option,
+the <code class="docutils literal notranslate"><span class="pre">charset</span></code> will be overridden when the request contains a <code class="docutils literal notranslate"><span class="pre">utf-8</span></code> parameter from which the actual charset
+can be deduced. In that sense the <code class="docutils literal notranslate"><span class="pre">charset</span></code> will behave as the default charset rather than the authoritative
+charset.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">comma</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span></dt>
+<dd><p>Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> to parse the input as a comma-separated value.
+Note: nested <code class="docutils literal notranslate"><span class="pre">dict</span></code> s, such as <code class="docutils literal notranslate"><span class="pre">'a={b:1},{c:d}'</span></code> are not supported.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">decode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.charset.Charset" title="qs_codec.enums.charset.Charset"><span class="pre">Charset</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodeKind</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">DecodeKind.VALUE</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/qs_codec/models/decode_options.html#DecodeOptions.decode"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Unified scalar decode with key/value context.</p>
+<p>Uses the configured <code class="docutils literal notranslate"><span class="pre">decoder</span></code> (or <code class="docutils literal notranslate"><span class="pre">legacy_decoder</span></code>) when provided; otherwise falls back
+to <code class="xref py py-meth docutils literal notranslate"><span class="pre">DecodeUtils.decode()</span></code>. The default library behavior decodes keys identically to
+values; whether a <code class="docutils literal notranslate"><span class="pre">.</span></code> participates in key splitting is decided later by the parser.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">decode_dot_in_keys</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span></dt>
+<dd><p>Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> to decode percent‑encoded dots in keys (e.g., <code class="docutils literal notranslate"><span class="pre">%2E</span></code> → <code class="docutils literal notranslate"><span class="pre">.</span></code>).
+Note: it implies <code class="docutils literal notranslate"><span class="pre">allow_dots</span></code>, so <code class="docutils literal notranslate"><span class="pre">decode</span></code> will error if you set <code class="docutils literal notranslate"><span class="pre">decode_dot_in_keys</span></code> to <code class="docutils literal notranslate"><span class="pre">True</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">allow_dots</span></code> to <code class="docutils literal notranslate"><span class="pre">False</span></code>.
+When <code class="docutils literal notranslate"><span class="pre">None</span></code> (default), it defaults to <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+<p>Inside bracket segments, percent-decoding naturally yields <code class="docutils literal notranslate"><span class="pre">.</span></code> from <code class="docutils literal notranslate"><span class="pre">%2E/%2e</span></code>. This option controls whether
+<strong>top‑level</strong> encoded dots are treated as additional split points; it does <strong>not</strong> affect the literal <code class="docutils literal notranslate"><span class="pre">.</span></code> produced
+by percent-decoding inside bracket segments.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">decode_key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.charset.Charset" title="qs_codec.enums.charset.Charset"><span class="pre">Charset</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/qs_codec/models/decode_options.html#DecodeOptions.decode_key"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Decode a key (or key segment). Always returns a string or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<p>Note: custom decoders returning non-strings for keys are coerced via <code class="docutils literal notranslate"><span class="pre">str()</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">decode_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.charset.Charset" title="qs_codec.enums.charset.Charset"><span class="pre">Charset</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/qs_codec/models/decode_options.html#DecodeOptions.decode_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Decode a value token. Returns any scalar or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">decoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.charset.Charset" title="qs_codec.enums.charset.Charset"><span class="pre">Charset</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Charset.UTF8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DecodeKind</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">DecodeKind.VALUE</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span></dt>
+<dd><p>Custom scalar decoder invoked for each raw token prior to interpretation.</p>
+<p>The built-in decoder supports <code class="docutils literal notranslate"><span class="pre">kind</span></code> and is invoked as
+<code class="docutils literal notranslate"><span class="pre">decoder(string,</span> <span class="pre">charset,</span> <span class="pre">kind=DecodeKind.KEY|VALUE)</span></code>. Custom decoders that omit
+<code class="docutils literal notranslate"><span class="pre">kind</span></code> (or <code class="docutils literal notranslate"><span class="pre">charset</span></code>) are automatically adapted for compatibility. Returning <code class="docutils literal notranslate"><span class="pre">None</span></code>
+from the decoder uses <code class="docutils literal notranslate"><span class="pre">None</span></code> as the scalar value.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">delimiter</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Pattern</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'&amp;'</span></span></dt>
+<dd><p>The delimiter to use when splitting key-value pairs in the encoded input. Can be a <code class="docutils literal notranslate"><span class="pre">str</span></code> or a <code class="docutils literal notranslate"><span class="pre">Pattern</span></code>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">depth</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></span></dt>
+<dd><p>By default, when nesting <code class="docutils literal notranslate"><span class="pre">dict</span></code>s <code class="docutils literal notranslate"><span class="pre">qs_codec</span></code> will only decode up to 5 children deep.
+This depth can be overridden by setting the <code class="docutils literal notranslate"><span class="pre">depth</span></code>.
+The depth limit helps mitigate abuse when <code class="docutils literal notranslate"><span class="pre">qs_codec</span></code> is used to parse user input,
+and it is recommended to keep it a reasonably small number.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">duplicates</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.duplicates.Duplicates" title="qs_codec.enums.duplicates.Duplicates"><span class="pre">Duplicates</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></span></dt>
+<dd><p>Strategy for handling duplicate keys in the input.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">COMBINE</span></code> (default): merge values into a list (e.g., <code class="docutils literal notranslate"><span class="pre">a=1&amp;a=2</span></code> → <code class="docutils literal notranslate"><span class="pre">{&quot;a&quot;:</span> <span class="pre">[1,</span> <span class="pre">2]}</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FIRST</span></code>: keep the first value and ignore subsequent ones (<code class="docutils literal notranslate"><span class="pre">{&quot;a&quot;:</span> <span class="pre">1}</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LAST</span></code>: keep only the last value seen (<code class="docutils literal notranslate"><span class="pre">{&quot;a&quot;:</span> <span class="pre">2}</span></code>).</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">ignore_query_prefix</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span></dt>
+<dd><p>Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> to ignore the leading question mark query prefix in the encoded input.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">interpret_numeric_entities</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span></dt>
+<dd><p>Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> to interpret HTML numeric entities (<code class="docutils literal notranslate"><span class="pre">&amp;#...;</span></code>) in the encoded input.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">legacy_decoder</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span></dt>
+<dd><p>Back‑compat adapter for legacy decoders of the form <code class="docutils literal notranslate"><span class="pre">decoder(value,</span> <span class="pre">charset)</span></code>.
+Prefer <code class="docutils literal notranslate"><span class="pre">decoder</span></code> which may optionally accept a <code class="docutils literal notranslate"><span class="pre">kind</span></code> argument. When both are supplied,
+<code class="docutils literal notranslate"><span class="pre">decoder</span></code> takes precedence (mirroring Kotlin/C#/Swift/Dart behavior).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">list_limit</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">20</span></span></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">20</span></code>).</p>
+<p>During decoding, keys like <code class="docutils literal notranslate"><span class="pre">a[0]</span></code>, <code class="docutils literal notranslate"><span class="pre">a[1]</span></code>, … are treated as list indices. If an
+index exceeds this limit, the container is treated as a <code class="docutils literal notranslate"><span class="pre">dict</span></code> instead, with the
+numeric index kept as a string key (e.g., <code class="docutils literal notranslate"><span class="pre">{&quot;999&quot;:</span> <span class="pre">&quot;x&quot;}</span></code>) to prevent creation of
+massive sparse lists (e.g., <code class="docutils literal notranslate"><span class="pre">a[999999999]</span></code>).</p>
+<p>This limit also applies to comma–split lists when <code class="docutils literal notranslate"><span class="pre">comma=True</span></code>. Set a larger value if
+you explicitly need more items, or set a smaller one to harden against abuse.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Maximum number of <strong>indexed</strong> items allowed in a single list (default</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">parameter_limit</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1000</span></span></dt>
+<dd><p>For similar reasons, by default <code class="docutils literal notranslate"><span class="pre">qs_codec</span></code> will only parse up to 1000 parameters. This can be overridden by
+passing a <code class="docutils literal notranslate"><span class="pre">parameter_limit</span></code> option.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">parse_lists</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></span></dt>
+<dd><p>To disable <code class="docutils literal notranslate"><span class="pre">list</span></code> parsing entirely, set <code class="docutils literal notranslate"><span class="pre">parse_lists</span></code> to <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">raise_on_limit_exceeded</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span></dt>
+<dd><p>Raise instead of degrading gracefully when limits are exceeded.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">True</span></code>, the decoder raises:
+- a <code class="docutils literal notranslate"><span class="pre">DecodeError</span></code> for parameter and list limit violations; and
+- an <code class="docutils literal notranslate"><span class="pre">IndexError</span></code> when nesting deeper than <code class="docutils literal notranslate"><span class="pre">depth</span></code> <strong>and</strong> <code class="docutils literal notranslate"><span class="pre">strict_depth=True</span></code>.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">False</span></code> (default), the decoder degrades gracefully: it slices the parameter list
+at <code class="docutils literal notranslate"><span class="pre">parameter_limit</span></code>, stops adding items beyond <code class="docutils literal notranslate"><span class="pre">list_limit</span></code>, and—if
+<code class="docutils literal notranslate"><span class="pre">strict_depth=True</span></code>—stops descending once <code class="docutils literal notranslate"><span class="pre">depth</span></code> is reached without raising.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">strict_depth</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span></dt>
+<dd><p>Enforce the <code class="docutils literal notranslate"><span class="pre">depth</span></code> limit when decoding nested structures.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">True</span></code>, the decoder will not descend beyond <code class="docutils literal notranslate"><span class="pre">depth</span></code> levels. Combined with
+<code class="docutils literal notranslate"><span class="pre">raise_on_limit_exceeded</span></code>:</p>
+<ul class="simple">
+<li><p>if <code class="docutils literal notranslate"><span class="pre">raise_on_limit_exceeded=True</span></code>, exceeding the depth raises an <code class="docutils literal notranslate"><span class="pre">IndexError</span></code>;</p></li>
+<li><p>if <code class="docutils literal notranslate"><span class="pre">False</span></code>, the decoder stops descending and treats deeper content as a terminal value, preserving the last valid container without raising.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">strict_null_handling</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span></dt>
+<dd><p>Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> to decode values without <code class="docutils literal notranslate"><span class="pre">=</span></code> to <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">qs_codec.</span></span><span class="sig-name descname"><span class="pre">Duplicates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qs_codec/enums/duplicates.html#Duplicates"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>Defines how to resolve duplicate keys produced during parsing.</p>
+<p>This is consulted by the decoder when more than one value is encountered for
+the same key. It does not affect encoding.</p>
+<section id="members">
+<h3>Members<a class="headerlink" href="#members" title="Link to this heading">¶</a></h3>
+<dl class="simple">
+<dt>COMBINE</dt><dd><p>Combine duplicate keys into a single list of values (preserves order).</p>
+</dd>
+<dt>FIRST</dt><dd><p>Keep only the first occurrence and discard subsequent ones.</p>
+</dd>
+<dt>LAST</dt><dd><p>Keep only the last occurrence, overwriting prior ones.</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">COMBINE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></span></dt>
+<dd><p>Combine duplicate keys into a single list of values (preserves order).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">FIRST</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></span></dt>
+<dd><p>Keep only the first value encountered for the key.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">LAST</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></span></dt>
+<dd><p>Keep only the last value encountered for the key.</p>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">qs_codec.</span></span><span class="sig-name descname"><span class="pre">EncodeOptions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">allow_dots:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">add_query_prefix:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">allow_empty_lists:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">indices:</span> <span class="pre">bool</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">list_format:</span> <span class="pre">~qs_codec.enums.list_format.ListFormat</span> <span class="pre">=</span> <span class="pre">ListFormat.INDICES,</span> <span class="pre">charset:</span> <span class="pre">~qs_codec.enums.charset.Charset</span> <span class="pre">=</span> <span class="pre">Charset.UTF8,</span> <span class="pre">charset_sentinel:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">delimiter:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'&amp;',</span> <span class="pre">encode:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True,</span> <span class="pre">encode_dot_in_keys:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">encode_values_only:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">format:</span> <span class="pre">~qs_codec.enums.format.Format</span> <span class="pre">=</span> <span class="pre">Format.RFC3986,</span> <span class="pre">filter:</span> <span class="pre">~typing.Callable</span> <span class="pre">|</span> <span class="pre">~typing.Sequence[str</span> <span class="pre">|</span> <span class="pre">int]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">skip_nulls:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">serialize_date:</span> <span class="pre">~typing.Callable[[~datetime.datetime],</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None]</span> <span class="pre">|</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">EncodeUtils.serialize_date&gt;,</span> <span class="pre">encoder:</span> <span class="pre">~typing.Callable[[~typing.Any,</span> <span class="pre">~qs_codec.enums.charset.Charset</span> <span class="pre">|</span> <span class="pre">None,</span> <span class="pre">~qs_codec.enums.format.Format</span> <span class="pre">|</span> <span class="pre">None],</span> <span class="pre">str]</span> <span class="pre">=</span> <span class="pre">&lt;property</span> <span class="pre">object&gt;,</span> <span class="pre">strict_null_handling:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">comma_round_trip:</span> <span class="pre">bool</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">comma_compact_nulls:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">sort:</span> <span class="pre">~typing.Callable[[~typing.Any,</span> <span class="pre">~typing.Any],</span> <span class="pre">int]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">max_depth:</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qs_codec/models/encode_options.html#EncodeOptions"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Options that configure the output of <cite>encode</cite>.</p>
+<p>Each field corresponds to a knob in the query-string encoder. Defaults aim to be
+unsurprising and compatible with other Techouse qs ports. See per-field docs
+below for details and caveats.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">add_query_prefix</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span></dt>
+<dd><p>When <cite>True</cite>, prefix the output with a <cite>?</cite> (useful when appending to a base URL).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">allow_dots</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span></dt>
+<dd><p>When <cite>True</cite>, interpret dotted keys as object paths during encoding (e.g. <cite>a.b=1</cite>). If <cite>None</cite>, mirrors <cite>encode_dot_in_keys</cite> (see <cite>__post_init__</cite>).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">allow_empty_lists</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span></dt>
+<dd><p>When <cite>True</cite>, include empty lists in the output (e.g. <cite>a[]=</cite> instead of omitting).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">charset</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.charset.Charset" title="qs_codec.enums.charset.Charset"><span class="pre">Charset</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_CharsetDataMixin(encoding='utf-8')</span></span></dt>
+<dd><p>Character encoding used by the encoder (defaults to UTF‑8).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">charset_sentinel</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span></dt>
+<dd><p>When <cite>True</cite>, include a sentinel parameter announcing the charset (e.g. <cite>utf8=✓</cite>).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">comma_compact_nulls</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span></dt>
+<dd><p>Only with <cite>ListFormat.COMMA</cite>. When <cite>True</cite>, omit <cite>None</cite> entries inside lists instead of emitting empty positions
+(e.g. <cite>[True, False, None, True]</cite> -&gt; <cite>true,false,true</cite>).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">comma_round_trip</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span></dt>
+<dd><p>Only used with <cite>ListFormat.COMMA</cite>. When <cite>True</cite>, single‑item lists append <cite>[]</cite> so they round‑trip back to a list on decode.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">delimiter</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'&amp;'</span></span></dt>
+<dd><p>Pair delimiter between tokens (typically <cite>&amp;</cite>; <cite>;</cite> and others are allowed).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">encode</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></span></dt>
+<dd><p>Master switch. When <cite>False</cite>, values/keys are not percent‑encoded (joined as-is).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">encode_dot_in_keys</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span></dt>
+<dd><p>When <cite>True</cite>, encode dots in keys literally. With <cite>encode_values_only=True</cite>, only key dots are encoded while values remain untouched.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">encode_values_only</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span></dt>
+<dd><p>When <cite>True</cite>, the encoder is applied to values only; keys are left unencoded.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">encoder</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.charset.Charset" title="qs_codec.enums.charset.Charset"><span class="pre">Charset</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.format.Format" title="qs_codec.enums.format.Format"><span class="pre">Format</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></dt>
+<dd><p><cite>(value, charset|None, format|None) -&gt; str</cite>.
+Note: when <cite>encode=False</cite>, this is bypassed and values are joined without
+percent‑encoding.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Custom scalar encoder. Signature</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">filter</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span></dt>
+<dd><p>Restrict which keys get included.
+- If a callable is provided, it is invoked for each key and should return the
+replacement value (or <cite>None</cite> to drop when <cite>skip_nulls</cite> applies).
+- If a sequence is provided, only those keys/indices are retained.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">format</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.format.Format" title="qs_codec.enums.format.Format"><span class="pre">Format</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_FormatDataMixin(format_name='RFC3986',</span> <span class="pre">formatter=&lt;function</span> <span class="pre">Formatter.rfc3986&gt;)</span></span></dt>
+<dd><p>Space handling and percent‑encoding style. <cite>RFC3986</cite> encodes spaces as <cite>%20</cite>, while
+<cite>RFC1738</cite> uses <cite>+</cite>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">indices</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span></dt>
+<dd><p>prefer <cite>list_format</cite>. If set, maps to <cite>ListFormat.INDICES</cite> when <cite>True</cite> or <cite>ListFormat.REPEAT</cite> when <cite>False</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Deprecated</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">list_format</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="qs_codec.enums.html#qs_codec.enums.list_format.ListFormat" title="qs_codec.enums.list_format.ListFormat"><span class="pre">ListFormat</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_ListFormatDataMixin(list_format_name='INDICES',</span> <span class="pre">generator=&lt;function</span> <span class="pre">ListFormatGenerator.indices&gt;)</span></span></dt>
+<dd><p>Controls how lists are encoded (indices/brackets/repeat/comma). See <cite>ListFormat</cite>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">max_depth</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span></dt>
+<dd><p>Maximum nesting depth allowed during encoding.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">None</span></code>, encoding depth is unbounded by this option.
+When set, the value is enforced directly.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">serialize_date</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span></dt>
+<dd><p>Hook to stringify <cite>datetime</cite> values before encoding. Returning <cite>None</cite> is treated as a null value
+(subject to null-handling options). If a non-callable is provided, datetimes fall back to ISO-8601.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">skip_nulls</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span></dt>
+<dd><p>When <cite>True</cite>, omit keys whose value is <cite>None</cite> entirely (no trailing <cite>=</cite>).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">sort</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span></dt>
+<dd><p>Optional comparator for deterministic key ordering. Must return -1, 0, or +1.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">strict_null_handling</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span></dt>
+<dd><p><cite>None</cite> → <cite>a</cite> (no <cite>=</cite>), empty string → <cite>a=</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>When <cite>True</cite>, distinguish empty strings from <cite>None</cite></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">qs_codec.</span></span><span class="sig-name descname"><span class="pre">Format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qs_codec/enums/format.html#Format"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_FormatDataMixin</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>Supported URI component formatting profiles.</p>
+<p>Each enum value packs a <code class="docutils literal notranslate"><span class="pre">(format_name,</span> <span class="pre">formatter)</span></code> tuple. After raw
+percent-encoding is performed by the encoder, the selected profile’s
+<code class="docutils literal notranslate"><span class="pre">formatter</span></code> is called to adjust the final textual representation (e.g.,
+mapping <code class="docutils literal notranslate"><span class="pre">&quot;%20&quot;</span></code> to <code class="docutils literal notranslate"><span class="pre">&quot;+&quot;</span></code> for RFC 1738).</p>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">RFC1738</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_FormatDataMixin(format_name='RFC1738',</span> <span class="pre">formatter=&lt;function</span> <span class="pre">Formatter.rfc1738&gt;)</span></span></dt>
+<dd><p><a class="reference external" href="https://datatracker.ietf.org/doc/html/rfc1738">RFC 1738</a>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">RFC3986</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_FormatDataMixin(format_name='RFC3986',</span> <span class="pre">formatter=&lt;function</span> <span class="pre">Formatter.rfc3986&gt;)</span></span></dt>
+<dd><p><a class="reference external" href="https://datatracker.ietf.org/doc/html/rfc3986">RFC 3986</a>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">qs_codec.</span></span><span class="sig-name descname"><span class="pre">ListFormat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qs_codec/enums/list_format.html#ListFormat"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_ListFormatDataMixin</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>Available list formatting options for the encoder.</p>
+<p>Each member pairs a stable name with a generator function from
+<code class="xref py py-class docutils literal notranslate"><span class="pre">ListFormatGenerator</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">BRACKETS</span></code>: <code class="docutils literal notranslate"><span class="pre">foo[]</span></code> for each element.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">INDICES</span></code>: <code class="docutils literal notranslate"><span class="pre">foo[0]</span></code>, <code class="docutils literal notranslate"><span class="pre">foo[1]</span></code>, …</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">REPEAT</span></code>: repeat the key per value (<code class="docutils literal notranslate"><span class="pre">foo=1&amp;foo=2</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">COMMA</span></code>: single key with comma‑joined values (<code class="docutils literal notranslate"><span class="pre">foo=1,2</span></code>).</p></li>
+</ul>
+<p>These options control only how keys are produced; value encoding and
+delimiter handling are governed by other options.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">BRACKETS</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_ListFormatDataMixin(list_format_name='BRACKETS',</span> <span class="pre">generator=&lt;function</span> <span class="pre">ListFormatGenerator.brackets&gt;)</span></span></dt>
+<dd><p>Use brackets to represent list items, for example <code class="docutils literal notranslate"><span class="pre">foo[]=123&amp;foo[]=456&amp;foo[]=789</span></code>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">COMMA</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_ListFormatDataMixin(list_format_name='COMMA',</span> <span class="pre">generator=&lt;function</span> <span class="pre">ListFormatGenerator.comma&gt;)</span></span></dt>
+<dd><p>Use commas to represent list items, for example <code class="docutils literal notranslate"><span class="pre">foo=123,456,789</span></code>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">INDICES</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_ListFormatDataMixin(list_format_name='INDICES',</span> <span class="pre">generator=&lt;function</span> <span class="pre">ListFormatGenerator.indices&gt;)</span></span></dt>
+<dd><p>Use indices to represent list items, for example <code class="docutils literal notranslate"><span class="pre">foo[0]=123&amp;foo[1]=456&amp;foo[2]=789</span></code>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">REPEAT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_ListFormatDataMixin(list_format_name='REPEAT',</span> <span class="pre">generator=&lt;function</span> <span class="pre">ListFormatGenerator.repeat&gt;)</span></span></dt>
+<dd><p>Use a repeat key to represent list items, for example <code class="docutils literal notranslate"><span class="pre">foo=123&amp;foo=456&amp;foo=789</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">qs_codec.</span></span><span class="sig-name descname"><span class="pre">Sentinel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qs_codec/enums/sentinel.html#Sentinel"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_SentinelDataMixin</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>All supported <code class="docutils literal notranslate"><span class="pre">utf8</span></code> sentinels.</p>
+<dl class="simple">
+<dt>Each enum member provides:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">raw</span></code>: the source token a browser starts with, and</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">encoded</span></code>: the final, percent-encoded <code class="docutils literal notranslate"><span class="pre">utf8=…</span></code> fragment.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">CHARSET</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_SentinelDataMixin(raw='✓',</span> <span class="pre">encoded='utf8=%E2%9C%93')</span></span></dt>
+<dd><p>UTF‑8 sentinel indicating the request is UTF‑8 encoded.</p>
+<p>This is the percent‑encoded UTF‑8 sequence for ✓, yielding the fragment
+<code class="docutils literal notranslate"><span class="pre">utf8=%E2%9C%93</span></code>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">ISO</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">_SentinelDataMixin(raw='&amp;#10003;',</span> <span class="pre">encoded='utf8=%26%2310003%3B')</span></span></dt>
+<dd><p>HTML‑entity sentinel used by non‑UTF‑8 submissions.</p>
+<p>When a check mark (✓) appears but the page/form encoding is <code class="docutils literal notranslate"><span class="pre">iso-8859-1</span></code>
+(or another charset that lacks ✓), browsers first HTML‑entity‑escape it as
+<code class="docutils literal notranslate"><span class="pre">&quot;&amp;#10003;&quot;</span></code> and then URL‑encode it, producing <code class="docutils literal notranslate"><span class="pre">utf8=%26%2310003%3B</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">qs_codec.</span></span><span class="sig-name descname"><span class="pre">Undefined</span></span><a class="reference internal" href="_modules/qs_codec/models/undefined.html#Undefined"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Singleton sentinel object representing an “undefined” value.</p>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>This is <strong>not</strong> the same as <cite>None</cite>. Use <cite>None</cite> to represent a <em>null</em> value and <cite>Undefined()</cite> to represent “no value / omit”.</p></li>
+<li><p>All calls to <code class="docutils literal notranslate"><span class="pre">Undefined()</span></code> return the same instance. Prefer identity checks (<code class="docutils literal notranslate"><span class="pre">is</span></code>) over equality checks.</p></li>
+</ul>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">qs_codec.models.undefined</span><span class="w"> </span><span class="kn">import</span> <span class="n">Undefined</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">Undefined</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">Undefined</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="ow">is</span> <span class="n">b</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Use it to indicate a key should be omitted when encoding:</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">maybe_value</span> <span class="o">=</span> <span class="n">Undefined</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">if</span> <span class="n">maybe_value</span> <span class="ow">is</span> <span class="n">Undefined</span><span class="p">():</span>
+<span class="gp">... </span>    <span class="k">pass</span>  <span class="c1"># skip emitting the key</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">qs_codec.</span></span><span class="sig-name descname"><span class="pre">decode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions" title="qs_codec.models.decode_options.DecodeOptions"><span class="pre">DecodeOptions</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/qs_codec/decode.html#decode"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Decode a query string (or a pre-tokenized mapping) into a nested <code class="docutils literal notranslate"><span class="pre">Dict[str,</span> <span class="pre">Any]</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – Either a raw query string (<code class="docutils literal notranslate"><span class="pre">str</span></code>) or an already-parsed mapping (<code class="docutils literal notranslate"><span class="pre">Mapping[str,</span> <span class="pre">Any]</span></code>).
+Passing a mapping is useful in tests or when a custom tokenizer is used upstream.</p></li>
+<li><p><strong>options</strong> – <code class="docutils literal notranslate"><span class="pre">DecodeOptions</span></code> controlling delimiter, duplicates policy, list &amp; depth limits, dot-notation, decoding charset, and more.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A freshly-allocated mapping containing nested dicts/lists/values.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Any]</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If <code class="docutils literal notranslate"><span class="pre">value</span></code> is neither <code class="docutils literal notranslate"><span class="pre">str</span></code> nor <code class="docutils literal notranslate"><span class="pre">Mapping</span></code>, or when limits are violated under <code class="docutils literal notranslate"><span class="pre">raise_on_limit_exceeded=True</span></code>.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Empty/falsey <code class="docutils literal notranslate"><span class="pre">value</span></code> returns an empty dict.</p></li>
+<li><p>When the <em>number of top-level tokens</em> exceeds <code class="docutils literal notranslate"><span class="pre">list_limit</span></code> and <code class="docutils literal notranslate"><span class="pre">parse_lists</span></code> is enabled, the parser temporarily <strong>disables list parsing</strong> for this invocation to avoid quadratic work. This mirrors the behavior of other ports and keeps large flat query strings efficient.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">qs_codec.</span></span><span class="sig-name descname"><span class="pre">dumps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions" title="qs_codec.models.encode_options.EncodeOptions"><span class="pre">EncodeOptions</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">EncodeOptions(allow_dots=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_query_prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_empty_lists</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;ListFormat.INDICES:</span> <span class="pre">list_format_name='INDICES'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">ListFormatGenerator.indices&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;Charset.UTF8:</span> <span class="pre">encoding='utf-8'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charset_sentinel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delimiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'&amp;'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encode_dot_in_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encode_values_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;Format.RFC3986:</span> <span class="pre">format_name='RFC3986'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">formatter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">Formatter.rfc3986&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_nulls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">serialize_date</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">EncodeUtils.serialize_date&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">EncodeOptions.encoder.&lt;locals&gt;.&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict_null_handling</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comma_round_trip</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comma_compact_nulls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_depth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span></dt>
+<dd><p>Stringify a Python value into a query string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – The object to encode. Accepted shapes:
+* Mapping -&gt; encoded as-is.
+* Sequence (list/tuple) -&gt; treated as an object with string indices.
+* Other/None -&gt; treated as empty input.</p></li>
+<li><p><strong>options</strong> – Encoding behavior (parity with the Node.js <cite>qs</cite> API).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The encoded query string (possibly prefixed with “?” if requested), or an empty string when there is nothing to encode.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Caller input is not mutated. When a mapping is provided it is shallow-copied (deep-copied only when a callable
+filter is used). Root sequences are projected to a temporary mapping and deep-copied first when a callable
+filter is used.</p></li>
+<li><p>If a callable <cite>filter</cite> is provided, it can transform the root object.</p></li>
+<li><p>If an iterable filter is provided, it selects which <em>root</em> keys to emit.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">qs_codec.</span></span><span class="sig-name descname"><span class="pre">encode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions" title="qs_codec.models.encode_options.EncodeOptions"><span class="pre">EncodeOptions</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">EncodeOptions(allow_dots=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_query_prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_empty_lists</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;ListFormat.INDICES:</span> <span class="pre">list_format_name='INDICES'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">ListFormatGenerator.indices&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;Charset.UTF8:</span> <span class="pre">encoding='utf-8'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charset_sentinel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delimiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'&amp;'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encode_dot_in_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encode_values_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;Format.RFC3986:</span> <span class="pre">format_name='RFC3986'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">formatter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">Formatter.rfc3986&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_nulls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">serialize_date</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">EncodeUtils.serialize_date&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">EncodeOptions.encoder.&lt;locals&gt;.&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict_null_handling</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comma_round_trip</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comma_compact_nulls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_depth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/qs_codec/encode.html#encode"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Stringify a Python value into a query string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – The object to encode. Accepted shapes:
+* Mapping -&gt; encoded as-is.
+* Sequence (list/tuple) -&gt; treated as an object with string indices.
+* Other/None -&gt; treated as empty input.</p></li>
+<li><p><strong>options</strong> – Encoding behavior (parity with the Node.js <cite>qs</cite> API).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The encoded query string (possibly prefixed with “?” if requested), or an empty string when there is nothing to encode.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Caller input is not mutated. When a mapping is provided it is shallow-copied (deep-copied only when a callable
+filter is used). Root sequences are projected to a temporary mapping and deep-copied first when a callable
+filter is used.</p></li>
+<li><p>If a callable <cite>filter</cite> is provided, it can transform the root object.</p></li>
+<li><p>If an iterable filter is provided, it selects which <em>root</em> keys to emit.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">qs_codec.</span></span><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions" title="qs_codec.models.decode_options.DecodeOptions"><span class="pre">DecodeOptions</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span></dt>
+<dd><p>Decode a query string (or a pre-tokenized mapping) into a nested <code class="docutils literal notranslate"><span class="pre">Dict[str,</span> <span class="pre">Any]</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – Either a raw query string (<code class="docutils literal notranslate"><span class="pre">str</span></code>) or an already-parsed mapping (<code class="docutils literal notranslate"><span class="pre">Mapping[str,</span> <span class="pre">Any]</span></code>).
+Passing a mapping is useful in tests or when a custom tokenizer is used upstream.</p></li>
+<li><p><strong>options</strong> – <code class="docutils literal notranslate"><span class="pre">DecodeOptions</span></code> controlling delimiter, duplicates policy, list &amp; depth limits, dot-notation, decoding charset, and more.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A freshly-allocated mapping containing nested dicts/lists/values.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Any]</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If <code class="docutils literal notranslate"><span class="pre">value</span></code> is neither <code class="docutils literal notranslate"><span class="pre">str</span></code> nor <code class="docutils literal notranslate"><span class="pre">Mapping</span></code>, or when limits are violated under <code class="docutils literal notranslate"><span class="pre">raise_on_limit_exceeded=True</span></code>.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Empty/falsey <code class="docutils literal notranslate"><span class="pre">value</span></code> returns an empty dict.</p></li>
+<li><p>When the <em>number of top-level tokens</em> exceeds <code class="docutils literal notranslate"><span class="pre">list_limit</span></code> and <code class="docutils literal notranslate"><span class="pre">parse_lists</span></code> is enabled, the parser temporarily <strong>disables list parsing</strong> for this invocation to avoid quadratic work. This mirrors the behavior of other ports and keeps large flat query strings efficient.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">qs_codec.</span></span><span class="sig-name descname"><span class="pre">loads</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions" title="qs_codec.models.decode_options.DecodeOptions"><span class="pre">DecodeOptions</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/qs_codec/decode.html#loads"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Alias for <code class="docutils literal notranslate"><span class="pre">decode</span></code>. Decodes a query string into a <code class="docutils literal notranslate"><span class="pre">Dict[str,</span> <span class="pre">Any]</span></code>.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">decode</span></code> if you want to pass a <code class="docutils literal notranslate"><span class="pre">Dict[str,</span> <span class="pre">Any]</span></code>.</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">qs-codec</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="README.html">Decoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#encoding">Encoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#handling-none-values">Handling <code class="docutils literal notranslate"><span class="pre">None</span></code> values</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#dealing-with-special-character-sets">Dealing with special character sets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#rfc-3986-and-rfc-1738-space-encoding">RFC 3986 and RFC 1738 space encoding</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">qs_codec</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">qs_codec package</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">qs_codec</a><ul>
+      <li>Previous: <a href="modules.html" title="previous chapter">qs_codec</a></li>
+      <li>Next: <a href="qs_codec.enums.html" title="next chapter">qs_codec.enums package</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, Klemen Tusar.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/qs_codec.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

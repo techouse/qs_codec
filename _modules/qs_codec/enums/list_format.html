@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>qs_codec.enums.list_format &#8212; qs-codec 1.4.3 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=a68a9277"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for qs_codec.enums.list_format</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;List formatting strategies for query‑string arrays.</span>
+
+<span class="sd">This module defines small generator functions and an enum that the encoder</span>
+<span class="sd">uses to format list (array) keys, e.g., ``foo[]=1``, ``foo[0]=1``, ``foo=1,2``,</span>
+<span class="sd">or repeated keys ``foo=1&amp;foo=2``.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">t</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+
+
+<div class="viewcode-block" id="ListFormatGenerator">
+<a class="viewcode-back" href="../../../qs_codec.enums.html#qs_codec.ListFormatGenerator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ListFormatGenerator</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Factory of tiny helpers that format a list element key segment.</span>
+
+<span class="sd">    Each static method returns the string that should be appended to the</span>
+<span class="sd">    current key ``prefix`` to represent *one* element in a list. The encoder</span>
+<span class="sd">    selects the method based on the chosen :class:`ListFormat` variant.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ListFormatGenerator.brackets">
+<a class="viewcode-back" href="../../../qs_codec.enums.html#qs_codec.ListFormatGenerator.brackets">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">brackets</span><span class="p">(</span><span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>  <span class="c1"># pylint: disable=W0613</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the key for a list element using empty brackets.</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            ``prefix=&#39;foo&#39;`` → ``&#39;foo[]&#39;``</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            prefix: The current key prefix (e.g., ``&#39;foo&#39;``).</span>
+<span class="sd">            key: Unused for this strategy.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The formatted key segment.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">[]&quot;</span></div>
+
+
+<div class="viewcode-block" id="ListFormatGenerator.comma">
+<a class="viewcode-back" href="../../../qs_codec.enums.html#qs_codec.ListFormatGenerator.comma">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">comma</span><span class="p">(</span><span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>  <span class="c1"># pylint: disable=W0613</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the key for comma‑separated lists (no change).</span>
+
+<span class="sd">        The encoder will join values with commas instead of repeating the key.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            prefix: Current key prefix.</span>
+<span class="sd">            key: Unused for this strategy.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The unchanged prefix.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">prefix</span></div>
+
+
+<div class="viewcode-block" id="ListFormatGenerator.indices">
+<a class="viewcode-back" href="../../../qs_codec.enums.html#qs_codec.ListFormatGenerator.indices">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">indices</span><span class="p">(</span><span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the key for an indexed list element.</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            ``prefix=&#39;foo&#39;``, ``key=&#39;0&#39;`` → ``&#39;foo[0]&#39;``</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            prefix: Current key prefix.</span>
+<span class="sd">            key: The numeric index string for this element.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The formatted key.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">[</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">]&quot;</span></div>
+
+
+<div class="viewcode-block" id="ListFormatGenerator.repeat">
+<a class="viewcode-back" href="../../../qs_codec.enums.html#qs_codec.ListFormatGenerator.repeat">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">repeat</span><span class="p">(</span><span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>  <span class="c1"># pylint: disable=W0613</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the key for “repeat key” lists (no change).</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            ``prefix=&#39;foo&#39;`` → ``&#39;foo&#39;`` (the key is repeated per element)</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            prefix: Current key prefix.</span>
+<span class="sd">            key: Unused for this strategy.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The unchanged prefix.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">prefix</span></div>
+</div>
+
+
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_ListFormatDataMixin</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Mixin carrying metadata for a list format option.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        list_format_name: Stable string identifier (e.g., ``&quot;BRACKETS&quot;``).</span>
+<span class="sd">        generator: Callable that formats a list element key given (prefix, index).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">list_format_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">generator</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="nb">str</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="ListFormat">
+<a class="viewcode-back" href="../../../qs_codec.enums.html#qs_codec.ListFormat">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ListFormat</span><span class="p">(</span><span class="n">_ListFormatDataMixin</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Available list formatting options for the encoder.</span>
+
+<span class="sd">    Each member pairs a stable name with a generator function from</span>
+<span class="sd">    :class:`ListFormatGenerator`:</span>
+
+<span class="sd">    - ``BRACKETS``: ``foo[]`` for each element.</span>
+<span class="sd">    - ``INDICES``: ``foo[0]``, ``foo[1]``, …</span>
+<span class="sd">    - ``REPEAT``: repeat the key per value (``foo=1&amp;foo=2``).</span>
+<span class="sd">    - ``COMMA``: single key with comma‑joined values (``foo=1,2``).</span>
+
+<span class="sd">    These options control only how keys are produced; value encoding and</span>
+<span class="sd">    delimiter handling are governed by other options.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">BRACKETS</span> <span class="o">=</span> <span class="s2">&quot;BRACKETS&quot;</span><span class="p">,</span> <span class="n">ListFormatGenerator</span><span class="o">.</span><span class="n">brackets</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Use brackets to represent list items, for example ``foo[]=123&amp;foo[]=456&amp;foo[]=789``.&quot;&quot;&quot;</span>
+
+    <span class="n">COMMA</span> <span class="o">=</span> <span class="s2">&quot;COMMA&quot;</span><span class="p">,</span> <span class="n">ListFormatGenerator</span><span class="o">.</span><span class="n">comma</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Use commas to represent list items, for example ``foo=123,456,789``.&quot;&quot;&quot;</span>
+
+    <span class="n">REPEAT</span> <span class="o">=</span> <span class="s2">&quot;REPEAT&quot;</span><span class="p">,</span> <span class="n">ListFormatGenerator</span><span class="o">.</span><span class="n">repeat</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Use a repeat key to represent list items, for example ``foo=123&amp;foo=456&amp;foo=789``.&quot;&quot;&quot;</span>
+
+    <span class="n">INDICES</span> <span class="o">=</span> <span class="s2">&quot;INDICES&quot;</span><span class="p">,</span> <span class="n">ListFormatGenerator</span><span class="o">.</span><span class="n">indices</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Use indices to represent list items, for example ``foo[0]=123&amp;foo[1]=456&amp;foo[2]=789``.&quot;&quot;&quot;</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">qs-codec</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html">Decoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html#encoding">Encoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html#handling-none-values">Handling <code class="docutils literal notranslate"><span class="pre">None</span></code> values</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html#dealing-with-special-character-sets">Dealing with special character sets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html#rfc-3986-and-rfc-1738-space-encoding">RFC 3986 and RFC 1738 space encoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">qs_codec</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, Klemen Tusar.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>qs_codec.models.decode_options &#8212; qs-codec 1.4.3 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=a68a9277"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for qs_codec.models.decode_options</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;This module contains the ``DecodeOptions`` class that configures the output of ``decode``.</span>
+
+<span class="sd">Keys are decoded identically to values by the default decoder; whether a decoded ``.`` splits</span>
+<span class="sd">segments is controlled by parsing options (``allow_dots`` / ``decode_dot_in_keys``) elsewhere.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">t</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span> <span class="k">as</span> <span class="n">_EnumBase</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">wraps</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..enums.charset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Charset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..enums.decode_kind</span><span class="w"> </span><span class="kn">import</span> <span class="n">DecodeKind</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..enums.duplicates</span><span class="w"> </span><span class="kn">import</span> <span class="n">Duplicates</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.decode_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">DecodeUtils</span>
+
+
+<div class="viewcode-block" id="DecodeOptions">
+<a class="viewcode-back" href="../../../qs_codec.models.html#qs_codec.DecodeOptions">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DecodeOptions</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Options that configure the output of ``decode``.&quot;&quot;&quot;</span>
+
+    <span class="n">allow_dots</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set to ``True`` to decode dot ``dict`` notation in the encoded input.</span>
+<span class="sd">    When ``None`` (default), it inherits the value of ``decode_dot_in_keys``.&quot;&quot;&quot;</span>
+
+    <span class="n">decode_dot_in_keys</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set to ``True`` to decode percent‑encoded dots in keys (e.g., ``%2E`` → ``.``).</span>
+<span class="sd">    Note: it implies ``allow_dots``, so ``decode`` will error if you set ``decode_dot_in_keys`` to ``True``, and</span>
+<span class="sd">    ``allow_dots`` to ``False``.</span>
+<span class="sd">    When ``None`` (default), it defaults to ``False``.</span>
+
+<span class="sd">    Inside bracket segments, percent-decoding naturally yields ``.`` from ``%2E/%2e``. This option controls whether</span>
+<span class="sd">    **top‑level** encoded dots are treated as additional split points; it does **not** affect the literal ``.`` produced</span>
+<span class="sd">    by percent-decoding inside bracket segments.&quot;&quot;&quot;</span>
+
+    <span class="n">allow_empty_lists</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set to ``True`` to allow empty ``list`` values inside ``dict``\\s in the encoded input.&quot;&quot;&quot;</span>
+
+    <span class="n">list_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Maximum number of **indexed** items allowed in a single list (default: ``20``).</span>
+
+<span class="sd">    During decoding, keys like ``a[0]``, ``a[1]``, … are treated as list indices. If an</span>
+<span class="sd">    index exceeds this limit, the container is treated as a ``dict`` instead, with the</span>
+<span class="sd">    numeric index kept as a string key (e.g., ``{&quot;999&quot;: &quot;x&quot;}``) to prevent creation of</span>
+<span class="sd">    massive sparse lists (e.g., ``a[999999999]``).</span>
+
+<span class="sd">    This limit also applies to comma–split lists when ``comma=True``. Set a larger value if</span>
+<span class="sd">    you explicitly need more items, or set a smaller one to harden against abuse.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">charset</span><span class="p">:</span> <span class="n">Charset</span> <span class="o">=</span> <span class="n">Charset</span><span class="o">.</span><span class="n">UTF8</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The character encoding to use when decoding the input.&quot;&quot;&quot;</span>
+
+    <span class="n">charset_sentinel</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Some services add an initial ``utf8=✓`` value to forms so that old InternetExplorer versions are more likely to</span>
+<span class="sd">    submit the form as ``utf-8``. Additionally, the server can check the value against wrong encodings of the checkmark</span>
+<span class="sd">    character and detect that a query string or ``application/x-www-form-urlencoded`` body was *not* sent as ``utf-8``,</span>
+<span class="sd">    e.g. if the form had an ``accept-charset`` parameter or the containing page had a different character set.</span>
+
+<span class="sd">    ``qs_codec`` supports this mechanism via the ``charset_sentinel`` option.</span>
+<span class="sd">    If specified, the ``utf-8`` parameter will be omitted from the returned ``dict``.</span>
+<span class="sd">    It will be used to switch to ``LATIN1`` or ``UTF8`` mode depending on how the checkmark is encoded.</span>
+
+<span class="sd">    Important: When you specify both the ``charset`` option and the ``charset_sentinel`` option,</span>
+<span class="sd">    the ``charset`` will be overridden when the request contains a ``utf-8`` parameter from which the actual charset</span>
+<span class="sd">    can be deduced. In that sense the ``charset`` will behave as the default charset rather than the authoritative</span>
+<span class="sd">    charset.&quot;&quot;&quot;</span>
+
+    <span class="n">comma</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set to ``True`` to parse the input as a comma-separated value.</span>
+<span class="sd">    Note: nested ``dict`` s, such as ``&#39;a={b:1},{c:d}&#39;`` are not supported.&quot;&quot;&quot;</span>
+
+    <span class="n">delimiter</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Pattern</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="s2">&quot;&amp;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The delimiter to use when splitting key-value pairs in the encoded input. Can be a ``str`` or a ``Pattern``.&quot;&quot;&quot;</span>
+
+    <span class="n">depth</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;By default, when nesting ``dict``\\s ``qs_codec`` will only decode up to 5 children deep.</span>
+<span class="sd">    This depth can be overridden by setting the ``depth``.</span>
+<span class="sd">    The depth limit helps mitigate abuse when ``qs_codec`` is used to parse user input,</span>
+<span class="sd">    and it is recommended to keep it a reasonably small number.&quot;&quot;&quot;</span>
+
+    <span class="n">parameter_limit</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1000</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;For similar reasons, by default ``qs_codec`` will only parse up to 1000 parameters. This can be overridden by</span>
+<span class="sd">    passing a ``parameter_limit`` option.&quot;&quot;&quot;</span>
+
+    <span class="n">duplicates</span><span class="p">:</span> <span class="n">Duplicates</span> <span class="o">=</span> <span class="n">Duplicates</span><span class="o">.</span><span class="n">COMBINE</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Strategy for handling duplicate keys in the input.</span>
+
+<span class="sd">    - ``COMBINE`` (default): merge values into a list (e.g., ``a=1&amp;a=2`` → ``{&quot;a&quot;: [1, 2]}``).</span>
+<span class="sd">    - ``FIRST``: keep the first value and ignore subsequent ones (``{&quot;a&quot;: 1}``).</span>
+<span class="sd">    - ``LAST``: keep only the last value seen (``{&quot;a&quot;: 2}``).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">ignore_query_prefix</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set to ``True`` to ignore the leading question mark query prefix in the encoded input.&quot;&quot;&quot;</span>
+
+    <span class="n">interpret_numeric_entities</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set to ``True`` to interpret HTML numeric entities (``&amp;#...;``) in the encoded input.&quot;&quot;&quot;</span>
+
+    <span class="n">parse_lists</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;To disable ``list`` parsing entirely, set ``parse_lists`` to ``False``.&quot;&quot;&quot;</span>
+
+    <span class="n">strict_depth</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Enforce the ``depth`` limit when decoding nested structures.</span>
+
+<span class="sd">    When ``True``, the decoder will not descend beyond ``depth`` levels. Combined with</span>
+<span class="sd">    ``raise_on_limit_exceeded``:</span>
+
+<span class="sd">    - if ``raise_on_limit_exceeded=True``, exceeding the depth raises an ``IndexError``;</span>
+<span class="sd">    - if ``False``, the decoder stops descending and treats deeper content as a terminal value, preserving the last valid container without raising.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">strict_null_handling</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set to ``True`` to decode values without ``=`` to ``None``.&quot;&quot;&quot;</span>
+
+    <span class="n">raise_on_limit_exceeded</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raise instead of degrading gracefully when limits are exceeded.</span>
+
+<span class="sd">    When ``True``, the decoder raises:</span>
+<span class="sd">    - a ``DecodeError`` for parameter and list limit violations; and</span>
+<span class="sd">    - an ``IndexError`` when nesting deeper than ``depth`` **and** ``strict_depth=True``.</span>
+
+<span class="sd">    When ``False`` (default), the decoder degrades gracefully: it slices the parameter list</span>
+<span class="sd">    at ``parameter_limit``, stops adding items beyond ``list_limit``, and—if</span>
+<span class="sd">    ``strict_depth=True``—stops descending once ``depth`` is reached without raising.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">decoder</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]]]</span> <span class="o">=</span> <span class="n">DecodeUtils</span><span class="o">.</span><span class="n">decode</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom scalar decoder invoked for each raw token prior to interpretation.</span>
+
+<span class="sd">    The built-in decoder supports ``kind`` and is invoked as</span>
+<span class="sd">    ``decoder(string, charset, kind=DecodeKind.KEY|VALUE)``. Custom decoders that omit</span>
+<span class="sd">    ``kind`` (or ``charset``) are automatically adapted for compatibility. Returning ``None``</span>
+<span class="sd">    from the decoder uses ``None`` as the scalar value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">legacy_decoder</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Back‑compat adapter for legacy decoders of the form ``decoder(value, charset)``.</span>
+<span class="sd">    Prefer ``decoder`` which may optionally accept a ``kind`` argument. When both are supplied,</span>
+<span class="sd">    ``decoder`` takes precedence (mirroring Kotlin/C#/Swift/Dart behavior).&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Post-initialization.&quot;&quot;&quot;</span>
+        <span class="c1"># Default `decode_dot_in_keys` first, then mirror into `allow_dots` when unspecified.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_dot_in_keys</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decode_dot_in_keys</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">allow_dots</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">allow_dots</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decode_dot_in_keys</span><span class="p">)</span>
+
+        <span class="c1"># Enforce consistency with the docs: `decode_dot_in_keys=True` implies `allow_dots=True`.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_dot_in_keys</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">allow_dots</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;decode_dot_in_keys=True implies allow_dots=True&quot;</span><span class="p">)</span>
+
+        <span class="c1"># decoder setup + compatibility wrapper:</span>
+        <span class="c1"># precedence is: user `decoder` &gt; `legacy_decoder` &gt; library default.</span>
+        <span class="n">raw_dec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span>
+        <span class="k">if</span> <span class="n">raw_dec</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">legacy_decoder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">raw_dec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">legacy_decoder</span>  <span class="c1"># legacy two-arg form; no kind</span>
+        <span class="k">if</span> <span class="n">raw_dec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">raw_dec</span> <span class="o">=</span> <span class="n">DecodeUtils</span><span class="o">.</span><span class="n">decode</span>
+
+        <span class="n">user_dec</span> <span class="o">=</span> <span class="n">raw_dec</span>
+
+        <span class="c1"># Precompute dispatch to avoid per-call introspection.</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">sig</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">user_dec</span><span class="p">)</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">parameters</span>
+            <span class="n">param_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+            <span class="n">has_var_kw</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">VAR_KEYWORD</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">param_list</span><span class="p">)</span>
+            <span class="n">has_var_pos</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">VAR_POSITIONAL</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">param_list</span><span class="p">)</span>
+
+            <span class="n">accepts_charset_pos</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">accepts_charset_kw</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="s2">&quot;charset&quot;</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;charset&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">POSITIONAL_ONLY</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">POSITIONAL_OR_KEYWORD</span><span class="p">):</span>
+                    <span class="n">accepts_charset_pos</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">POSITIONAL_OR_KEYWORD</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">KEYWORD_ONLY</span><span class="p">):</span>
+                    <span class="n">accepts_charset_kw</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="n">has_var_pos</span><span class="p">:</span>
+                <span class="n">accepts_charset_pos</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="n">has_kind_param</span> <span class="o">=</span> <span class="s2">&quot;kind&quot;</span> <span class="ow">in</span> <span class="n">params</span>
+            <span class="n">accepts_kind_kw</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">accepts_kind_pos</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="n">has_kind_param</span><span class="p">:</span>
+                <span class="n">k</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;kind&quot;</span><span class="p">]</span>
+                <span class="n">accepts_kind_kw</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="p">(</span>
+                    <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">POSITIONAL_OR_KEYWORD</span><span class="p">,</span>
+                    <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">KEYWORD_ONLY</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">accepts_kind_pos</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="p">(</span>
+                    <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">POSITIONAL_ONLY</span><span class="p">,</span>
+                    <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">POSITIONAL_OR_KEYWORD</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="n">has_var_kw</span><span class="p">:</span>
+                <span class="n">accepts_kind_kw</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># can pass via **kwargs</span>
+                <span class="n">accepts_kind_pos</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="c1"># Decide how to represent `kind`: prefer string for maximum compatibility</span>
+            <span class="n">pass_kind_as_str</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="n">has_kind_param</span><span class="p">:</span>
+                <span class="n">ann</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;kind&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">annotation</span>
+                <span class="c1"># NOTE: If a user annotates `kind` as a typing.Literal (e.g., Literal[&quot;key&quot;, &quot;value&quot;]),</span>
+                <span class="c1"># `ann` will NOT be a `type`, so we fall back to passing strings (the default path below).</span>
+                <span class="c1"># This is intentional: it preserves compatibility with callables that prefer plain strings</span>
+                <span class="c1"># while still supporting Enum-typed signatures where we pass the Enum instance instead.</span>
+                <span class="k">if</span> <span class="n">ann</span> <span class="ow">is</span> <span class="n">inspect</span><span class="o">.</span><span class="n">Signature</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+                    <span class="n">pass_kind_as_str</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ann</span><span class="p">,</span> <span class="nb">type</span><span class="p">):</span>
+                        <span class="n">pass_kind_as_str</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">ann</span><span class="p">,</span> <span class="n">_EnumBase</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">pass_kind_as_str</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">elif</span> <span class="n">has_var_kw</span><span class="p">:</span>
+                <span class="n">pass_kind_as_str</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="k">def</span><span class="w"> </span><span class="nf">dispatch</span><span class="p">(</span>
+                <span class="n">s</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                <span class="n">charset</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Charset</span><span class="p">],</span>
+                <span class="n">kind</span><span class="p">:</span> <span class="n">DecodeKind</span><span class="p">,</span>
+            <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]:</span>
+                <span class="n">kind_arg</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">DecodeKind</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">kind</span><span class="o">.</span><span class="n">value</span> <span class="k">if</span> <span class="n">pass_kind_as_str</span> <span class="k">else</span> <span class="n">kind</span>
+                <span class="n">args</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="p">]</span>
+                <span class="n">kwargs</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">if</span> <span class="n">accepts_charset_pos</span><span class="p">:</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">charset</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">accepts_charset_kw</span> <span class="ow">or</span> <span class="n">has_var_kw</span><span class="p">:</span>
+                    <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;charset&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">charset</span>
+                <span class="k">if</span> <span class="n">accepts_kind_kw</span><span class="p">:</span>
+                    <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;kind&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kind_arg</span>
+                <span class="k">elif</span> <span class="n">accepts_kind_pos</span><span class="p">:</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">kind_arg</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">user_dec</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+            <span class="c1"># Builtins/callables without retrievable signature: try the most compatible forms.</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">dispatch</span><span class="p">(</span>
+                <span class="n">s</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                <span class="n">charset</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Charset</span><span class="p">],</span>
+                <span class="n">kind</span><span class="p">:</span> <span class="n">DecodeKind</span><span class="p">,</span>
+            <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]:</span>
+                <span class="n">_</span> <span class="o">=</span> <span class="n">kind</span>  <span class="c1"># ignored by legacy decoders</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">user_dec</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>  <span class="c1"># type: ignore[misc]</span>
+                <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">e1</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="n">user_dec</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">charset</span><span class="p">)</span>  <span class="c1"># type: ignore[misc]</span>
+                    <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">e1</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+
+        <span class="nd">@wraps</span><span class="p">(</span><span class="n">user_dec</span><span class="p">)</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">_adapter</span><span class="p">(</span>
+            <span class="n">s</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+            <span class="n">charset</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Charset</span><span class="p">]</span> <span class="o">=</span> <span class="n">Charset</span><span class="o">.</span><span class="n">UTF8</span><span class="p">,</span>
+            <span class="o">*</span><span class="p">,</span>
+            <span class="n">kind</span><span class="p">:</span> <span class="n">DecodeKind</span> <span class="o">=</span> <span class="n">DecodeKind</span><span class="o">.</span><span class="n">VALUE</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Adapter that dispatches based on the user decoder&#39;s signature.&quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="n">dispatch</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">charset</span><span class="p">,</span> <span class="n">kind</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">_adapter</span>
+
+    <span class="c1"># --- Convenience methods ---</span>
+<div class="viewcode-block" id="DecodeOptions.decode">
+<a class="viewcode-back" href="../../../qs_codec.models.html#qs_codec.DecodeOptions.decode">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">charset</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Charset</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">kind</span><span class="p">:</span> <span class="n">DecodeKind</span> <span class="o">=</span> <span class="n">DecodeKind</span><span class="o">.</span><span class="n">VALUE</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Unified scalar decode with key/value context.</span>
+
+<span class="sd">        Uses the configured ``decoder`` (or ``legacy_decoder``) when provided; otherwise falls back</span>
+<span class="sd">        to :meth:`DecodeUtils.decode`. The default library behavior decodes keys identically to</span>
+<span class="sd">        values; whether a ``.`` participates in key splitting is decided later by the parser.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># ``self.decoder`` has been normalized to accept (s, charset, *, kind)</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span>
+        <span class="k">if</span> <span class="n">d</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Should not happen because we always set an adapter, but keep a safe fallback.</span>
+            <span class="k">return</span> <span class="n">DecodeUtils</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">charset</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">charset</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">d</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">charset</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">charset</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="n">kind</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DecodeOptions.decode_key">
+<a class="viewcode-back" href="../../../qs_codec.models.html#qs_codec.DecodeOptions.decode_key">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">decode_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">charset</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Charset</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decode a key (or key segment). Always returns a string or ``None``.</span>
+
+<span class="sd">        Note: custom decoders returning non-strings for keys are coerced via ``str()``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">charset</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="n">DecodeKind</span><span class="o">.</span><span class="n">KEY</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">out</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DecodeOptions.decode_value">
+<a class="viewcode-back" href="../../../qs_codec.models.html#qs_codec.DecodeOptions.decode_value">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">decode_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">charset</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Charset</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decode a value token. Returns any scalar or ``None``.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">charset</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="n">DecodeKind</span><span class="o">.</span><span class="n">VALUE</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">qs-codec</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html">Decoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html#encoding">Encoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html#handling-none-values">Handling <code class="docutils literal notranslate"><span class="pre">None</span></code> values</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html#dealing-with-special-character-sets">Dealing with special character sets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../README.html#rfc-3986-and-rfc-1738-space-encoding">RFC 3986 and RFC 1738 space encoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">qs_codec</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, Klemen Tusar.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
