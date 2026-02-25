@@ -650,6 +650,12 @@ class TestEncode:
         [
             pytest.param({"a": ""}, None, "a=", id="empty-string"),
             pytest.param({"a": None}, EncodeOptions(strict_null_handling=True), "a", id="none-strict-null"),
+            pytest.param(
+                {"a b": None},
+                EncodeOptions(strict_null_handling=True, format=Format.RFC1738),
+                "a+b",
+                id="none-strict-null-rfc1738-space",
+            ),
             pytest.param({"a": "", "b": ""}, None, "a=&b=", id="multiple-empty"),
             pytest.param(
                 {"a": None, "b": ""},
@@ -966,6 +972,28 @@ class TestEncode:
 
         assert encode(obj, options=EncodeOptions(filter=filter_func)) == "a=b&c=&e%5Bf%5D=1257894000"
         assert calls == 5
+
+    def test_callable_filter_does_not_mutate_root_list_elements(self) -> None:
+        data: t.List[t.Dict[str, str]] = [{"a": "b"}]
+
+        def filter_func(prefix: str, value: t.Any) -> t.Any:
+            if prefix == "":
+                value["0"]["a"] = "x"
+            return value
+
+        assert encode(data, options=EncodeOptions(filter=filter_func)) == "0%5Ba%5D=x"
+        assert data == [{"a": "b"}]
+
+    def test_callable_filter_does_not_mutate_root_tuple_elements(self) -> None:
+        data: t.Tuple[t.Dict[str, str], ...] = ({"a": "b"},)
+
+        def filter_func(prefix: str, value: t.Any) -> t.Any:
+            if prefix == "":
+                value["0"]["a"] = "x"
+            return value
+
+        assert encode(data, options=EncodeOptions(filter=filter_func)) == "0%5Ba%5D=x"
+        assert data[0]["a"] == "b"
 
     def test_encode_handles_mapping_get_exception(self) -> None:
         class ExplodingMapping(t.Mapping):
