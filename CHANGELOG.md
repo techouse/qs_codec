@@ -1,3 +1,13 @@
+## 1.4.3-wip
+
+* [CHORE] optimize `encode` traversal internals and hot paths with lower allocation overhead
+* [CHORE] add internal `KeyPathNode` path caching for lazy materialization and dot-encoded path reuse
+* [FIX] avoid `RecursionError` in deep key-path dot encoding by making `KeyPathNode.as_dot_encoded` iterative
+* [FIX] ensure strict null handling applies RFC formatter behavior for bare-key output (e.g. RFC1738 space handling)
+* [FIX] avoid mutating caller-owned root list/tuple elements when `EncodeOptions.filter` is callable
+* [CHORE] remove unused `KeyPathNode.total_length` state to keep nodes lightweight
+* [CHORE] expand encode regression and internal helper tests (path caching, list format generators, strict-null formatting, mutation safety)
+
 ## 1.4.2
 
 * [CHORE] optimize `decode` by skipping dot-in-keys normalization when "%2" is not present in key segments
