@@ -1,4 +1,4 @@
-## 1.4.3-wip
+## 1.4.3
 
 * [CHORE] optimize `encode` traversal internals and hot paths with lower allocation overhead
 * [CHORE] add internal `KeyPathNode` path caching for lazy materialization and dot-encoded path reuse
