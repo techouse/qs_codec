@@ -19,6 +19,7 @@ Notes:
 
 import typing as t
 from collections import deque
+from collections.abc import Mapping as ABCMapping
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -133,7 +134,7 @@ class Utils:
                     last_result = current_target
                     continue
 
-                if not isinstance(current_source, t.Mapping):
+                if not isinstance(current_source, ABCMapping):
                     # Fast-path: merging a non-mapping (list/tuple/scalar) into target.
                     if isinstance(current_target, (list, tuple)):
                         # If the target sequence contains `Undefined`, we may need to promote it
@@ -162,8 +163,8 @@ class Utils:
                             continue
 
                         if isinstance(current_source, (list, tuple)):
-                            if all(isinstance(el, (t.Mapping, Undefined)) for el in current_target) and all(
-                                isinstance(el, (t.Mapping, Undefined)) for el in current_source
+                            if all(isinstance(el, (ABCMapping, Undefined)) for el in current_target) and all(
+                                isinstance(el, (ABCMapping, Undefined)) for el in current_source
                             ):
                                 frame.list_target = dict(enumerate(current_target))
                                 frame.list_source = dict(enumerate(current_source))
@@ -188,7 +189,7 @@ class Utils:
                         last_result = mutable_target
                         continue
 
-                    if isinstance(current_target, t.Mapping):
+                    if isinstance(current_target, ABCMapping):
                         if Utils.is_overflow(current_target):
                             stack.pop()
                             last_result = Utils.combine(current_target, current_source, frame.options)
@@ -222,7 +223,7 @@ class Utils:
 
                 # Source is a mapping but target is not — coerce target to a mapping or
                 # concatenate as a list, then proceed.
-                if current_target is None or not isinstance(current_target, t.Mapping):
+                if current_target is None or not isinstance(current_target, ABCMapping):
                     if isinstance(current_target, (list, tuple)):
                         stack.pop()
                         last_result = {
@@ -614,12 +615,12 @@ class Utils:
         if isinstance(val, Undefined):
             return False
 
-        if isinstance(val, object):
-            if isinstance(val, (list, tuple, t.Mapping)):
-                return False
-            return True
+        if isinstance(val, (list, tuple, ABCMapping)):
+            return False
 
-        return False
+        # Opaque custom types are treated as primitives; keep the explicit fallback
+        # check for compatibility with tests that monkeypatch `isinstance`.
+        return isinstance(val, object)
 
     @staticmethod
     def normalize_comma_elem(e: t.Any) -> str:
