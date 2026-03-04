@@ -11,7 +11,8 @@ from weakref import WeakKeyDictionary
 import pytest
 
 from qs_codec import Charset, EncodeOptions, Format, ListFormat, dumps, encode
-from qs_codec.encode import _CycleState, _encode, _pop_current_node, _sentinel
+from qs_codec.encode import _encode, _pop_current_node, _sentinel
+from qs_codec.models.cycle_state import CycleState
 from qs_codec.models.undefined import Undefined
 from qs_codec.models.weak_wrapper import WeakWrapper
 from qs_codec.utils.encode_utils import EncodeUtils
@@ -1971,7 +1972,7 @@ class TestEncodeInternals:
     def test_pop_current_node_noop_when_wrapper_not_present(self) -> None:
         value: t.Dict[str, t.Any] = {"child": "value"}
         wrapper = WeakWrapper(value)
-        state = _CycleState()
+        state = CycleState()
 
         with does_not_raise():
             _pop_current_node(state, wrapper)
