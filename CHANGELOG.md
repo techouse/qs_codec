@@ -1,3 +1,13 @@
+## 1.4.4
+
+* [CHORE] optimize `decode` hot paths via structured-key pre-scan/bypass logic and lower-overhead default decoder dispatch
+* [FIX] align `decode` edge cases with Node `qs` for mixed flat/structured keys and leading-zero bracket roots (e.g. `[01]`)
+* [FIX] avoid incorrect list forcing when `[]=` appears only in the value token
+* [FIX] restore Python 3.8 compatibility in `decode` by avoiding runtime subscripting of `collections.abc.Mapping`
+* [CHORE] refactor `encode` traversal internals into dedicated frame/state models and constants
+* [CHORE] add repeatable local benchmark snapshots for decode (`C1/C2/C3`) and deep encode traversal
+* [CHORE] expand decode/utils regression coverage for collision semantics and parser compatibility paths
+
 ## 1.4.3
 
 * [CHORE] optimize `encode` traversal internals and hot paths with lower allocation overhead
