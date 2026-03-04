@@ -7,7 +7,13 @@ from sys import getsizeof
 import pytest
 
 from qs_codec import Charset, DecodeOptions, Duplicates, decode, load, loads
-from qs_codec.decode import _parse_object
+from qs_codec.decode import (
+    _first_structured_split_index,
+    _leading_structured_root,
+    _parse_keys,
+    _parse_object,
+    _scan_structured_keys,
+)
 from qs_codec.enums.decode_kind import DecodeKind
 from qs_codec.models.overflow_dict import OverflowDict
 from qs_codec.utils.decode_utils import DecodeUtils
@@ -859,12 +865,21 @@ class TestDecode:
                 {"foo": [["1", "2", "3"], "a"]},
                 id="string-second-list",
             ),
+            pytest.param(
+                "a[b]=x,y[]=z",
+                DecodeOptions(comma=True),
+                {"a": {"b": [["x", "y[]=z"]]}},
+                id="comma-value-containing-empty-brackets-marker",
+            ),
         ],
     )
     def test_parses_brackets_holds_list_of_lists_when_having_two_parts_of_strings_with_comma_as_list_divider(
         self, query: str, options: DecodeOptions, expected: t.Mapping[str, t.Any]
     ) -> None:
         assert decode(query, options) == expected
+
+    def test_does_not_force_list_when_empty_brackets_marker_is_only_in_value(self) -> None:
+        assert decode("a[foo]=x[]=", DecodeOptions(comma=True)) == {"a": {"foo": "x[]="}}
 
     @pytest.mark.parametrize(
         "query, expected",
@@ -1472,6 +1487,199 @@ class TestParserStateIsolation:
         # Second call should still parse lists as lists
         res2 = decode("a[]=1&a[]=2", opts)
         assert res2 == {"a": ["1", "2"]}
+
+
+class TestDecodeFastPathParity:
+    @pytest.mark.parametrize(
+        "query, options, expected",
+        [
+            pytest.param("a=1&b=2", None, {"a": "1", "b": "2"}, id="flat-default"),
+            pytest.param(
+                "foo=bar&foo=baz",
+                DecodeOptions(duplicates=Duplicates.COMBINE),
+                {"foo": ["bar", "baz"]},
+                id="flat-duplicates-combine",
+            ),
+            pytest.param(
+                "foo=bar&foo=baz",
+                DecodeOptions(duplicates=Duplicates.FIRST),
+                {"foo": "bar"},
+                id="flat-duplicates-first",
+            ),
+            pytest.param(
+                "foo=bar&foo=baz",
+                DecodeOptions(duplicates=Duplicates.LAST),
+                {"foo": "baz"},
+                id="flat-duplicates-last",
+            ),
+            pytest.param(
+                "a&b=",
+                DecodeOptions(strict_null_handling=True),
+                {"a": None, "b": ""},
+                id="flat-strict-null-handling",
+            ),
+            pytest.param(
+                "a=%F8",
+                DecodeOptions(charset_sentinel=True, charset=Charset.LATIN1),
+                {"a": "ø"},
+                id="flat-charset-sentinel-absent",
+            ),
+            pytest.param(
+                "utf8=%E2%9C%93&a=%C3%B8",
+                DecodeOptions(charset_sentinel=True, charset=Charset.LATIN1),
+                {"a": "ø"},
+                id="flat-charset-sentinel-present",
+            ),
+            pytest.param(
+                "002=1&2=2",
+                None,
+                {"002": "1", "2": "2"},
+                id="flat-leading-zero-key-remains-distinct",
+            ),
+        ],
+    )
+    def test_flat_decode_parity(
+        self, query: str, options: t.Optional[DecodeOptions], expected: t.Mapping[str, t.Any]
+    ) -> None:
+        if options is not None:
+            assert decode(query, options) == expected
+        else:
+            assert decode(query) == expected
+
+    def test_kind_aware_decoder_still_receives_key_value_for_flat_query(self) -> None:
+        calls: t.List[DecodeKind] = []
+
+        def _decoder(s: t.Optional[str], charset: t.Optional[Charset], *, kind: DecodeKind = DecodeKind.VALUE) -> t.Any:
+            calls.append(kind)
+            return DecodeUtils.decode(s, charset=charset, kind=kind)
+
+        assert decode("k1=v1&k2=v2", DecodeOptions(decoder=_decoder)) == {"k1": "v1", "k2": "v2"}
+        assert calls == [DecodeKind.KEY, DecodeKind.VALUE, DecodeKind.KEY, DecodeKind.VALUE]
+
+    def test_legacy_decoder_still_works_for_flat_query(self) -> None:
+        calls: t.List[t.Tuple[t.Optional[str], t.Optional[Charset]]] = []
+
+        def _legacy(token: t.Optional[str], charset: t.Optional[Charset]) -> t.Optional[str]:
+            calls.append((token, charset))
+            return DecodeUtils.decode(token, charset=charset)
+
+        assert decode("a=b&c=d", DecodeOptions(decoder=None, legacy_decoder=_legacy)) == {"a": "b", "c": "d"}
+        # KEY and VALUE for each pair still route through the legacy adapter.
+        assert [token for token, _ in calls] == ["a", "b", "c", "d"]
+
+    @pytest.mark.parametrize(
+        "duplicates, expected",
+        [
+            pytest.param(Duplicates.COMBINE, {"2": ["1", "3"], "002": "2"}, id="combine"),
+            pytest.param(Duplicates.FIRST, {"2": "1", "002": "2"}, id="first"),
+            pytest.param(Duplicates.LAST, {"2": "3", "002": "2"}, id="last"),
+        ],
+    )
+    def test_duplicate_policy_does_not_merge_leading_zero_numeric_keys(
+        self, duplicates: Duplicates, expected: t.Mapping[str, t.Any]
+    ) -> None:
+        query = "2=1&002=2&2=3"
+        result = decode(query, DecodeOptions(duplicates=duplicates))
+        assert result == expected
+
+
+class TestDecodeMixedBypassParity:
+    @pytest.mark.parametrize(
+        "query, options, expected",
+        [
+            pytest.param("a=1&a[b]=2", None, {"a": ["1", {"b": "2"}]}, id="flat-before-structured"),
+            pytest.param("a[b]=2&a=1", None, {"a": {"b": "2"}}, id="structured-before-flat"),
+            pytest.param("0=y&[]=x", None, {"0": "x"}, id="flat-zero-collides-leading-bracket-root"),
+            pytest.param("[]=x&0=y", None, {"0": ["x", "y"]}, id="leading-bracket-root-collides-flat-zero"),
+            pytest.param(
+                "a[b]=1&002=2",
+                None,
+                {"a": {"b": "1"}, "002": "2"},
+                id="mixed-structured-and-leading-zero-flat-key",
+            ),
+            pytest.param(
+                "a=2&a.b=1",
+                DecodeOptions(allow_dots=True),
+                {"a": ["2", {"b": "1"}]},
+                id="allow-dots-flat-root-collision",
+            ),
+            pytest.param(
+                "a%252Eb=1&a=2",
+                DecodeOptions(allow_dots=True, decode_dot_in_keys=True),
+                {"a.b": "1", "a": "2"},
+                id="encoded-dot-structured-plus-flat-root",
+            ),
+            pytest.param(
+                "[]=a&[]=b&1=c",
+                None,
+                {"0": "a", "1": ["b", "c"]},
+                id="flat-key-collides-with-index-materialized-by-empty-brackets",
+            ),
+            pytest.param(
+                "[01]=x&1=y",
+                None,
+                {"01": "x", "1": "y"},
+                id="leading-zero-bracket-root-does-not-collide-with-canonical-numeric-flat-key",
+            ),
+            pytest.param(
+                "[01]=x&01=y",
+                None,
+                {"01": ["x", "y"]},
+                id="leading-zero-bracket-root-collides-with-same-literal-flat-key",
+            ),
+            pytest.param(
+                "01=y&[01]=x",
+                None,
+                {"01": ["y", "x"]},
+                id="leading-zero-flat-key-merges-with-later-leading-zero-bracket-root",
+            ),
+        ],
+    )
+    def test_mixed_decode_parity(
+        self, query: str, options: t.Optional[DecodeOptions], expected: t.Mapping[str, t.Any]
+    ) -> None:
+        if options is not None:
+            assert decode(query, options) == expected
+        else:
+            assert decode(query) == expected
+
+
+class TestDecodeInternalCoverage:
+    def test_first_structured_split_index_prefers_earliest_encoded_dot_variant(self) -> None:
+        key = "a%2eb%2Ec"
+        assert _first_structured_split_index(key, allow_dots=True) == key.find("%2e")
+
+    def test_leading_structured_root_returns_plain_root_segment(self) -> None:
+        assert _leading_structured_root("a[b]=1", DecodeOptions()) == "a"
+
+    def test_leading_structured_root_returns_key_when_split_has_no_segments(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        def _empty_segments(*_args: t.Any, **_kwargs: t.Any) -> t.List[str]:
+            return []
+
+        monkeypatch.setattr(DecodeUtils, "split_key_into_segments", _empty_segments)
+        assert _leading_structured_root("a[b]=1", DecodeOptions()) == "a[b]=1"
+
+    def test_scan_structured_keys_empty_input(self) -> None:
+        scan = _scan_structured_keys({}, DecodeOptions())
+        assert scan.has_any_structured_syntax is False
+        assert scan.structured_keys == frozenset()
+        assert scan.structured_roots == frozenset()
+
+    def test_decode_skips_no_equals_pair_when_key_decodes_to_empty_string(self) -> None:
+        def _decoder(
+            token: t.Optional[str], charset: t.Optional[Charset], *, kind: DecodeKind = DecodeKind.VALUE
+        ) -> t.Optional[str]:
+            if kind is DecodeKind.KEY and token == "drop":
+                return ""
+            return DecodeUtils.decode(token, charset=charset, kind=kind)
+
+        result = decode("drop&keep=1", DecodeOptions(decoder=_decoder))
+        assert result == {"keep": "1"}
+
+    def test_parse_keys_returns_none_for_empty_key(self) -> None:
+        assert _parse_keys(None, "value", DecodeOptions(), values_parsed=True) is None
 
 
 class TestCSharpParityEncodedDotBehavior:

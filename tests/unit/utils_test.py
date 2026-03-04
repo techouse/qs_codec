@@ -538,6 +538,12 @@ class TestUtils:
     def test_merge_null_into_array(self) -> None:
         assert Utils.merge(None, [42]) == [None, 42]
 
+    def test_merge_with_none_source_returns_target(self) -> None:
+        target = {"a": 1}
+        result = Utils.merge(target, None)
+        assert result == {"a": 1}
+        assert result is target
+
     def test_merge_promotes_list_with_undefined_when_lists_disabled(self) -> None:
         options = DecodeOptions(parse_lists=False)
         target = [Undefined(), "keep"]
@@ -681,6 +687,9 @@ class TestUtils:
         assert a is not combined
         assert b is not combined
         assert combined == [1, 2]
+
+    def test_apply_maps_scalar_values(self) -> None:
+        assert Utils.apply("x", lambda value: f"{value}!") == "x!"
 
     def test_combine_list_limit_exceeded_creates_overflow_dict(self) -> None:
         default_limit = DecodeOptions().list_limit
