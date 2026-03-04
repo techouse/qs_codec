@@ -18,15 +18,17 @@ import typing as t
 from collections.abc import Mapping as ABCMapping
 from collections.abc import Sequence as ABCSequence
 from copy import deepcopy
-from dataclasses import dataclass, field
 from datetime import datetime
 from functools import cmp_to_key
 from weakref import WeakKeyDictionary
 
+from .constants.encode_constants import MAX_ENCODING_DEPTH_EXCEEDED, PHASE_AWAIT_CHILD, PHASE_ITERATE, PHASE_START
 from .enums.charset import Charset
 from .enums.format import Format
 from .enums.list_format import ListFormat
 from .enums.sentinel import Sentinel
+from .models.cycle_state import CycleState
+from .models.encode_frame import EncodeFrame
 from .models.encode_options import EncodeOptions
 from .models.key_path_node import KeyPathNode
 from .models.undefined import UNDEFINED, Undefined
@@ -174,169 +176,12 @@ _MISSING = object()
 
 # Unique placeholder used as a key within the side-channel chain to pass context down traversal frames.
 _sentinel: WeakWrapper = WeakWrapper({})
-MAX_ENCODING_DEPTH_EXCEEDED = "Maximum encoding depth exceeded"
-_PHASE_START = 0
-_PHASE_ITERATE = 1
-_PHASE_AWAIT_CHILD = 2
 
 
 def _get_max_encode_depth(max_depth: t.Optional[int]) -> int:
     if max_depth is None:
         return sys.maxsize
     return max_depth
-
-
-class _EncodeFrame:
-    """Mutable traversal frame for iterative encoding."""
-
-    __slots__ = (
-        "add_query_prefix",
-        "adjusted_path",
-        "allow_dots",
-        "allow_empty_lists",
-        "charset",
-        "comma_compact_nulls",
-        "comma_round_trip",
-        "cycle_level",
-        "cycle_pushed",
-        "cycle_state",
-        "depth",
-        "encode_dot_in_keys",
-        "encode_values_only",
-        "encoder",
-        "filter_",
-        "format",
-        "formatter",
-        "generate_array_prefix",
-        "index",
-        "is_mapping",
-        "is_sequence",
-        "is_undefined",
-        "max_depth",
-        "obj",
-        "obj_id",
-        "obj_keys",
-        "path",
-        "phase",
-        "prefix",
-        "serialize_date",
-        "side_channel",
-        "skip_nulls",
-        "sort",
-        "step",
-        "strict_null_handling",
-        "value",
-        "values",
-    )
-    value: t.Any
-    is_undefined: bool
-    side_channel: WeakKeyDictionary
-    prefix: t.Optional[str]
-    comma_round_trip: t.Optional[bool]
-    comma_compact_nulls: bool
-    encoder: t.Optional[t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str]]
-    serialize_date: t.Union[t.Callable[[datetime], t.Optional[str]], str]
-    sort: t.Optional[t.Callable[[t.Any, t.Any], int]]
-    filter_: t.Optional[t.Union[t.Callable, t.Sequence[t.Union[str, int]]]]
-    formatter: t.Optional[t.Callable[[str], str]]
-    format: Format
-    generate_array_prefix: t.Callable[[str, t.Optional[str]], str]
-    allow_empty_lists: bool
-    strict_null_handling: bool
-    skip_nulls: bool
-    encode_dot_in_keys: bool
-    allow_dots: bool
-    encode_values_only: bool
-    charset: t.Optional[Charset]
-    add_query_prefix: bool
-    depth: int
-    max_depth: t.Optional[int]
-    path: t.Optional[KeyPathNode]
-    phase: int
-    obj: t.Any
-    obj_id: t.Optional[int]
-    is_mapping: bool
-    is_sequence: bool
-    step: int
-    obj_keys: t.List[t.Any]
-    values: t.List[t.Any]
-    index: int
-    adjusted_path: t.Optional[KeyPathNode]
-    cycle_state: t.Optional["_CycleState"]
-    cycle_level: t.Optional[int]
-    cycle_pushed: bool
-
-    def __init__(
-        self,
-        value: t.Any,
-        is_undefined: bool,
-        side_channel: WeakKeyDictionary,
-        prefix: t.Optional[str],
-        comma_round_trip: t.Optional[bool],
-        comma_compact_nulls: bool,
-        encoder: t.Optional[t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str]],
-        serialize_date: t.Union[t.Callable[[datetime], t.Optional[str]], str],
-        sort: t.Optional[t.Callable[[t.Any, t.Any], int]],
-        filter_: t.Optional[t.Union[t.Callable, t.Sequence[t.Union[str, int]]]],
-        formatter: t.Optional[t.Callable[[str], str]],
-        format: Format,
-        generate_array_prefix: t.Callable[[str, t.Optional[str]], str],
-        allow_empty_lists: bool,
-        strict_null_handling: bool,
-        skip_nulls: bool,
-        encode_dot_in_keys: bool,
-        allow_dots: bool,
-        encode_values_only: bool,
-        charset: t.Optional[Charset],
-        add_query_prefix: bool,
-        depth: int,
-        max_depth: t.Optional[int],
-        path: t.Optional[KeyPathNode] = None,
-        cycle_state: t.Optional["_CycleState"] = None,
-        cycle_level: t.Optional[int] = None,
-    ) -> None:
-        self.value = value
-        self.is_undefined = is_undefined
-        self.side_channel = side_channel
-        self.prefix = prefix
-        self.comma_round_trip = comma_round_trip
-        self.comma_compact_nulls = comma_compact_nulls
-        self.encoder = encoder
-        self.serialize_date = serialize_date
-        self.sort = sort
-        self.filter_ = filter_
-        self.formatter = formatter
-        self.format = format
-        self.generate_array_prefix = generate_array_prefix
-        self.allow_empty_lists = allow_empty_lists
-        self.strict_null_handling = strict_null_handling
-        self.skip_nulls = skip_nulls
-        self.encode_dot_in_keys = encode_dot_in_keys
-        self.allow_dots = allow_dots
-        self.encode_values_only = encode_values_only
-        self.charset = charset
-        self.add_query_prefix = add_query_prefix
-        self.depth = depth
-        self.max_depth = max_depth
-        self.path = path
-        self.phase = _PHASE_START
-        self.obj = None
-        self.obj_id = None
-        self.is_mapping = False
-        self.is_sequence = False
-        self.step = 0
-        self.obj_keys = []
-        self.values = []
-        self.index = 0
-        self.adjusted_path = None
-        self.cycle_state = cycle_state
-        self.cycle_level = cycle_level
-        self.cycle_pushed = False
-
-
-@dataclass
-class _CycleState:
-    entries: t.Dict[int, t.List[t.Tuple[int, t.Any, bool]]] = field(default_factory=dict)
 
 
 def _identity_key(value: t.Any) -> int:
@@ -359,7 +204,7 @@ def _identity_key(value: t.Any) -> int:
     return id(value)
 
 
-def _bootstrap_cycle_state_from_side_channel(side_channel: WeakKeyDictionary) -> t.Tuple[_CycleState, int]:
+def _bootstrap_cycle_state_from_side_channel(side_channel: WeakKeyDictionary) -> t.Tuple[CycleState, int]:
     """
     Build O(1) ancestry lookup state from an existing side-channel chain.
 
@@ -373,7 +218,7 @@ def _bootstrap_cycle_state_from_side_channel(side_channel: WeakKeyDictionary) ->
         chain.append(tmp_sc)
         tmp_sc = tmp_sc.get(_sentinel)  # type: ignore[assignment]
 
-    state = _CycleState()
+    state = CycleState()
     for level, ancestor in enumerate(reversed(chain)):
         is_top = ancestor.get(_sentinel) is None
         for key, pos in ancestor.items():
@@ -384,7 +229,7 @@ def _bootstrap_cycle_state_from_side_channel(side_channel: WeakKeyDictionary) ->
     return state, len(chain)
 
 
-def _compute_step_and_check_cycle(state: _CycleState, node_key: t.Any, current_level: int) -> int:
+def _compute_step_and_check_cycle(state: CycleState, node_key: t.Any, current_level: int) -> int:
     """
     Compute the current cycle-detection "step" and raise on circular reference.
 
@@ -406,12 +251,12 @@ def _compute_step_and_check_cycle(state: _CycleState, node_key: t.Any, current_l
     return 0 if is_top else distance
 
 
-def _push_current_node(state: _CycleState, node_key: t.Any, current_level: int, pos: int, is_top: bool) -> None:
+def _push_current_node(state: CycleState, node_key: t.Any, current_level: int, pos: int, is_top: bool) -> None:
     key_id = node_key if isinstance(node_key, int) else _identity_key(node_key)
     state.entries.setdefault(key_id, []).append((current_level, pos, is_top))
 
 
-def _pop_current_node(state: _CycleState, node_key: t.Any) -> None:
+def _pop_current_node(state: CycleState, node_key: t.Any) -> None:
     key_id = node_key if isinstance(node_key, int) else _identity_key(node_key)
     entries = state.entries.get(key_id)
     if not entries:
@@ -515,8 +360,8 @@ def _encode(
     """
     last_result: t.Union[t.List[t.Any], t.Tuple[t.Any, ...], t.Any, None] = None
 
-    stack: t.List[_EncodeFrame] = [
-        _EncodeFrame(
+    stack: t.List[EncodeFrame] = [
+        EncodeFrame(
             value=value,
             is_undefined=is_undefined,
             side_channel=side_channel,
@@ -546,7 +391,7 @@ def _encode(
     while stack:
         frame = stack[-1]
 
-        if frame.phase == _PHASE_START:
+        if frame.phase == PHASE_START:
             if frame.max_depth is None:
                 frame.max_depth = _get_max_encode_depth(None)
             if frame.depth > frame.max_depth:
@@ -678,10 +523,10 @@ def _encode(
                 continue
 
             frame.index = 0
-            frame.phase = _PHASE_ITERATE
+            frame.phase = PHASE_ITERATE
             continue
 
-        elif frame.phase == _PHASE_ITERATE:
+        elif frame.phase == PHASE_ITERATE:
             if frame.index >= len(frame.obj_keys):
                 if frame.cycle_pushed and frame.obj_id is not None and frame.cycle_state is not None:
                     _pop_current_node(frame.cycle_state, frame.obj_id)
@@ -745,9 +590,9 @@ def _encode(
             else:
                 child_path = adjusted_path.append(f".{encoded_key}" if frame.allow_dots else f"[{encoded_key}]")
 
-            frame.phase = _PHASE_AWAIT_CHILD
+            frame.phase = PHASE_AWAIT_CHILD
             stack.append(
-                _EncodeFrame(
+                EncodeFrame(
                     value=_value,
                     is_undefined=_value_undefined,
                     side_channel=frame.side_channel,
@@ -785,13 +630,13 @@ def _encode(
             continue
 
         else:
-            if frame.phase != _PHASE_AWAIT_CHILD:  # pragma: no cover - internal invariant
+            if frame.phase != PHASE_AWAIT_CHILD:  # pragma: no cover - internal invariant
                 raise RuntimeError("Unexpected _encode frame phase")  # noqa: TRY003
 
             if isinstance(last_result, (list, tuple)):
                 frame.values.extend(last_result)
             else:
                 frame.values.append(last_result)
-            frame.phase = _PHASE_ITERATE
+            frame.phase = PHASE_ITERATE
 
     return [] if last_result is None else last_result

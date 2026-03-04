@@ -17,7 +17,6 @@ from __future__ import annotations
 import re
 import typing as t
 from collections.abc import Mapping
-from dataclasses import replace
 from math import isinf
 
 from .enums.charset import Charset
@@ -26,6 +25,7 @@ from .enums.duplicates import Duplicates
 from .enums.sentinel import Sentinel
 from .models.decode_options import DecodeOptions
 from .models.overflow_dict import OverflowDict
+from .models.structured_key_scan import StructuredKeyScan
 from .models.undefined import UNDEFINED
 from .utils.decode_utils import DecodeUtils
 from .utils.utils import Utils
@@ -69,37 +69,58 @@ def decode(
     if not isinstance(value, (str, Mapping)):
         raise ValueError("value must be a str or a Mapping[str, Any]")
 
-    # Work on a local copy so any internal toggles don't leak to caller
-    opts = replace(options) if options is not None else DecodeOptions()
+    opts = options if options is not None else DecodeOptions()
+    decode_from_string = isinstance(value, str)
+    str_value: str = t.cast(str, value) if decode_from_string else ""
+    mapping_value: t.Mapping[str, t.Any] = t.cast(t.Mapping[str, t.Any], value) if not decode_from_string else {}
 
-    # Temporarily toggle parse_lists for THIS call only, and only for raw strings
-    orig_parse_lists = opts.parse_lists
-    try:
-        if isinstance(value, str) and orig_parse_lists:
-            # Pre-count parameters so we can decide on toggling before tokenization/decoding
-            _s = value.replace("?", "", 1) if opts.ignore_query_prefix else value
-            if isinstance(opts.delimiter, re.Pattern):
-                _parts_count = len(re.split(opts.delimiter, _s)) if _s else 0
-            else:
-                _parts_count = (_s.count(opts.delimiter) + 1) if _s else 0
-            if 0 < opts.list_limit < _parts_count:
-                opts.parse_lists = False
-        temp_obj: t.Optional[t.Dict[str, t.Any]] = (
-            _parse_query_string_values(value, opts) if isinstance(value, str) else dict(value)
+    parse_lists_effective = opts.parse_lists
+    if decode_from_string and parse_lists_effective:
+        # Keep caller options immutable: compute a local parse_lists switch only for this invocation.
+        query = str_value.replace("?", "", 1) if opts.ignore_query_prefix else str_value
+        if isinstance(opts.delimiter, re.Pattern):
+            parts_count = len(re.split(opts.delimiter, query)) if query else 0
+        else:
+            parts_count = (query.count(opts.delimiter) + 1) if query else 0
+        if 0 < opts.list_limit < parts_count:
+            parse_lists_effective = False
+
+    if decode_from_string:
+        temp_obj: t.Optional[t.Dict[str, t.Any]] = _parse_query_string_values(
+            str_value, opts, parse_lists=parse_lists_effective
         )
+    else:
+        temp_obj = dict(mapping_value)
+    if not temp_obj:
+        return obj
 
-        # Iterate over the keys and setup the new object
-        if temp_obj:
-            for key, val in temp_obj.items():
-                new_obj: t.Any = _parse_keys(key, val, opts, isinstance(value, str))
+    structured_scan = _scan_structured_keys(temp_obj, opts) if decode_from_string else StructuredKeyScan.empty()
+    if decode_from_string and not structured_scan.has_any_structured_syntax:
+        return Utils.compact(temp_obj)
 
-                if not obj and isinstance(new_obj, dict):
-                    obj = new_obj
-                    continue
+    # Iterate over the keys and setup the new object
+    for key, val in temp_obj.items():
+        if (
+            decode_from_string
+            and key not in structured_scan.structured_keys
+            and key not in structured_scan.structured_roots
+        ):
+            # Fast path for flat keys: direct assignment when safe.
+            # If a structured key already materialized the same key, preserve
+            # historical merge semantics instead of overwriting.
+            if key in obj:
+                obj = Utils.merge(obj, {key: val}, opts)  # type: ignore [assignment]
+            else:
+                obj[key] = val
+            continue
 
-                obj = Utils.merge(obj, new_obj, opts)  # type: ignore [assignment]
-    finally:
-        opts.parse_lists = orig_parse_lists
+        new_obj: t.Any = _parse_keys(key, val, opts, decode_from_string, parse_lists=parse_lists_effective)
+
+        if not obj and isinstance(new_obj, dict):
+            obj = new_obj
+            continue
+
+        obj = Utils.merge(obj, new_obj, opts)  # type: ignore [assignment]
 
     return Utils.compact(obj)
 
@@ -115,6 +136,80 @@ def loads(value: t.Optional[str], options: t.Optional[DecodeOptions] = None) -> 
     Use ``decode`` if you want to pass a ``Dict[str, Any]``.
     """
     return decode(value, options)
+
+
+def _first_structured_split_index(key: str, allow_dots: bool) -> int:
+    """Return the earliest index that indicates structured syntax in ``key``."""
+    split_at = key.find("[")
+    if not allow_dots:
+        return split_at
+
+    dot_index = key.find(".")
+    if dot_index >= 0 and (split_at < 0 or dot_index < split_at):
+        split_at = dot_index
+
+    encoded_dot_index = -1
+    if "%" in key:
+        upper = key.find("%2E")
+        lower = key.find("%2e")
+        if upper >= 0 and lower >= 0:
+            encoded_dot_index = upper if upper < lower else lower
+        else:
+            encoded_dot_index = upper if upper >= 0 else lower
+
+    if encoded_dot_index >= 0 and (split_at < 0 or encoded_dot_index < split_at):
+        split_at = encoded_dot_index
+
+    return split_at
+
+
+def _leading_structured_root(key: str, options: DecodeOptions) -> str:
+    """Extract root key for leading-bracket structured keys (``[]`` normalizes to ``"0"``)."""
+    segments = DecodeUtils.split_key_into_segments(
+        original_key=key,
+        allow_dots=t.cast(bool, options.allow_dots),
+        max_depth=options.depth,
+        strict_depth=options.strict_depth,
+    )
+    if not segments:
+        return key
+
+    first = segments[0]
+    if not first.startswith("["):
+        return first
+
+    last = first.rfind("]")
+    clean_root = first[1:last] if last > 0 else first[1:]
+    return clean_root or "0"
+
+
+def _scan_structured_keys(temp_obj: Mapping[str, t.Any], options: DecodeOptions) -> StructuredKeyScan:
+    """Pre-scan keys to enable flat-query and mixed-query decode bypasses."""
+    if not temp_obj:
+        return StructuredKeyScan.empty()
+
+    allow_dots = t.cast(bool, options.allow_dots)
+    structured_roots: t.Set[str] = set()
+    structured_keys: t.Set[str] = set()
+
+    for key in temp_obj.keys():
+        split_at = _first_structured_split_index(key, allow_dots)
+        if split_at < 0:
+            continue
+        structured_keys.add(key)
+        if split_at == 0:
+            structured_roots.add(_leading_structured_root(key, options))
+        else:
+            structured_roots.add(key[:split_at])
+
+    if not structured_keys:
+        return StructuredKeyScan.empty()
+
+    return StructuredKeyScan(
+        has_any_structured_syntax=True,
+        structured_roots=frozenset(structured_roots),
+        structured_keys=frozenset(structured_keys),
+    )
 
 
 def _interpret_numeric_entities(value: str) -> str:
@@ -162,7 +257,9 @@ def _parse_array_value(value: t.Any, options: DecodeOptions, current_list_length
     return value
 
 
-def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str, t.Any]:
+def _parse_query_string_values(
+    value: str, options: DecodeOptions, *, parse_lists: t.Optional[bool] = None
+) -> t.Dict[str, t.Any]:
     """Tokenize a raw query string into a flat ``Dict[str, Any]``.
 
     Responsibilities
@@ -185,6 +282,7 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
     ``_parse_keys`` / ``_parse_object``.
     """
     obj: t.Dict[str, t.Any] = {}
+    parse_lists_enabled = options.parse_lists if parse_lists is None else parse_lists
 
     clean_str: str = value.replace("?", "", 1) if options.ignore_query_prefix else value
     # Normalize %5B/%5D to literal brackets before splitting (case-insensitive).
@@ -244,6 +342,7 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
 
     # Local, non-optional decoder reference for type-checkers
     decoder_fn: t.Callable[..., t.Optional[str]] = options.decoder or DecodeUtils.decode
+    duplicates = options.duplicates
 
     # Iterate over parts and decode each key/value pair.
     for i, _ in enumerate(parts):
@@ -251,53 +350,67 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
             continue
 
         part: str = parts[i]
+        if not part:
+            continue
         bracket_equals_pos: int = part.find("]=")
         pos: int = part.find("=") if bracket_equals_pos == -1 else (bracket_equals_pos + 1)
 
         # Decode key and value with a key-aware decoder; skip pairs whose key decodes to None
+        raw_key = ""
         if pos == -1:
             key_decoded = decoder_fn(part, charset, kind=DecodeKind.KEY)
             if key_decoded is None:
                 continue
             key: str = key_decoded
+            if not key:
+                continue
             val: t.Any = None if options.strict_null_handling else ""
         else:
-            key_decoded = decoder_fn(part[:pos], charset, kind=DecodeKind.KEY)
+            raw_key = part[:pos]
+            key_decoded = decoder_fn(raw_key, charset, kind=DecodeKind.KEY)
             if key_decoded is None:
                 continue
             key = key_decoded
-            val = Utils.apply(
-                _parse_array_value(
-                    part[pos + 1 :],
-                    options,
-                    len(obj[key]) if key in obj and isinstance(obj[key], (list, tuple)) else 0,
-                ),
-                lambda v: decoder_fn(v, charset, kind=DecodeKind.VALUE),
+            if not key:
+                continue
+            parsed_value = _parse_array_value(
+                part[pos + 1 :],
+                options,
+                len(obj[key]) if key in obj and isinstance(obj[key], (list, tuple)) else 0,
             )
+            if isinstance(parsed_value, (list, tuple)):
+                val = [decoder_fn(v, charset, kind=DecodeKind.VALUE) for v in parsed_value]
+            else:
+                val = decoder_fn(parsed_value, charset, kind=DecodeKind.VALUE)
 
         if val and options.interpret_numeric_entities and charset == Charset.LATIN1:
             val = _interpret_numeric_entities(
                 val if isinstance(val, str) else ",".join(val) if isinstance(val, (list, tuple)) else str(val)
             )
 
-        # If the pair used empty brackets syntax and list parsing is enabled, force an array container.
-        # Always wrap exactly once to preserve list-of-lists semantics when comma splitting applies.
-        if options.parse_lists and "[]=" in part:
+        # Upstream parity: if token contains "[]=", only wrap values that are already arrays
+        # (typically produced by comma splitting), preserving list-of-lists semantics.
+        if parse_lists_enabled and pos != -1 and "[]=" in part and isinstance(val, (list, tuple)):
             val = [val]
 
         existing: bool = key in obj
 
         # Combine/overwrite according to the configured duplicates policy.
-        if existing and options.duplicates == Duplicates.COMBINE:
+        if existing and duplicates == Duplicates.COMBINE:
             obj[key] = Utils.combine(obj[key], val, options)
-        elif not existing or options.duplicates == Duplicates.LAST:
+        elif not existing or duplicates == Duplicates.LAST:
             obj[key] = val
 
     return obj
 
 
 def _parse_object(
-    chain: t.Union[t.List[str], t.Tuple[str, ...]], val: t.Any, options: DecodeOptions, values_parsed: bool
+    chain: t.Union[t.List[str], t.Tuple[str, ...]],
+    val: t.Any,
+    options: DecodeOptions,
+    values_parsed: bool,
+    *,
+    parse_lists: t.Optional[bool] = None,
 ) -> t.Any:
     """Fold a flat key-path chain into nested containers.
 
@@ -326,6 +439,7 @@ def _parse_object(
       handled by the splitter.
     - When list parsing is disabled and an empty segment is encountered, coerces to ``{"0": leaf}`` to preserve round-trippability with other ports.
     """
+    parse_lists_enabled = options.parse_lists if parse_lists is None else parse_lists
     current_list_length: int = 0
 
     # If the chain ends with an empty list marker, compute current list length for limit checks.
@@ -361,7 +475,7 @@ def _parse_object(
         obj: t.Optional[t.Union[t.Dict[str, t.Any], t.List[t.Any]]]
         root: str = chain[i]
 
-        if root == "[]" and options.parse_lists:
+        if root == "[]" and parse_lists_enabled:
             if Utils.is_overflow(leaf):
                 obj = leaf
             elif options.allow_empty_lists and (leaf == "" or (options.strict_null_handling and leaf is None)):
@@ -393,7 +507,7 @@ def _parse_object(
             except (ValueError, TypeError):
                 index = None
 
-            if not options.parse_lists and decoded_root == "":
+            if not parse_lists_enabled and decoded_root == "":
                 if Utils.is_overflow(leaf):
                     obj = leaf
                 else:
@@ -403,20 +517,29 @@ def _parse_object(
                 and index >= 0
                 and root != decoded_root
                 and str(index) == decoded_root
-                and options.parse_lists
+                and parse_lists_enabled
                 and index <= options.list_limit
             ):
                 obj = [UNDEFINED for _ in range(index + 1)]
                 obj[index] = leaf
             else:
-                obj[str(index) if index is not None else decoded_root] = leaf
+                # Preserve the literal decoded key for non-array roots (e.g. "[01]" -> "01"),
+                # matching Node `qs` behavior for leading-zero numeric-like segments.
+                obj[decoded_root] = leaf
 
         leaf = obj
 
     return leaf
 
 
-def _parse_keys(given_key: t.Optional[str], val: t.Any, options: DecodeOptions, values_parsed: bool) -> t.Any:
+def _parse_keys(
+    given_key: t.Optional[str],
+    val: t.Any,
+    options: DecodeOptions,
+    values_parsed: bool,
+    *,
+    parse_lists: t.Optional[bool] = None,
+) -> t.Any:
     """Split a full key string into segments and dispatch to ``_parse_object``.
 
     Returns ``None`` for empty keys (mirrors upstream behavior).
@@ -431,4 +554,4 @@ def _parse_keys(given_key: t.Optional[str], val: t.Any, options: DecodeOptions, 
         strict_depth=options.strict_depth,
     )
 
-    return _parse_object(keys, val, options, values_parsed)
+    return _parse_object(keys, val, options, values_parsed, parse_lists=parse_lists)

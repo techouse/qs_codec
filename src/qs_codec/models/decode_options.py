@@ -160,6 +160,14 @@ class DecodeOptions:
         if raw_dec is None:
             raw_dec = DecodeUtils.decode
 
+        default_decoder = DecodeUtils.decode
+        # Fast path for the library default decoder: skip adapter dispatch completely.
+        if raw_dec is default_decoder or getattr(raw_dec, "__func__", None) is getattr(
+            default_decoder, "__func__", None
+        ):
+            self.decoder = DecodeUtils.decode
+            return
+
         user_dec = raw_dec
 
         # Precompute dispatch to avoid per-call introspection.
