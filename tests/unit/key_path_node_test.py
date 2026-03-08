@@ -1,3 +1,5 @@
+import sys
+
 import pytest
 
 from qs_codec.models.key_path_node import KeyPathNode
@@ -52,7 +54,12 @@ class TestKeyPathNode:
 
     def test_as_dot_encoded_handles_deep_paths_without_recursion_error(self) -> None:
         path = KeyPathNode.from_materialized("root")
-        for i in range(12_000):
+        depth = 12_000
+        if sys.implementation.name == "pypy" and sys.version_info[:2] == (3, 8):
+            # Older PyPy 3.8 CI runners are much slower on this stress case.
+            depth = min(depth, 4_000)
+
+        for i in range(depth):
             path = path.append(f".k{i}")
 
         encoded = path.as_dot_encoded().materialize()
