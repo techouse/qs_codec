@@ -1,4 +1,4 @@
-## 1.4.5-wip
+## 1.4.5
 
 * [CHORE] optimize `encode` hot paths with lower-overhead iterative traversal, cheaper container checks, and deep linear mapping fast paths
 * [CHORE] optimize `EncodeUtils` ASCII/BMP handling and `KeyPathNode` path materialization caching for repeated encode workloads
