@@ -1,4 +1,4 @@
-## 1.4.6-wip
+## 1.4.6
 
 * [FIX] avoid a shared default `EncodeOptions()` instance in `encode()` by constructing defaults per call
 * [CHORE] document the library's thread-safety boundary for concurrent `encode()` / `decode()` use and shared read-only options
