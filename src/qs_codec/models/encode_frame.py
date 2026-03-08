@@ -84,7 +84,7 @@ class EncodeFrame:
     is_sequence: bool
     step: int
     obj_keys: t.List[t.Any]
-    values: t.List[t.Any]
+    values: t.Optional[t.List[t.Any]]
     index: int
     adjusted_path: t.Optional[KeyPathNode]
     cycle_state: t.Optional[CycleState]
@@ -152,7 +152,7 @@ class EncodeFrame:
         self.is_sequence = False
         self.step = 0
         self.obj_keys = []
-        self.values = []
+        self.values = None
         self.index = 0
         self.adjusted_path = None
         self.cycle_state = cycle_state
