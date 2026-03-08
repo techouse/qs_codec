@@ -1,3 +1,15 @@
+Thread safety
+~~~~~~~~~~~~~
+
+``qs_codec`` supports concurrent independent calls to ``encode()`` and ``decode()``.
+Sharing fully constructed ``EncodeOptions`` and ``DecodeOptions`` instances for read-only
+use is supported as well.
+
+Do not mutate caller-owned input containers or shared callback state while an
+``encode()`` or ``decode()`` call is in progress. This applies equally to the
+free-threaded CPython build, which is tested experimentally but does not change
+these mutation guarantees.
+
 Decoding
 ~~~~~~~~
 

@@ -1,3 +1,10 @@
+## 1.4.6-wip
+
+* [FIX] avoid a shared default `EncodeOptions()` instance in `encode()` by constructing defaults per call
+* [CHORE] document the library's thread-safety boundary for concurrent `encode()` / `decode()` use and shared read-only options
+* [CHORE] add concurrent regression coverage for `encode()`, `decode()`, `WeakWrapper`, and `KeyPathNode` cache behavior
+* [CHORE] scale deep stack-safety and thread-stress canaries for older PyPy 3.8 CI runners while preserving coverage on other interpreters
+
 ## 1.4.5
 
 * [CHORE] optimize `encode` hot paths with lower-overhead iterative traversal, cheaper container checks, and deep linear mapping fast paths
