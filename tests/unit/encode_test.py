@@ -1,6 +1,7 @@
+import importlib
 import math
 import typing as t
-from collections import UserList
+from collections import UserDict, UserList
 from contextlib import nullcontext as does_not_raise
 from datetime import datetime
 from decimal import Decimal
@@ -11,7 +12,13 @@ from weakref import WeakKeyDictionary
 import pytest
 
 from qs_codec import Charset, EncodeOptions, Format, ListFormat, dumps, encode
-from qs_codec.encode import _encode, _pop_current_node, _sentinel
+from qs_codec.encode import (
+    _encode,
+    _pop_current_node,
+    _sentinel,
+    _try_encode_linear_chain,
+    _try_encode_linear_chain_plain_dict,
+)
 from qs_codec.models.cycle_state import CycleState
 from qs_codec.models.undefined import Undefined
 from qs_codec.models.weak_wrapper import WeakWrapper
@@ -54,6 +61,9 @@ class TestEncode:
     )
     def test_encodes_a_query_string_dict(self, decoded: t.Mapping, encoded: str) -> None:
         assert encode(decoded) == encoded
+
+    def test_encodes_root_non_dict_mapping(self) -> None:
+        assert encode(UserDict({"a": "b"})) == "a=b"
 
     @pytest.mark.parametrize(
         "decoded, encoded",
@@ -782,32 +792,27 @@ class TestEncode:
             encode({"root": a})
 
     def test_default_parameter_assignments(self) -> None:
-        # Test default parameter assignments in _encode function (lines 133, 136, 139)
-        # We need to call _encode directly with None values for prefix, comma_round_trip, and formatter
+        # Exercise the generic worker defaults directly; the linear fast path is disabled via `filter_`.
         from weakref import WeakKeyDictionary
 
         from qs_codec.encode import _encode
 
-        # Create a simple value to encode
         value = {"test": "value"}
 
-        # Call _encode with None values for prefix, comma_round_trip, and formatter
-        # This should use the default values and not raise any exceptions
         result = _encode(
             value=value,
             is_undefined=False,
             side_channel=WeakKeyDictionary(),
-            prefix=None,  # This will trigger line 133
-            comma_round_trip=None,  # This will trigger line 136
+            prefix=None,
+            comma_round_trip=None,
             comma_compact_nulls=False,
             encoder=None,
             serialize_date=lambda dt: dt.isoformat(),
             sort=None,
-            filter_=None,
-            formatter=None,  # This will trigger line 139
+            filter_=["test"],
+            formatter=None,
         )
 
-        # Verify the result contains the expected key-value pair
         assert result == ["[test]=value"]
 
     def test_exception_in_getitem(self) -> None:
@@ -889,6 +894,23 @@ class TestEncode:
             result = encode(data, options=EncodeOptions(max_depth=10_000, encode=False))
 
         assert result.endswith("=x")
+
+    @pytest.mark.parametrize(
+        "max_depth, expected_error",
+        [
+            pytest.param(1, "Maximum encoding depth exceeded", id="max-depth-1"),
+            pytest.param(2, "Maximum encoding depth exceeded", id="max-depth-2"),
+            pytest.param(3, "Circular reference detected", id="max-depth-3"),
+        ],
+    )
+    def test_encode_false_mapping_cycle_preserves_max_depth_precedence(
+        self, max_depth: int, expected_error: str
+    ) -> None:
+        loop: t.Dict[str, t.Any] = {}
+        loop["self"] = loop
+
+        with pytest.raises(ValueError, match=expected_error):
+            encode({"a": loop}, options=EncodeOptions(encode=False, max_depth=max_depth))
 
     def test_encode_deep_nesting_iterative_stack_safety(self) -> None:
         # Keep this above common recursion limits so recursion regressions still fail quickly.
@@ -1827,6 +1849,367 @@ class TestEncodeNonStrings:
 
 
 class TestEncodeInternals:
+    @staticmethod
+    def _try_plain_dict_linear_chain(
+        value: t.Any,
+        *,
+        side_channel: t.Optional[WeakKeyDictionary] = None,
+        **overrides: t.Any,
+    ) -> t.Optional[t.List[str]]:
+        params = {
+            "value": value,
+            "is_undefined": False,
+            "side_channel": side_channel if side_channel is not None else WeakKeyDictionary(),
+            "prefix": "root",
+            "comma_round_trip": False,
+            "comma_compact_nulls": False,
+            "encoder": None,
+            "serialize_date": EncodeUtils.serialize_date,
+            "sort": None,
+            "filter_": None,
+            "formatter": Format.RFC3986.formatter,
+            "format": Format.RFC3986,
+            "generate_array_prefix": ListFormat.INDICES.generator,
+            "allow_empty_lists": False,
+            "strict_null_handling": False,
+            "skip_nulls": False,
+            "encode_dot_in_keys": False,
+            "allow_dots": False,
+            "encode_values_only": False,
+            "add_query_prefix": False,
+            "_depth": 0,
+            "_max_depth": None,
+        }
+        params.update(overrides)
+        return _try_encode_linear_chain_plain_dict(**params)
+
+    @staticmethod
+    def _try_linear_chain(
+        value: t.Any,
+        *,
+        side_channel: t.Optional[WeakKeyDictionary] = None,
+        **overrides: t.Any,
+    ) -> t.Optional[t.List[str]]:
+        params = {
+            "value": value,
+            "is_undefined": False,
+            "side_channel": side_channel if side_channel is not None else WeakKeyDictionary(),
+            "prefix": "root",
+            "comma_round_trip": False,
+            "comma_compact_nulls": False,
+            "encoder": None,
+            "serialize_date": EncodeUtils.serialize_date,
+            "sort": None,
+            "filter_": None,
+            "formatter": Format.RFC3986.formatter,
+            "format": Format.RFC3986,
+            "generate_array_prefix": ListFormat.INDICES.generator,
+            "allow_empty_lists": False,
+            "strict_null_handling": False,
+            "skip_nulls": False,
+            "encode_dot_in_keys": False,
+            "allow_dots": False,
+            "encode_values_only": False,
+            "add_query_prefix": False,
+            "_depth": 0,
+            "_max_depth": None,
+        }
+        params.update(overrides)
+        return _try_encode_linear_chain(**params)
+
+    @pytest.mark.parametrize(
+        "value, expected",
+        [
+            pytest.param({"child": None}, ["root[child]="], id="none-leaf"),
+            pytest.param({"child": True}, ["root[child]=true"], id="bool-leaf"),
+            pytest.param({"child": b"test"}, ["root[child]=b'test'"], id="bytes-leaf"),
+            pytest.param(
+                {"child": datetime(2024, 1, 1, 12, 30, 0)},
+                ["root[child]=2024-01-01T12:30:00"],
+                id="datetime-leaf",
+            ),
+            pytest.param({"child": {"grandchild": "value"}}, ["root[child][grandchild]=value"], id="nested-leaf"),
+        ],
+    )
+    def test_try_encode_linear_chain_matches_generic_output(self, value: t.Any, expected: t.List[str]) -> None:
+        assert self._try_linear_chain(value) == expected
+
+    @pytest.mark.parametrize(
+        "value, expected",
+        [
+            pytest.param({"child": None}, ["root[child]="], id="none-leaf"),
+            pytest.param({"child": True}, ["root[child]=true"], id="bool-leaf"),
+            pytest.param({"child": b"test"}, ["root[child]=b'test'"], id="bytes-leaf"),
+            pytest.param(
+                {"child": datetime(2024, 1, 1, 12, 30, 0)},
+                ["root[child]=2024-01-01T12:30:00"],
+                id="datetime-leaf",
+            ),
+            pytest.param({"child": {"grandchild": "value"}}, ["root[child][grandchild]=value"], id="nested-leaf"),
+        ],
+    )
+    def test_try_encode_linear_chain_plain_dict_matches_generic_output(
+        self, value: t.Any, expected: t.List[str]
+    ) -> None:
+        assert self._try_plain_dict_linear_chain(value) == expected
+
+    def test_try_encode_linear_chain_enforces_max_depth(self) -> None:
+        value: t.Dict[str, t.Any] = {"child": {"grandchild": "value"}}
+
+        with pytest.raises(ValueError, match="Maximum encoding depth exceeded"):
+            self._try_linear_chain(value, _max_depth=1)
+
+    def test_try_encode_linear_chain_plain_dict_enforces_max_depth(self) -> None:
+        value: t.Dict[str, t.Any] = {"child": {"grandchild": "value"}}
+
+        with pytest.raises(ValueError, match="Maximum encoding depth exceeded"):
+            self._try_plain_dict_linear_chain(value, _max_depth=1)
+
+    def test_try_encode_linear_chain_detects_cycles(self) -> None:
+        value: t.Dict[str, t.Any] = {}
+        value["self"] = value
+
+        with pytest.raises(ValueError, match="Circular reference detected"):
+            self._try_linear_chain(value)
+
+    @pytest.mark.parametrize(
+        "max_depth, expected_error",
+        [
+            pytest.param(1, "Maximum encoding depth exceeded", id="max-depth-1"),
+            pytest.param(2, "Maximum encoding depth exceeded", id="max-depth-2"),
+            pytest.param(3, "Circular reference detected", id="max-depth-3"),
+        ],
+    )
+    def test_try_encode_linear_chain_preserves_max_depth_precedence_for_cycles(
+        self, max_depth: int, expected_error: str
+    ) -> None:
+        value: t.Dict[str, t.Any] = {}
+        value["self"] = value
+
+        with pytest.raises(ValueError, match=expected_error):
+            self._try_linear_chain(value, _max_depth=max_depth)
+
+    def test_try_encode_linear_chain_plain_dict_detects_cycles(self) -> None:
+        value: t.Dict[str, t.Any] = {}
+        value["self"] = value
+
+        with pytest.raises(ValueError, match="Circular reference detected"):
+            self._try_plain_dict_linear_chain(value)
+
+    @pytest.mark.parametrize(
+        "max_depth, expected_error",
+        [
+            pytest.param(1, "Maximum encoding depth exceeded", id="max-depth-1"),
+            pytest.param(2, "Maximum encoding depth exceeded", id="max-depth-2"),
+            pytest.param(3, "Circular reference detected", id="max-depth-3"),
+        ],
+    )
+    def test_try_encode_linear_chain_plain_dict_preserves_max_depth_precedence_for_cycles(
+        self, max_depth: int, expected_error: str
+    ) -> None:
+        value: t.Dict[str, t.Any] = {}
+        value["self"] = value
+
+        with pytest.raises(ValueError, match=expected_error):
+            self._try_plain_dict_linear_chain(value, _max_depth=max_depth)
+
+    def test_try_encode_linear_chain_returns_none_for_inconsistent_single_item_mapping(self) -> None:
+        class InconsistentMapping(t.Mapping[str, t.Any]):
+            def __getitem__(self, key: str) -> t.Any:
+                raise KeyError(key)
+
+            def __iter__(self) -> t.Iterator[str]:
+                return iter(("child",))
+
+            def __len__(self) -> int:
+                return 1
+
+            def items(self) -> t.Iterator[t.Tuple[str, t.Any]]:
+                return iter(())
+
+        assert self._try_linear_chain(InconsistentMapping()) is None
+
+    def test_try_encode_linear_chain_plain_dict_bails_out_for_dict_subclass_and_generic_path_handles_it(self) -> None:
+        class InheritedDict(dict):
+            pass
+
+        value = InheritedDict({"child": "value"})
+
+        assert self._try_plain_dict_linear_chain(value) is None
+        assert self._try_linear_chain(value) == ["root[child]=value"]
+
+    def test_try_encode_linear_chain_plain_dict_bails_out_for_multi_key_dict(self) -> None:
+        assert self._try_plain_dict_linear_chain({"left": "a", "right": "b"}) is None
+
+    @pytest.mark.parametrize(
+        "overrides",
+        [
+            pytest.param({"filter_": lambda *_args: None}, id="callable-filter"),
+            pytest.param({"sort": lambda left, right: 0}, id="sort"),
+            pytest.param({"allow_dots": True}, id="allow-dots"),
+            pytest.param({"encode_dot_in_keys": True}, id="encode-dot-in-keys"),
+            pytest.param({"encode_values_only": True}, id="encode-values-only"),
+            pytest.param({"strict_null_handling": True}, id="strict-null-handling"),
+            pytest.param({"skip_nulls": True}, id="skip-nulls"),
+            pytest.param({"allow_empty_lists": True}, id="allow-empty-lists"),
+            pytest.param({"generate_array_prefix": ListFormat.BRACKETS.generator}, id="non-indices-generator"),
+            pytest.param({"comma_round_trip": True}, id="comma-round-trip"),
+            pytest.param({"comma_compact_nulls": True}, id="comma-compact-nulls"),
+        ],
+    )
+    def test_try_encode_linear_chain_bails_out_for_incompatible_options(self, overrides: t.Dict[str, t.Any]) -> None:
+        assert self._try_linear_chain({"child": "value"}, **overrides) is None
+
+    @pytest.mark.parametrize(
+        "overrides",
+        [
+            pytest.param({"filter_": lambda *_args: None}, id="callable-filter"),
+            pytest.param({"sort": lambda left, right: 0}, id="sort"),
+            pytest.param({"allow_dots": True}, id="allow-dots"),
+            pytest.param({"encode_dot_in_keys": True}, id="encode-dot-in-keys"),
+            pytest.param({"encode_values_only": True}, id="encode-values-only"),
+            pytest.param({"strict_null_handling": True}, id="strict-null-handling"),
+            pytest.param({"skip_nulls": True}, id="skip-nulls"),
+            pytest.param({"allow_empty_lists": True}, id="allow-empty-lists"),
+            pytest.param({"generate_array_prefix": ListFormat.BRACKETS.generator}, id="non-indices-generator"),
+            pytest.param({"comma_round_trip": True}, id="comma-round-trip"),
+            pytest.param({"comma_compact_nulls": True}, id="comma-compact-nulls"),
+        ],
+    )
+    def test_try_encode_linear_chain_plain_dict_bails_out_for_incompatible_options(
+        self, overrides: t.Dict[str, t.Any]
+    ) -> None:
+        assert self._try_plain_dict_linear_chain({"child": "value"}, **overrides) is None
+
+    def test_try_encode_linear_chain_bails_out_for_legacy_side_channel(self) -> None:
+        value: t.Dict[str, t.Any] = {"child": "value"}
+        side_channel: WeakKeyDictionary = WeakKeyDictionary()
+        parent_channel: WeakKeyDictionary = WeakKeyDictionary()
+        parent_channel[WeakWrapper(value)] = 99
+        side_channel[_sentinel] = parent_channel
+
+        assert self._try_linear_chain(value, side_channel=side_channel) is None
+
+    def test_try_encode_linear_chain_plain_dict_bails_out_for_legacy_side_channel(self) -> None:
+        value: t.Dict[str, t.Any] = {"child": "value"}
+        side_channel: WeakKeyDictionary = WeakKeyDictionary()
+        parent_channel: WeakKeyDictionary = WeakKeyDictionary()
+        parent_channel[WeakWrapper(value)] = 99
+        side_channel[_sentinel] = parent_channel
+
+        assert self._try_plain_dict_linear_chain(value, side_channel=side_channel) is None
+
+    def test_try_encode_linear_chain_plain_dict_handles_decimal_leaf(self) -> None:
+        assert self._try_plain_dict_linear_chain({"child": Decimal("1.5")}) == ["root[child]=1.5"]
+
+    def test_try_encode_linear_chain_handles_decimal_leaf(self) -> None:
+        class InheritedDict(dict):
+            pass
+
+        assert self._try_linear_chain(InheritedDict({"child": Decimal("1.5")})) == ["root[child]=1.5"]
+
+    def test_encode_uses_plain_dict_linear_fast_path_for_encode_false(self) -> None:
+        tokens = _encode(
+            value={"child": "value"},
+            is_undefined=False,
+            side_channel=WeakKeyDictionary(),
+            prefix="root",
+            comma_round_trip=False,
+            comma_compact_nulls=False,
+            encoder=None,
+            serialize_date=EncodeUtils.serialize_date,
+            sort=None,
+            filter_=None,
+            formatter=Format.RFC3986.formatter,
+            format=Format.RFC3986,
+            generate_array_prefix=ListFormat.INDICES.generator,
+            allow_empty_lists=False,
+            strict_null_handling=False,
+            skip_nulls=False,
+            encode_dot_in_keys=False,
+            allow_dots=False,
+            encode_values_only=False,
+            charset=Charset.UTF8,
+        )
+
+        assert tokens == ["root[child]=value"]
+
+    def test_encode_returns_immediately_when_plain_dict_fast_path_succeeds(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        encode_module = importlib.import_module("qs_codec.encode")
+        monkeypatch.setattr(encode_module, "_try_encode_linear_chain_plain_dict", lambda **_kwargs: ["forced=value"])
+        monkeypatch.setattr(
+            encode_module,
+            "_try_encode_linear_chain",
+            lambda **_kwargs: (_ for _ in ()).throw(AssertionError("generic linear helper should not run")),
+        )
+
+        tokens = _encode(
+            value={"child": "value"},
+            is_undefined=False,
+            side_channel=WeakKeyDictionary(),
+            prefix="root",
+            comma_round_trip=False,
+            comma_compact_nulls=False,
+            encoder=None,
+            serialize_date=EncodeUtils.serialize_date,
+            sort=None,
+            filter_=None,
+            formatter=Format.RFC3986.formatter,
+            format=Format.RFC3986,
+            generate_array_prefix=ListFormat.INDICES.generator,
+            allow_empty_lists=False,
+            strict_null_handling=False,
+            skip_nulls=False,
+            encode_dot_in_keys=False,
+            allow_dots=False,
+            encode_values_only=False,
+            charset=Charset.UTF8,
+        )
+
+        assert tokens == ["forced=value"]
+
+    def test_encode_returns_immediately_when_generic_linear_fast_path_succeeds(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        encode_module = importlib.import_module("qs_codec.encode")
+        monkeypatch.setattr(encode_module, "_try_encode_linear_chain_plain_dict", lambda **_kwargs: None)
+        monkeypatch.setattr(encode_module, "_try_encode_linear_chain", lambda **_kwargs: ["forced=value"])
+        monkeypatch.setattr(
+            encode_module,
+            "_uses_legacy_cycle_state",
+            lambda _side_channel: (_ for _ in ()).throw(AssertionError("generic walker should not run")),
+        )
+
+        class InheritedDict(dict):
+            pass
+
+        tokens = _encode(
+            value=InheritedDict({"child": "value"}),
+            is_undefined=False,
+            side_channel=WeakKeyDictionary(),
+            prefix="root",
+            comma_round_trip=False,
+            comma_compact_nulls=False,
+            encoder=None,
+            serialize_date=EncodeUtils.serialize_date,
+            sort=None,
+            filter_=None,
+            formatter=Format.RFC3986.formatter,
+            format=Format.RFC3986,
+            generate_array_prefix=ListFormat.INDICES.generator,
+            allow_empty_lists=False,
+            strict_null_handling=False,
+            skip_nulls=False,
+            encode_dot_in_keys=False,
+            allow_dots=False,
+            encode_values_only=False,
+            charset=Charset.UTF8,
+        )
+
+        assert tokens == ["forced=value"]
+
     def test_encode_cycle_detection_raises_on_same_step(self) -> None:
         value: t.Dict[str, t.Any] = {"loop": {}}
         side_channel: WeakKeyDictionary = WeakKeyDictionary()
@@ -1969,6 +2352,30 @@ class TestEncodeInternals:
 
         assert tokens == ["root%5Bchild%5D=value"]
 
+    def test_public_encode_detects_list_cycle_with_active_path_tracking(self) -> None:
+        value: t.List[t.Any] = []
+        value.append(value)
+
+        with pytest.raises(ValueError, match="Circular reference detected"):
+            encode({"root": value}, options=EncodeOptions(encode=False))
+
+    @pytest.mark.parametrize(
+        "max_depth, expected_error",
+        [
+            pytest.param(1, "Maximum encoding depth exceeded", id="max-depth-1"),
+            pytest.param(2, "Maximum encoding depth exceeded", id="max-depth-2"),
+            pytest.param(3, "Circular reference detected", id="max-depth-3"),
+        ],
+    )
+    def test_public_encode_preserves_max_depth_precedence_for_cyclic_payloads(
+        self, max_depth: int, expected_error: str
+    ) -> None:
+        value: t.List[t.Any] = []
+        value.append(value)
+
+        with pytest.raises(ValueError, match=expected_error):
+            encode({"a": value}, options=EncodeOptions(max_depth=max_depth))
+
     def test_pop_current_node_noop_when_wrapper_not_present(self) -> None:
         value: t.Dict[str, t.Any] = {"child": "value"}
         wrapper = WeakWrapper(value)
@@ -2019,6 +2426,32 @@ class TestEncodeInternals:
         )
 
         assert tokens == ["root%5Bfoo%5D=bar"]
+
+    def test_encode_reuses_cached_dot_segments_for_duplicate_filter_keys(self) -> None:
+        tokens = _encode(
+            value={"foo": 1},
+            is_undefined=False,
+            side_channel=WeakKeyDictionary(),
+            prefix="root",
+            comma_round_trip=False,
+            comma_compact_nulls=False,
+            encoder=None,
+            serialize_date=EncodeUtils.serialize_date,
+            sort=None,
+            filter_=["foo", "foo"],
+            formatter=Format.RFC3986.formatter,
+            format=Format.RFC3986,
+            generate_array_prefix=ListFormat.INDICES.generator,
+            allow_empty_lists=False,
+            strict_null_handling=False,
+            skip_nulls=False,
+            encode_dot_in_keys=False,
+            allow_dots=True,
+            encode_values_only=False,
+            charset=Charset.UTF8,
+        )
+
+        assert tokens == ["root.foo=1", "root.foo=1"]
 
     def test_encode_comma_format_serializes_datetime_without_custom_callable(self) -> None:
         dt = datetime(2024, 1, 1)

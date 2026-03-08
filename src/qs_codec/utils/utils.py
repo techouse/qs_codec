@@ -1,20 +1,20 @@
 """
 Utility helpers shared across the `qs_codec` decode/encode internals.
 
-The functions in this module are intentionally small, allocation‑aware, and careful about container mutation to match the
+The functions in this module are intentionally small, allocation-aware, and careful about container mutation to match the
 behavior (and performance characteristics) of the original JavaScript `qs` library.
 
 Key responsibilities:
 - Merging decoded key/value pairs into nested Python containers (`merge`)
 - Removing the library's `Undefined` sentinel values (`compact` and helpers)
-- Minimal deep‑equality for cycle detection guards (`_dicts_are_equal`)
+- Minimal deep-equality for cycle detection guards (`_dicts_are_equal`)
 - Small helpers for list/value composition (`combine`, `apply`)
 - Primitive checks used by the encoder (`is_non_nullish_primitive`)
 
 Notes:
 - `Undefined` marks entries that should be *omitted* from output structures. We remove these in place where possible to minimize allocations.
 - Many helpers accept both `list` and `tuple`; tuples are converted to lists on mutation because Python tuples are immutable.
-- Several routines use an object‑identity `visited` set to avoid infinite recursion when user inputs contain cycles.
+- Several routines use an object-identity `visited` set to avoid infinite recursion when user inputs contain cycles.
 """
 
 import typing as t
@@ -80,7 +80,7 @@ class Utils:
         options: t.Optional[DecodeOptions] = None,
     ) -> t.Union[t.Dict[str, t.Any], t.List[t.Any], t.Tuple[t.Any], t.Any]:
         """
-        Merge `source` into `target` in a qs‑compatible way.
+        Merge `source` into `target` in a qs-compatible way.
 
         This function mirrors how the original JavaScript `qs` library builds nested structures while parsing query strings.
         It accepts mappings, sequences (``list`` / ``tuple``), and scalars on either side and returns a merged value.
@@ -93,8 +93,8 @@ class Utils:
           * `target` is a mapping → write items from the sequence under string indices ("0", "1", …).
           * otherwise → return ``[target, source]`` (skipping :class:`Undefined` where applicable).
         - If `source` **is** a mapping:
-          * `target` is not a mapping → if `target` is a sequence, coerce it to an index‑keyed dict and merge; otherwise, concatenate as a list ``[target, source]`` while skipping :class:`Undefined`.
-          * `target` is a mapping → deep‑merge keys; where keys collide, merge values recursively.
+          * `target` is not a mapping → if `target` is a sequence, coerce it to an index-keyed dict and merge; otherwise, concatenate as a list ``[target, source]`` while skipping :class:`Undefined`.
+          * `target` is a mapping → deep-merge keys; where keys collide, merge values recursively.
 
         List handling
         -------------
@@ -371,7 +371,7 @@ class Utils:
         Returns:
             The same `root` object for chaining.
         """
-        # Depth‑first traversal without recursion.
+        # Depth-first traversal without recursion.
         stack: t.Deque[t.Union[t.Dict, t.List]] = deque([root])
         # Track object identities to avoid revisiting in cycles.
         visited: t.Set[int] = {id(root)}
@@ -389,7 +389,7 @@ class Utils:
                         if id(v) not in visited:
                             visited.add(
                                 id(v)
-                            )  # Mark before descending to avoid re‑pushing the same object through a cycle.
+                            )  # Mark before descending to avoid re-pushing the same object through a cycle.
                             stack.append(v)
             elif isinstance(node, list):
                 # Manual index loop since we may delete elements while iterating.
@@ -402,7 +402,7 @@ class Utils:
                         if isinstance(v, (dict, list)) and id(v) not in visited:
                             visited.add(
                                 id(v)
-                            )  # Mark before descending to avoid re‑pushing the same object through a cycle.
+                            )  # Mark before descending to avoid re-pushing the same object through a cycle.
                             stack.append(v)
                         i += 1
         return root
@@ -433,7 +433,7 @@ class Utils:
         """
         Recursively remove `Undefined` from a mapping in place.
 
-        Any tuple values are converted to lists to allow in‑place pruning. Uses a lightweight cycle guard via
+        Any tuple values are converted to lists to allow in-place pruning. Uses a lightweight cycle guard via
         `_dicts_are_equal` to avoid descending into the same mapping from itself.
         """
         # Snapshot keys so we can delete while iterating.
@@ -459,7 +459,7 @@ class Utils:
         """
         Minimal deep equality helper with cycle guarding.
 
-        This is not a general deep‑equality routine; it exists to prevent infinite recursion when structures point at
+        This is not a general deep-equality routine; it exists to prevent infinite recursion when structures point at
         themselves. If both inputs are dicts, we compare keys and recurse into values; otherwise we fall back to `==`.
 
         Args:
@@ -599,11 +599,14 @@ class Utils:
         - `None` and `Undefined` are not primitives.
         - Strings are primitives; if `skip_nulls` is True, the empty string is not.
         - Numbers, booleans, `Enum`, `datetime`, and `timedelta` are primitives.
-        - Any non‑container object is treated as primitive.
+        - Any non-container object is treated as primitive.
 
         This mirrors the behavior expected by the original `qs` encoder.
         """
         if val is None:
+            return False
+
+        if isinstance(val, Undefined):
             return False
 
         if isinstance(val, str):
@@ -612,10 +615,10 @@ class Utils:
         if isinstance(val, (int, float, Decimal, bool, Enum, datetime, timedelta)):
             return True
 
-        if isinstance(val, Undefined):
+        if isinstance(val, (list, tuple, dict)):
             return False
 
-        if isinstance(val, (list, tuple, ABCMapping)):
+        if isinstance(val, ABCMapping):
             return False
 
         # Opaque custom types are treated as primitives; keep the explicit fallback
@@ -624,7 +627,7 @@ class Utils:
 
     @staticmethod
     def normalize_comma_elem(e: t.Any) -> str:
-        """Normalize a value for inclusion in a comma‑joined list."""
+        """Normalize a value for inclusion in a comma-joined list."""
         if e is None:
             return ""
         if isinstance(e, bool):

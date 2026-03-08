@@ -35,16 +35,16 @@ class Sentinel(_SentinelDataMixin, Enum):
     """
 
     ISO = r"&#10003;", r"utf8=%26%2310003%3B"
-    """HTML‑entity sentinel used by non‑UTF‑8 submissions.
+    """HTML-entity sentinel used by non-UTF-8 submissions.
 
     When a check mark (✓) appears but the page/form encoding is ``iso-8859-1``
-    (or another charset that lacks ✓), browsers first HTML‑entity‑escape it as
-    ``"&#10003;"`` and then URL‑encode it, producing ``utf8=%26%2310003%3B``.
+    (or another charset that lacks ✓), browsers first HTML-entity-escape it as
+    ``"&#10003;"`` and then URL-encode it, producing ``utf8=%26%2310003%3B``.
     """
 
     CHARSET = r"✓", r"utf8=%E2%9C%93"
-    """UTF‑8 sentinel indicating the request is UTF‑8 encoded.
+    """UTF-8 sentinel indicating the request is UTF-8 encoded.
 
-    This is the percent‑encoded UTF‑8 sequence for ✓, yielding the fragment
+    This is the percent-encoded UTF-8 sequence for ✓, yielding the fragment
     ``utf8=%E2%9C%93``.
     """

@@ -1,4 +1,4 @@
-"""List formatting strategies for query‑string arrays.
+"""List formatting strategies for query-string arrays.
 
 This module defines small generator functions and an enum that the encoder
 uses to format list (array) keys, e.g., ``foo[]=1``, ``foo[0]=1``, ``foo=1,2``,
@@ -36,7 +36,7 @@ class ListFormatGenerator:
 
     @staticmethod
     def comma(prefix: str, key: t.Optional[str] = None) -> str:  # pylint: disable=W0613
-        """Return the key for comma‑separated lists (no change).
+        """Return the key for comma-separated lists (no change).
 
         The encoder will join values with commas instead of repeating the key.
 
@@ -104,7 +104,7 @@ class ListFormat(_ListFormatDataMixin, Enum):
     - ``BRACKETS``: ``foo[]`` for each element.
     - ``INDICES``: ``foo[0]``, ``foo[1]``, …
     - ``REPEAT``: repeat the key per value (``foo=1&foo=2``).
-    - ``COMMA``: single key with comma‑joined values (``foo=1,2``).
+    - ``COMMA``: single key with comma-joined values (``foo=1,2``).
 
     These options control only how keys are produced; value encoding and
     delimiter handling are governed by other options.
