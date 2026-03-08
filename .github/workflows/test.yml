@@ -36,9 +36,10 @@ jobs:
       - name: Run static analysis
         run: tox -e linters
   test:
-    name: "Test"
+    name: ${{ matrix.experimental && format('Test ({0}, experimental)', matrix.py) || format('Test ({0})', matrix.py) }}
     needs: analyze
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental || false }}
     strategy:
       matrix:
         include:
@@ -54,8 +55,14 @@ jobs:
             py: "3.12"
           - toxenv: "python3.13"
             py: "3.13"
+          - toxenv: "python3.13t"
+            py: "3.13t"
+            experimental: true
           - toxenv: "python3.14"
             py: "3.14"
+          - toxenv: "python3.14t"
+            py: "3.14t"
+            experimental: true
           - toxenv: "pypy3.8"
             py: "pypy-3.8"
           - toxenv: "pypy3.9"
