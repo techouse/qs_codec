@@ -39,7 +39,7 @@ from .models.weak_wrapper import WeakWrapper
 from .utils.utils import Utils
 
 
-def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
+def encode(value: t.Any, options: t.Optional[EncodeOptions] = None) -> str:
     """
     Stringify a Python value into a query string.
 
@@ -48,7 +48,7 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
             * Mapping -> encoded as-is.
             * Sequence (list/tuple) -> treated as an object with string indices.
             * Other/None -> treated as empty input.
-        options: Encoding behavior (parity with the Node.js `qs` API).
+        options: Encoding behavior (parity with the Node.js `qs` API). When ``None``, defaults are used.
 
     Returns:
         The encoded query string (possibly prefixed with "?" if requested), or an empty string when there is nothing to encode.
@@ -64,17 +64,19 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
     if value is None:
         return ""
 
-    filter_opt = options.filter
+    opts = options if options is not None else EncodeOptions()
+
+    filter_opt = opts.filter
     filter_is_callable = callable(filter_opt)
     filter_is_sequence = (
         filter_opt is not None
         and isinstance(filter_opt, ABCSequence)
         and not isinstance(filter_opt, (str, bytes, bytearray))
     )
-    list_format = options.list_format
-    sort_opt = options.sort if callable(options.sort) else None
-    encoder = options.encoder if options.encode else None
-    formatter = options.format.formatter
+    list_format = opts.list_format
+    sort_opt = opts.sort if callable(opts.sort) else None
+    encoder = opts.encoder if opts.encode else None
+    formatter = opts.format.formatter
 
     # Normalize the root into a mapping we can traverse deterministically:
     # - Mapping  -> shallow copy (deep-copy only when a callable filter may mutate)
@@ -109,7 +111,7 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
             obj_keys = list(filter_keys)
 
     # Single-item list round-trip marker when using comma format.
-    comma_round_trip: bool = list_format == ListFormat.COMMA and options.comma_round_trip is True
+    comma_round_trip: bool = list_format == ListFormat.COMMA and opts.comma_round_trip is True
 
     # Default root key set if no iterable filter was provided.
     if obj_keys is None:
@@ -121,7 +123,7 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
 
     # Side channel seed for legacy `_encode` compatibility (and cycle-state bootstrap when provided).
     side_channel: WeakKeyDictionary = WeakKeyDictionary()
-    max_depth = _get_max_encode_depth(options.max_depth)
+    max_depth = _get_max_encode_depth(opts.max_depth)
 
     # Encode each selected root key.
     missing = _MISSING
@@ -134,7 +136,7 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
         key_is_undefined = obj_value is missing
 
         # Optionally drop explicit nulls at the root.
-        if options.skip_nulls and obj_value is None:
+        if opts.skip_nulls and obj_value is None:
             continue
 
         _encoded: t.Union[t.List[t.Any], t.Tuple[t.Any, ...], t.Any] = _encode(
@@ -144,21 +146,21 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
             prefix=_key,
             generate_array_prefix=list_format.generator,
             comma_round_trip=comma_round_trip,
-            comma_compact_nulls=list_format == ListFormat.COMMA and options.comma_compact_nulls,
+            comma_compact_nulls=list_format == ListFormat.COMMA and opts.comma_compact_nulls,
             encoder=encoder,
-            serialize_date=options.serialize_date,
+            serialize_date=opts.serialize_date,
             sort=sort_opt,
             filter_=filter_opt,
             formatter=formatter,
-            allow_empty_lists=options.allow_empty_lists,
-            strict_null_handling=options.strict_null_handling,
-            skip_nulls=options.skip_nulls,
-            encode_dot_in_keys=options.encode_dot_in_keys,
-            allow_dots=options.allow_dots,
-            format=options.format,
-            encode_values_only=options.encode_values_only,
-            charset=options.charset,
-            add_query_prefix=options.add_query_prefix,
+            allow_empty_lists=opts.allow_empty_lists,
+            strict_null_handling=opts.strict_null_handling,
+            skip_nulls=opts.skip_nulls,
+            encode_dot_in_keys=opts.encode_dot_in_keys,
+            allow_dots=opts.allow_dots,
+            format=opts.format,
+            encode_values_only=opts.encode_values_only,
+            charset=opts.charset,
+            add_query_prefix=opts.add_query_prefix,
             _max_depth=max_depth,
         )
 
@@ -169,16 +171,16 @@ def encode(value: t.Any, options: EncodeOptions = EncodeOptions()) -> str:
             keys.append(_encoded)
 
     # Join tokens with the selected pair delimiter.
-    joined: str = options.delimiter.join(keys)
+    joined: str = opts.delimiter.join(keys)
 
     # Optional leading "?" prefix (applied *before* a charset sentinel, if any).
-    prefix: str = "?" if options.add_query_prefix else ""
+    prefix: str = "?" if opts.add_query_prefix else ""
 
     # Optional charset sentinel token for downstream parsers (e.g., "utf-8" or "iso-8859-1").
-    if options.charset_sentinel:
-        if options.charset == Charset.LATIN1:
+    if opts.charset_sentinel:
+        if opts.charset == Charset.LATIN1:
             prefix += f"{Sentinel.ISO.encoded}&"
-        elif options.charset == Charset.UTF8:
+        elif opts.charset == Charset.UTF8:
             prefix += f"{Sentinel.CHARSET.encoded}&"
         else:
             raise ValueError("Invalid charset")

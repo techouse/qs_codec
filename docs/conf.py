@@ -5,11 +5,9 @@
 import os
 import sys
 
-
 sys.path.insert(0, os.path.abspath(".."))
 
 from qs_codec import __version__
-
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information

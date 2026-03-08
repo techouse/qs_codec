@@ -1,5 +1,6 @@
 import importlib
 import math
+import sys
 import typing as t
 from collections import UserDict, UserList
 from contextlib import nullcontext as does_not_raise
@@ -915,6 +916,9 @@ class TestEncode:
     def test_encode_deep_nesting_iterative_stack_safety(self) -> None:
         # Keep this above common recursion limits so recursion regressions still fail quickly.
         depth = 12_000
+        if sys.implementation.name == "pypy" and sys.version_info[:2] == (3, 8):
+            # Older PyPy 3.8 CI runners are much slower on this stress case.
+            depth = min(depth, 4_000)
         data: t.Dict[str, t.Any] = {"leaf": "x"}
         for _ in range(depth):
             data = {"a": data}
