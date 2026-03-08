@@ -46,7 +46,7 @@ class EncodeOptions:
     """Controls how lists are encoded (indices/brackets/repeat/comma). See `ListFormat`."""
 
     charset: Charset = Charset.UTF8
-    """Character encoding used by the encoder (defaults to UTF‑8)."""
+    """Character encoding used by the encoder (defaults to UTF-8)."""
 
     charset_sentinel: bool = False
     """When `True`, include a sentinel parameter announcing the charset (e.g. `utf8=✓`)."""
@@ -55,7 +55,7 @@ class EncodeOptions:
     """Pair delimiter between tokens (typically `&`; `;` and others are allowed)."""
 
     encode: bool = True
-    """Master switch. When `False`, values/keys are not percent‑encoded (joined as-is)."""
+    """Master switch. When `False`, values/keys are not percent-encoded (joined as-is)."""
 
     encode_dot_in_keys: bool = field(default=None)  # type: ignore [assignment]
     """When `True`, encode dots in keys literally. With `encode_values_only=True`, only key dots are encoded while values remain untouched."""
@@ -64,7 +64,7 @@ class EncodeOptions:
     """When `True`, the encoder is applied to values only; keys are left unencoded."""
 
     format: Format = Format.RFC3986
-    """Space handling and percent‑encoding style. `RFC3986` encodes spaces as `%20`, while
+    """Space handling and percent-encoding style. `RFC3986` encodes spaces as `%20`, while
     `RFC1738` uses `+`."""
 
     filter: t.Optional[t.Union[t.Callable, t.Sequence[t.Union[str, int]]]] = field(default=None)
@@ -86,7 +86,7 @@ class EncodeOptions:
     )
     """Custom scalar encoder. Signature: `(value, charset|None, format|None) -> str`.
     Note: when `encode=False`, this is bypassed and values are joined without
-    percent‑encoding."""
+    percent-encoding."""
 
     _encoder: t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str] = field(init=False, repr=False)
 
@@ -97,18 +97,30 @@ class EncodeOptions:
         The returned callable has signature `(value) -> str` and internally calls the
         underlying `_encoder(value, self.charset, self.format)`.
         """
-        return lambda v, c=self.charset, f=self.format: self._encoder(v, c, f)  # type: ignore [misc]
+        raw_encoder = self._encoder
+        charset = self.charset
+        format_ = self.format
+
+        def bound_encoder(
+            value: t.Any,
+            c: t.Optional[Charset] = charset,
+            f: t.Optional[Format] = format_,
+            _encoder: t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str] = raw_encoder,
+        ) -> str:
+            return _encoder(value, c, f)
+
+        return bound_encoder
 
     @encoder.setter
     def encoder(self, value: t.Optional[t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str]]) -> None:
-        """Set the underlying encoder, falling back to `EncodeUtils.encode` when `None` or non‑callable."""
+        """Set the underlying encoder, falling back to `EncodeUtils.encode` when `None` or non-callable."""
         self._encoder = value if callable(value) else EncodeUtils.encode
 
     strict_null_handling: bool = False
     """When `True`, distinguish empty strings from `None`: `None` → `a` (no `=`), empty string → `a=`."""
 
     comma_round_trip: t.Optional[bool] = None
-    """Only used with `ListFormat.COMMA`. When `True`, single‑item lists append `[]` so they round‑trip back to a list on decode."""
+    """Only used with `ListFormat.COMMA`. When `True`, single-item lists append `[]` so they round-trip back to a list on decode."""
 
     comma_compact_nulls: bool = False
     """Only with `ListFormat.COMMA`. When `True`, omit `None` entries inside lists instead of emitting empty positions
@@ -127,7 +139,7 @@ class EncodeOptions:
     def __post_init__(self) -> None:
         """Normalize interdependent options.
 
-        - If `allow_dots` is `None`, mirror `encode_dot_in_keys` (treating non‑`True` as `False`).
+        - If `allow_dots` is `None`, mirror `encode_dot_in_keys` (treating non-`True` as `False`).
         - Default `encode_dot_in_keys` to `False` when unset.
         - Map deprecated `indices` to `list_format` for backward compatibility.
         """
@@ -146,20 +158,14 @@ class EncodeOptions:
             self.list_format = ListFormat.INDICES if self.indices else ListFormat.REPEAT
 
     def __eq__(self, other: object) -> bool:
-        """Structural equality that treats the bound encoder consistently.
-
-        `dataclasses.asdict` would serialize the `encoder` property (a lambda bound to
-        charset/format) differently on each instance. To compare meaningfully, we swap in
-        `_encoder` (the raw callable) on both sides before comparing dictionaries.
-        """
+        """Structural equality that ignores the property wrapper for `encoder`."""
         if not isinstance(other, EncodeOptions):
             return False
 
         for f in fields(EncodeOptions):
             name = f.name
             if name == "encoder":
-                v1 = self._encoder
-                v2 = other._encoder
+                continue
             else:
                 v1 = getattr(self, name)
                 v2 = getattr(other, name)
