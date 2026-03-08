@@ -55,6 +55,9 @@ jobs:
             py: "3.12"
           - toxenv: "python3.13"
             py: "3.13"
+          - toxenv: "python3.13t"
+            py: "3.13t"
+            experimental: true
           - toxenv: "python3.14"
             py: "3.14"
           - toxenv: "python3.14t"
