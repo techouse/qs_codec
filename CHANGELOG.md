@@ -1,3 +1,11 @@
+## 1.4.5-wip
+
+* [CHORE] optimize `encode` hot paths with lower-overhead iterative traversal, cheaper container checks, and deep linear mapping fast paths
+* [CHORE] optimize `EncodeUtils` ASCII/BMP handling and `KeyPathNode` path materialization caching for repeated encode workloads
+* [FIX] preserve legacy `max_depth` vs circular-reference error precedence in both generic and fast-path encoding
+* [FIX] keep `EncodeOptions` free of encode-time mutable cache state while preserving encoder/equality behavior
+* [CHORE] expand encode regression coverage for deep nesting, cycle handling, key-path caching, and `EncodeOptions` semantics
+
 ## 1.4.4
 
 * [CHORE] optimize `decode` hot paths via structured-key pre-scan/bypass logic and lower-overhead default decoder dispatch

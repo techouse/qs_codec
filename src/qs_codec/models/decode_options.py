@@ -25,13 +25,13 @@ class DecodeOptions:
     When ``None`` (default), it inherits the value of ``decode_dot_in_keys``."""
 
     decode_dot_in_keys: t.Optional[bool] = None
-    """Set to ``True`` to decode percent‑encoded dots in keys (e.g., ``%2E`` → ``.``).
+    """Set to ``True`` to decode percent-encoded dots in keys (e.g., ``%2E`` → ``.``).
     Note: it implies ``allow_dots``, so ``decode`` will error if you set ``decode_dot_in_keys`` to ``True``, and
     ``allow_dots`` to ``False``.
     When ``None`` (default), it defaults to ``False``.
 
     Inside bracket segments, percent-decoding naturally yields ``.`` from ``%2E/%2e``. This option controls whether
-    **top‑level** encoded dots are treated as additional split points; it does **not** affect the literal ``.`` produced
+    **top-level** encoded dots are treated as additional split points; it does **not** affect the literal ``.`` produced
     by percent-decoding inside bracket segments."""
 
     allow_empty_lists: bool = False
@@ -136,7 +136,7 @@ class DecodeOptions:
     """
 
     legacy_decoder: t.Optional[t.Callable[..., t.Optional[t.Any]]] = None
-    """Back‑compat adapter for legacy decoders of the form ``decoder(value, charset)``.
+    """Back-compat adapter for legacy decoders of the form ``decoder(value, charset)``.
     Prefer ``decoder`` which may optionally accept a ``kind`` argument. When both are supplied,
     ``decoder`` takes precedence (mirroring Kotlin/C#/Swift/Dart behavior)."""
 

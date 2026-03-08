@@ -1,10 +1,10 @@
-"""Utilities for decoding percent‑encoded query strings and splitting composite keys into bracketed path segments.
+"""Utilities for decoding percent-encoded query strings and splitting composite keys into bracketed path segments.
 
 This mirrors the semantics of the Node `qs` library:
 
-- Decoding handles both UTF‑8 and Latin‑1 code paths.
+- Decoding handles both UTF-8 and Latin-1 code paths.
 - Key splitting keeps bracket groups *balanced* and optionally treats dots as path separators when ``allow_dots=True``.
-- Top‑level dot splitting uses a character‑scanner that handles degenerate cases (leading '.' starts a bracket segment; '.[' is skipped; double dots preserve the first; trailing '.' is preserved) and never treats literal percent‑encoded sequences (e.g., '%2E') as split points; only actual '.' characters at depth 0 are split.
+- Top-level dot splitting uses a character-scanner that handles degenerate cases (leading '.' starts a bracket segment; '.[' is skipped; double dots preserve the first; trailing '.' is preserved) and never treats literal percent-encoded sequences (e.g., '%2E') as split points; only actual '.' characters at depth 0 are split.
 """
 
 import re
@@ -22,7 +22,7 @@ class DecodeUtils:
     the compiled regular expressions are created once per interpreter session.
     """
 
-    # Matches either a 16‑bit JavaScript-style %uXXXX sequence or a single‑byte
+    # Matches either a 16-bit JavaScript-style %uXXXX sequence or a single-byte
     # %XX sequence. Used by `unescape` to emulate legacy browser behavior.
     UNESCAPE_PATTERN: t.Pattern[str] = re.compile(
         r"%u(?P<unicode>[0-9A-Fa-f]{4})|%(?P<hex>[0-9A-Fa-f]{2})",
@@ -136,8 +136,8 @@ class DecodeUtils:
 
         Replaces both ``%XX`` and ``%uXXXX`` escape sequences with the
         corresponding code points. This function is intentionally permissive
-        and does not validate UTF‑8; it is used to model historical behavior
-        in Latin‑1 mode.
+        and does not validate UTF-8; it is used to model historical behavior
+        in Latin-1 mode.
 
         Examples
         --------
@@ -166,7 +166,7 @@ class DecodeUtils:
         charset: t.Optional[Charset] = Charset.UTF8,
         kind: DecodeKind = DecodeKind.VALUE,  # pylint: disable=unused-argument
     ) -> t.Optional[str]:
-        """Decode a URL‑encoded scalar.
+        """Decode a URL-encoded scalar.
 
         Notes
         -----
@@ -176,9 +176,9 @@ class DecodeUtils:
 
         Behavior:
         - Replace ``+`` with a literal space *before* decoding.
-        - If ``charset`` is :data:`~qs_codec.enums.charset.Charset.LATIN1`, decode only ``%XX`` byte sequences (no ``%uXXXX``). ``%uXXXX`` sequences are left as‑is to mimic older browser/JS behavior.
-        - Otherwise (UTF‑8), defer to :func:`urllib.parse.unquote`.
-        - Keys and values are decoded identically; whether a literal ``.`` acts as a key separator is decided later by the key‑splitting logic.
+        - If ``charset`` is :data:`~qs_codec.enums.charset.Charset.LATIN1`, decode only ``%XX`` byte sequences (no ``%uXXXX``). ``%uXXXX`` sequences are left as-is to mimic older browser/JS behavior.
+        - Otherwise (UTF-8), defer to :func:`urllib.parse.unquote`.
+        - Keys and values are decoded identically; whether a literal ``.`` acts as a key separator is decided later by the key-splitting logic.
 
         Returns
         -------
@@ -212,8 +212,8 @@ class DecodeUtils:
     ) -> t.List[str]:
         """Split a composite key into *balanced* bracket segments.
 
-        - If ``allow_dots`` is True, convert **top‑level** dots to bracket groups using a character‑scanner (``a.b[c]`` → ``a[b][c]``), preserving dots inside brackets and degenerate cases.
-        - The *parent* (non‑bracket) prefix becomes the first segment, e.g. ``"a[b][c]"`` → ``["a", "[b]", "[c]"]``.
+        - If ``allow_dots`` is True, convert **top-level** dots to bracket groups using a character-scanner (``a.b[c]`` → ``a[b][c]``), preserving dots inside brackets and degenerate cases.
+        - The *parent* (non-bracket) prefix becomes the first segment, e.g. ``"a[b][c]"`` → ``["a", "[b]", "[c]"]``.
         - Bracket groups are *balanced* using a counter so nested brackets within a single group (e.g. ``"[with[inner]]"``) are treated as one segment.
         - When ``max_depth <= 0``, no splitting occurs; the key is returned as a single segment (qs semantics).
         - If there are more groups beyond ``max_depth`` and ``strict_depth`` is True, an ``IndexError`` is raised. Otherwise, the remainder is added as one final segment (again mirroring qs).
