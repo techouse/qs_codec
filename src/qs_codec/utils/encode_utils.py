@@ -31,6 +31,11 @@ class EncodeUtils:
     RFC1738_SAFE_CHARS: t.Set[int] = SAFE_CHARS | {0x28, 0x29}
     """0-9, A-Z, a-z, -, ., _, ~, (, )"""
 
+    SAFE_POINTS_ASCII: t.Tuple[bool, ...] = tuple(map(SAFE_POINTS.__contains__, range(0x80)))
+    RFC1738_SAFE_POINTS_ASCII: t.Tuple[bool, ...] = tuple(map(RFC1738_SAFE_POINTS.__contains__, range(0x80)))
+    SAFE_CHARS_ASCII: t.Tuple[bool, ...] = tuple(map(SAFE_CHARS.__contains__, range(0x80)))
+    RFC1738_SAFE_CHARS_ASCII: t.Tuple[bool, ...] = tuple(map(RFC1738_SAFE_CHARS.__contains__, range(0x80)))
+
     _RE_UXXXX = re.compile(r"%u([0-9a-fA-F]{4})")
 
     @classmethod
@@ -41,7 +46,7 @@ class EncodeUtils:
     ) -> str:
         """Emulate the legacy JavaScript escaping behavior.
 
-        This function operates on UTF‑16 *code units* to emulate JavaScript's legacy `%uXXXX` behavior. Non‑BMP code
+        This function operates on UTF-16 *code units* to emulate JavaScript's legacy `%uXXXX` behavior. Non-BMP code
         points are first expanded into surrogate pairs via `_to_surrogates`, then each code unit is processed.
 
         - Safe set: when `format == Format.RFC1738`, the characters `(` and `)` are additionally treated as safe. Otherwise, the RFC3986 safe set is used.
@@ -51,10 +56,14 @@ class EncodeUtils:
 
         Reference: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/escape
         """
-        # Convert any non-BMP character into its surrogate pair representation.
-        string = cls._to_surrogates(string)
+        safe_points_ascii = cls.RFC1738_SAFE_POINTS_ASCII if format == Format.RFC1738 else cls.SAFE_POINTS_ASCII
+        if string.isascii() and cls._all_ascii_safe(string, safe_points_ascii):
+            return string
 
-        safe_points: t.Set[int] = cls.RFC1738_SAFE_POINTS if format == Format.RFC1738 else cls.SAFE_POINTS
+        if not string.isascii():
+            string = cls._to_surrogates(string)
+
+        hex_table = cls.HEX_TABLE
 
         buffer: t.List[str] = []
 
@@ -71,10 +80,10 @@ class EncodeUtils:
                     i += 2
                     continue
 
-            if c in safe_points:
+            if c < 0x80 and safe_points_ascii[c]:
                 buffer.append(string[i])
             elif c < 256:
-                buffer.append(cls.HEX_TABLE[c])
+                buffer.append(hex_table[c])
             else:
                 buffer.append(f"%u{c:04X}")
             i += 1
@@ -88,11 +97,11 @@ class EncodeUtils:
         charset: t.Optional[Charset] = Charset.UTF8,
         format: t.Optional[Format] = Format.RFC3986,
     ) -> str:
-        """Encode a scalar value to a URL‑encoded string.
+        """Encode a scalar value to a URL-encoded string.
 
         - Accepts numbers, `Decimal`, `Enum`, `str`, `bool`, and `bytes`. Any other type (including `None`) yields an empty string, matching the Node `qs` behavior.
-        - For `Charset.LATIN1`, the output mirrors the JS `%uXXXX` + numeric entity trick so the result can be safely transported as latin‑1.
-        - Otherwise, values are encoded as UTF‑8 using `_encode_string`.
+        - For `Charset.LATIN1`, the output mirrors the JS `%uXXXX` + numeric entity trick so the result can be safely transported as latin-1.
+        - Otherwise, values are encoded as UTF-8 using `_encode_string`.
         """
         if value is None or not isinstance(value, (int, float, Decimal, Enum, str, bool, bytes)):
             return ""
@@ -113,8 +122,8 @@ class EncodeUtils:
     def _convert_value_to_string(value: t.Any) -> str:
         """Coerce a supported scalar to `str`.
 
-        - `bytes` are decoded as UTF‑8.
-        - `bool` values are lower‑cased (`"true"` / `"false"`).
+        - `bytes` are decoded as UTF-8.
+        - `bool` values are lower-cased (`"true"` / `"false"`).
         - `str` passes through.
         - All other supported scalars use `str(value)`.
         """
@@ -135,9 +144,14 @@ class EncodeUtils:
         matching JavaScript semantics. We then walk the string with a manual index, skipping the low surrogate when we emit a
         surrogate pair.
         """
-        # Work on UTF-16 code units for JS parity.
-        s = cls._to_surrogates(string)
-        safe_chars = cls.RFC1738_SAFE_CHARS if format == Format.RFC1738 else cls.SAFE_CHARS
+        safe_chars_ascii = cls.RFC1738_SAFE_CHARS_ASCII if format == Format.RFC1738 else cls.SAFE_CHARS_ASCII
+        if string.isascii():
+            if cls._all_ascii_safe(string, safe_chars_ascii):
+                return string
+            s = string
+        else:
+            s = cls._to_surrogates(string)
+
         hex_table = cls.HEX_TABLE
         buffer: t.List[str] = []
 
@@ -146,7 +160,7 @@ class EncodeUtils:
         while i < n:
             c = ord(s[i])
 
-            if c in safe_chars:
+            if c < 0x80 and safe_chars_ascii[c]:
                 buffer.append(s[i])
                 i += 1
                 continue
@@ -187,14 +201,15 @@ class EncodeUtils:
     @classmethod
     def _is_safe_char(cls, c: int, format: t.Optional[Format]) -> bool:
         """Return True if code unit `c` is allowed unescaped for the given `format`."""
-        return c in cls.RFC1738_SAFE_CHARS if format == Format.RFC1738 else c in cls.SAFE_CHARS
+        safe_chars_ascii = cls.RFC1738_SAFE_CHARS_ASCII if format == Format.RFC1738 else cls.SAFE_CHARS_ASCII
+        return c < 0x80 and safe_chars_ascii[c]
 
     @classmethod
     def _encode_char(cls, string: str, i: int, c: int) -> t.List[str]:
-        """Encode one UTF‑16 code unit (at index `i`) into percent‑encoded UTF‑8 bytes.
+        """Encode one UTF-16 code unit (at index `i`) into percent-encoded UTF-8 bytes.
 
         - ASCII (`c &lt; 0x80`) → single `%XX`.
-        - Two‑byte, three‑byte UTF‑8 forms as needed.
+        - Two-byte, three-byte UTF-8 forms as needed.
         - If `c` is a surrogate, defer to `_encode_surrogate_pair`.
         """
         if c < 0x80:  # ASCII
@@ -215,7 +230,7 @@ class EncodeUtils:
 
     @classmethod
     def _encode_surrogate_pair(cls, string: str, i: int, c: int) -> t.List[str]:
-        """Encode a surrogate pair starting at `i` as a 4‑byte UTF‑8 sequence."""
+        """Encode a surrogate pair starting at `i` as a 4-byte UTF-8 sequence."""
         buffer: t.List[str] = []
         low = ord(string[i + 1])
         c = 0x10000 + (((c & 0x3FF) << 10) | (low & 0x3FF))
@@ -231,35 +246,46 @@ class EncodeUtils:
 
     @staticmethod
     def _to_surrogates(string: str) -> str:
-        """Expand non‑BMP code points (code point &gt; 0xFFFF) into UTF‑16 surrogate pairs.
+        """Expand non-BMP code points (code point &gt; 0xFFFF) into UTF-16 surrogate pairs.
 
         This mirrors how JavaScript strings store characters, allowing compatibility with legacy `%uXXXX` encoding paths
-        and consistent behavior with the Node `qs` implementation.
+        and consistent behavior with the Node `qs` implementation. If no non-BMP
+        code point is present, the original string is returned unchanged.
         """
-        # Fast path: no non-BMP code points — return original string
-        for _ch in string:
-            if ord(_ch) > 0xFFFF:
-                break
-        else:
-            return string
+        buffer: t.Optional[t.List[str]] = None
 
-        buffer: t.List[str] = []
+        for index, ch in enumerate(string):
+            cp = ord(ch)
+            if cp <= 0xFFFF:
+                if buffer is not None:
+                    buffer.append(ch)
+                continue
 
-        ch: str
+            if buffer is None:
+                buffer = list(string[:index])
+
+            # Convert to surrogate pair.
+            cp -= 0x10000
+            high = 0xD800 + (cp >> 10)
+            low = 0xDC00 + (cp & 0x3FF)
+            buffer.append(chr(high))
+            buffer.append(chr(low))
+
+        return string if buffer is None else "".join(buffer)
+
+    @staticmethod
+    def _all_ascii_safe(string: str, safe_table: t.Tuple[bool, ...]) -> bool:
+        """Return True when every ASCII code unit in `string` is marked safe by `safe_table`.
+
+        Callers must ensure `string.isascii()` is `True` before calling this helper.
+        `safe_table` is indexed by `ord(ch)` and is sized only for ASCII code units.
+        """
         for ch in string:
-            cp: int = ord(ch)
-            if cp > 0xFFFF:
-                # Convert to surrogate pair.
-                cp -= 0x10000
-                high: int = 0xD800 + (cp >> 10)
-                low: int = 0xDC00 + (cp & 0x3FF)
-                buffer.append(chr(high))
-                buffer.append(chr(low))
-            else:
-                buffer.append(ch)
-        return "".join(buffer)
+            if not safe_table[ord(ch)]:
+                return False
+        return True
 
     @staticmethod
     def serialize_date(dt: datetime) -> str:
-        """Serialize a `datetime` to ISO‑8601 using `datetime.isoformat()`."""
+        """Serialize a `datetime` to ISO-8601 using `datetime.isoformat()`."""
         return dt.isoformat()

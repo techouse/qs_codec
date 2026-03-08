@@ -18,6 +18,23 @@ class TestKeyPathNode:
         second = path.materialize()
         assert first == second == "a[b][c]"
 
+    def test_materialize_caches_shared_prefixes_for_sibling_paths(self) -> None:
+        root = KeyPathNode.from_materialized("root")
+        shared_nodes = []
+        shared = root
+        for i in range(12):
+            shared = shared.append(f"[k{i}]")
+            shared_nodes.append(shared)
+
+        left = shared.append("[left]")
+        right = shared.append("[right]")
+
+        assert left.materialize() == "root[k0][k1][k2][k3][k4][k5][k6][k7][k8][k9][k10][k11][left]"
+        assert right.materialize() == "root[k0][k1][k2][k3][k4][k5][k6][k7][k8][k9][k10][k11][right]"
+        assert left.materialized is not None
+        assert right.materialized is not None
+        assert any(node.materialized is not None for node in shared_nodes)
+
     def test_as_dot_encoded_replaces_literal_dots(self) -> None:
         path = KeyPathNode.from_materialized("a.b").append("[c.d]")
         encoded = path.as_dot_encoded()

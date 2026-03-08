@@ -14,6 +14,8 @@ class KeyPathNode:
     path semantics.
     """
 
+    _MATERIALIZE_CACHE_NODE_LIMIT: t.ClassVar[int] = 8
+
     __slots__ = ("depth", "dot_encoded", "materialized", "parent", "segment")
     parent: t.Optional["KeyPathNode"]
     segment: str
@@ -87,14 +89,49 @@ class KeyPathNode:
             self.materialized = value
             return value
 
-        parts = [""] * self.depth
-        node: t.Optional["KeyPathNode"] = self
-        index = self.depth - 1
-        while node is not None:
-            parts[index] = node.segment
-            node = node.parent
-            index -= 1
+        suffix_nodes: t.List["KeyPathNode"] = []
+        current: t.Optional["KeyPathNode"] = self
+        base = ""
+        while current is not None:
+            cached_current = current.materialized
+            if cached_current is not None:
+                base = cached_current
+                break
+            suffix_nodes.append(current)
+            current = current.parent
+
+        suffix_count = len(suffix_nodes)
+        prefix_lengths: t.List[int] = [0] * suffix_count
+        parts: t.List[str] = [base] if base else []
+        prefix_length = len(base)
+        forward_index = 0
+        for index in range(suffix_count - 1, -1, -1):
+            node = suffix_nodes[index]
+            parts.append(node.segment)
+            prefix_length += len(node.segment)
+            prefix_lengths[forward_index] = prefix_length
+            forward_index += 1
 
         value = "".join(parts)
         self.materialized = value
-        return value
+
+        def cache_forward_index(index: int) -> None:
+            node = suffix_nodes[suffix_count - 1 - index]
+            if node.materialized is None:
+                node.materialized = value[: prefix_lengths[index]]
+
+        # `self.materialized` is already populated above, so count the leaf
+        # toward the cache budget without performing a redundant write.
+        cached_nodes = 1
+
+        if suffix_count > 1 and cached_nodes < self._MATERIALIZE_CACHE_NODE_LIMIT:
+            cache_forward_index(0)
+            cached_nodes += 1
+
+        for index in range(suffix_count - 2, 0, -1):
+            if cached_nodes >= self._MATERIALIZE_CACHE_NODE_LIMIT:
+                break
+            cache_forward_index(index)
+            cached_nodes += 1
+
+        return self.materialized if self.materialized is not None else value

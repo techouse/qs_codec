@@ -962,6 +962,41 @@ class TestUtils:
         assert EncodeUtils._encode_string("💩", Format.RFC3986) == "%F0%9F%92%A9"
         assert EncodeUtils._encode_string("A💩B", Format.RFC3986) == "A%F0%9F%92%A9B"
 
+    @pytest.mark.parametrize(
+        "value, format, expected",
+        [
+            ("alpha-._~123", Format.RFC3986, "alpha-._~123"),
+            ("name(obj)", Format.RFC3986, "name%28obj%29"),
+            ("name(obj)", Format.RFC1738, "name(obj)"),
+            ("Āက豈", Format.RFC3986, "%C4%80%E1%80%80%EF%A4%80"),
+            ("A💩B", Format.RFC3986, "A%F0%9F%92%A9B"),
+            ("abc 123 💩", Format.RFC3986, "abc%20123%20%F0%9F%92%A9"),
+        ],
+    )
+    def test_encode_string_regression_cases(self, value: str, format: Format, expected: str) -> None:
+        assert EncodeUtils._encode_string(value, format) == expected
+
+    def test_encode_string_ascii_fast_path_skips_surrogate_conversion(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(
+            EncodeUtils,
+            "_to_surrogates",
+            staticmethod(lambda _value: (_ for _ in ()).throw(AssertionError("unexpected surrogate conversion"))),
+        )
+
+        assert EncodeUtils._encode_string("alpha-._~123", Format.RFC3986) == "alpha-._~123"
+        assert EncodeUtils._encode_string("name(obj)", Format.RFC3986) == "name%28obj%29"
+
+    def test_encode_string_bmp_only_preserves_output(self) -> None:
+        assert EncodeUtils._encode_string("Āက豈", Format.RFC3986) == "%C4%80%E1%80%80%EF%A4%80"
+
+    def test_encode_latin1_bmp_only_preserves_output(self) -> None:
+        assert EncodeUtils.encode("Ā", charset=Charset.LATIN1, format=Format.RFC3986) == "%26%23256%3B"
+
+    def test_to_surrogates_returns_original_string_for_bmp_only_input(self) -> None:
+        value = "Āက豈"
+
+        assert EncodeUtils._to_surrogates(value) is value
+
     def test_merge_target_is_overflow_dict(self) -> None:
         target = OverflowDict({"0": "a"})
         source = "b"
