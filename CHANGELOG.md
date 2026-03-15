@@ -1,3 +1,9 @@
+## 1.5.0
+
+* [FEAT] add the `Programming Language :: Python :: Free Threading :: 3 - Stable` classifier
+* [CHORE] clarify in the thread-safety docs that the free-threaded CPython build is supported and covered by the test suite
+* [CHORE] treat free-threaded CPython (`3.13t`, `3.14t`) CI jobs as normal required test runs instead of experimental jobs
+
 ## 1.4.6
 
 * [FIX] avoid a shared default `EncodeOptions()` instance in `encode()` by constructing defaults per call
