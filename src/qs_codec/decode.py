@@ -31,7 +31,7 @@ from .utils.decode_utils import DecodeUtils
 from .utils.utils import Utils
 
 
-def decode(
+def pure_decode(
     value: t.Optional[t.Union[str, Mapping[str, t.Any]]],
     options: t.Optional[DecodeOptions] = None,
 ) -> t.Dict[str, t.Any]:
@@ -123,6 +123,26 @@ def decode(
         obj = Utils.merge(obj, new_obj, opts)  # type: ignore [assignment]
 
     return Utils.compact(obj)
+
+
+# Alias for the pure implementation.
+pure_load = pure_decode
+
+
+def decode(
+    value: t.Optional[t.Union[str, Mapping[str, t.Any]]],
+    options: t.Optional[DecodeOptions] = None,
+) -> t.Dict[str, t.Any]:
+    """Dispatch to the configured backend while preserving the public API."""
+    from ._backend import resolve_backend
+
+    selection = resolve_backend()
+    if selection.name == "pure":
+        return pure_decode(value, options)
+
+    from ._decode_rust import decode_with_rust
+
+    return decode_with_rust(selection.native_module, value, options)
 
 
 # Alias for decode function

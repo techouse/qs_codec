@@ -31,8 +31,25 @@ Highlights
 Compatibility
 -------------
 
-- CPython 3.8–3.14 (default tox envs).
-- PyPy 3.8–3.11 (run ``tox -e pypy3.8`` through ``tox -e pypy3.11`` locally; CI mirrors this matrix).
+- CPython 3.8–3.14 with an optional native ``qs_codec._qs_rust`` backend.
+- Free-threaded CPython 3.13–3.14 follows the same public API and backend-selection rules.
+- PyPy 3.8–3.11 remains supported through the pure-Python backend in this tranche.
+
+Backend Selection
+-----------------
+
+The public API stays the same regardless of backend. ``encode``, ``decode``,
+``dumps``, ``loads``, and ``load`` continue to come from ``qs_codec``.
+
+Backend selection is internal plus env-driven:
+
+- ``QS_CODEC_BACKEND=auto``: prefer the native backend on CPython when
+  ``qs_codec._qs_rust`` is importable; otherwise use pure Python.
+- ``QS_CODEC_BACKEND=pure``: always use the existing Python implementation.
+- ``QS_CODEC_BACKEND=rust``: require the native module and raise a clear
+  runtime error if it is unavailable.
+
+PyPy stays on the pure backend even when the native module is present.
 
 Usage
 -----

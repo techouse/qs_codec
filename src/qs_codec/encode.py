@@ -39,7 +39,7 @@ from .models.weak_wrapper import WeakWrapper
 from .utils.utils import Utils
 
 
-def encode(value: t.Any, options: t.Optional[EncodeOptions] = None) -> str:
+def pure_encode(value: t.Any, options: t.Optional[EncodeOptions] = None) -> str:
     """
     Stringify a Python value into a query string.
 
@@ -188,8 +188,8 @@ def encode(value: t.Any, options: t.Optional[EncodeOptions] = None) -> str:
     return prefix + joined if joined else ""
 
 
-# Alias for the `encode` function.
-dumps = encode  # public alias (parity with `json.dumps` / Node `qs.stringify`)
+# Alias for the pure implementation.
+pure_dumps = pure_encode
 
 _MISSING = object()
 
@@ -1054,3 +1054,20 @@ def _encode(
             frame.phase = PHASE_ITERATE
 
     return [] if last_result is None else last_result
+
+
+def encode(value: t.Any, options: t.Optional[EncodeOptions] = None) -> str:
+    """Dispatch to the configured backend while preserving the public API."""
+    from ._backend import resolve_backend
+
+    selection = resolve_backend()
+    if selection.name == "pure":
+        return pure_encode(value, options)
+
+    from ._encode_rust import encode_with_rust
+
+    return encode_with_rust(selection.native_module, value, options)
+
+
+# Alias for the public `encode` function.
+dumps = encode  # public alias (parity with `json.dumps` / Node `qs.stringify`)

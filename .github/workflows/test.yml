@@ -36,7 +36,7 @@ jobs:
       - name: Run static analysis
         run: tox -e linters
   test:
-    name: ${{ format('Test ({0})', matrix.py) }}
+    name: ${{ format('Test ({0}, {1})', matrix.py, matrix.backend) }}
     needs: analyze
     runs-on: ubuntu-latest
     strategy:
@@ -44,30 +44,70 @@ jobs:
         include:
           - toxenv: "python3.8"
             py: "3.8"
+            backend: "pure"
+          - toxenv: "python3.8"
+            py: "3.8"
+            backend: "rust"
           - toxenv: "python3.9"
             py: "3.9"
+            backend: "pure"
+          - toxenv: "python3.9"
+            py: "3.9"
+            backend: "rust"
           - toxenv: "python3.10"
             py: "3.10"
+            backend: "pure"
+          - toxenv: "python3.10"
+            py: "3.10"
+            backend: "rust"
           - toxenv: "python3.11"
             py: "3.11"
+            backend: "pure"
+          - toxenv: "python3.11"
+            py: "3.11"
+            backend: "rust"
           - toxenv: "python3.12"
             py: "3.12"
+            backend: "pure"
+          - toxenv: "python3.12"
+            py: "3.12"
+            backend: "rust"
           - toxenv: "python3.13"
             py: "3.13"
+            backend: "pure"
+          - toxenv: "python3.13"
+            py: "3.13"
+            backend: "rust"
           - toxenv: "python3.13t"
             py: "3.13t"
+            backend: "pure"
+          - toxenv: "python3.13t"
+            py: "3.13t"
+            backend: "rust"
           - toxenv: "python3.14"
             py: "3.14"
+            backend: "pure"
+          - toxenv: "python3.14"
+            py: "3.14"
+            backend: "rust"
           - toxenv: "python3.14t"
             py: "3.14t"
+            backend: "pure"
+          - toxenv: "python3.14t"
+            py: "3.14t"
+            backend: "rust"
           - toxenv: "pypy3.8"
             py: "pypy-3.8"
+            backend: "pure"
           - toxenv: "pypy3.9"
             py: "pypy-3.9"
+            backend: "pure"
           - toxenv: "pypy3.10"
             py: "pypy-3.10"
+            backend: "pure"
           - toxenv: "pypy3.11"
             py: "pypy-3.11"
+            backend: "pure"
     steps:
       - uses: actions/checkout@v6
       - name: Set up Python ${{ matrix.py }}
@@ -75,6 +115,8 @@ jobs:
         with:
           python-version: ${{ matrix.py }}
           cache: "pip"
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
       - uses: actions/cache@v5
         with:
           path: ~/.cache/pip
@@ -86,6 +128,8 @@ jobs:
           pip install -U codecov tox-gh-actions
           pip install -r requirements_dev.txt
       - name: Test with tox
+        env:
+          QS_CODEC_BACKEND: ${{ matrix.backend }}
         run: tox
       - name: Check Code Coverage
         uses: irongut/CodeCoverageSummary@v1.3.0
@@ -119,6 +163,8 @@ jobs:
         with:
           python-version: "3.x"
           cache: "pip"
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
@@ -128,16 +174,20 @@ jobs:
       - name: Install Node dependencies
         working-directory: tests/comparison
         run: npm install
-      - name: Run a comparison test between qs_codec and qs for JavaScript
+      - name: Run comparison tests against qs for JavaScript
         working-directory: tests/comparison
-        continue-on-error: true
         run: |
           set -e
           node_output=$(node qs.js)
-          python_output=$(python3 qs.py)
-          if [ "$node_output" == "$python_output" ]; then
-              echo "The outputs are identical."
-          else
-              echo "The outputs are different."
+
+          python_output=$(QS_CODEC_BACKEND=pure python3 qs.py)
+          if [ "$node_output" != "$python_output" ]; then
+              echo "The outputs are different in pure mode."
+              exit 1
+          fi
+
+          python_output=$(QS_CODEC_BACKEND=rust python3 qs.py)
+          if [ "$node_output" != "$python_output" ]; then
+              echo "The outputs are different in rust mode."
               exit 1
           fi

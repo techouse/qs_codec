@@ -1,0 +1,20 @@
+[package]
+name = "qs_codec_rust_backend"
+version = "1.5.0"
+description = "A query string encoding and decoding library for Python. Ported from qs for JavaScript."
+edition = "2024"
+rust-version = "1.88"
+license = "BSD-3-Clause"
+readme = "../README.rst"
+homepage = "https://techouse.github.io/qs_codec/"
+documentation = "https://techouse.github.io/qs_codec/"
+repository = "https://github.com/techouse/qs_codec.git"
+publish = false
+
+[lib]
+name = "_qs_rust"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.28.2", features = ["extension-module"] }
+qs_rust = "=1.0.0"
