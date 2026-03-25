@@ -197,6 +197,7 @@ class _EncodeCallbackBridge:
     skip_root_filter: bool
 
     def _normalize_replacement(self, value: t.Any) -> t.Any:
+        """Normalize callback replacement values using pure-Python validation rules."""
         return _normalize_encode_tree(
             value,
             depth=0,
@@ -206,27 +207,32 @@ class _EncodeCallbackBridge:
         )
 
     def apply_filter(self, prefix: str, value: t.Any) -> t.Tuple[str, t.Any]:
-        filter_fn = self.options.filter if callable(self.options.filter) else None
-        if filter_fn is None:
+        """Adapt the Python filter callback to the native keep/omit/replace contract."""
+        filter_option = self.options.filter
+        if not callable(filter_option):
             return ("keep", None)
         if self.skip_root_filter and prefix == "":
             return ("keep", None)
 
         normalized_prefix = unquote_plus(prefix) if self.options.format.format_name == "RFC1738" else unquote(prefix)
+        filter_fn = t.cast(t.Callable[[str, t.Any], t.Any], filter_option)
         result = filter_fn(normalized_prefix, value)
         if isinstance(result, Undefined):
             return ("omit", None)
         return ("replace", self._normalize_replacement(result))
 
     def encode_token(self, token: t.Any) -> str:
+        """Run the user-visible scalar encoder callback for a native token."""
         encoder = self.options.encoder
         return encoder(token, self.options.charset, self.options.format)
 
     def compare(self, left: str, right: str) -> int:
+        """Bridge the Python sort callback to the integer comparator expected by Rust."""
         sorter = t.cast(t.Callable[[t.Any, t.Any], int], self.options.sort)
         return int(sorter(left, right))
 
     def serialize_temporal(self, value: datetime) -> t.Optional[str]:
+        """Keep Python's date serialization callback authoritative for native encode."""
         serializer = self.options.serialize_date
         if callable(serializer):
             return serializer(value)

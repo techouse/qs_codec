@@ -1058,13 +1058,13 @@ def _encode(
 
 def encode(value: t.Any, options: t.Optional[EncodeOptions] = None) -> str:
     """Dispatch to the configured backend while preserving the public API."""
-    from ._backend import resolve_backend
+    from ._backend import resolve_backend  # pylint: disable=import-outside-toplevel
 
     selection = resolve_backend()
     if selection.name == "pure":
         return pure_encode(value, options)
 
-    from ._encode_rust import encode_with_rust
+    from ._encode_rust import encode_with_rust  # pylint: disable=import-outside-toplevel
 
     return encode_with_rust(selection.native_module, value, options)
 

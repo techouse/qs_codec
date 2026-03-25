@@ -30,6 +30,7 @@ class _OpaqueLeafPool:
     token_by_object_id: t.Dict[int, str] = field(default_factory=dict)
 
     def placeholder(self, value: t.Any) -> str:
+        """Return a stable token for a Python object that cannot cross FFI directly."""
         object_id = id(value)
         token = self.token_by_object_id.get(object_id)
         if token is None:
@@ -40,6 +41,7 @@ class _OpaqueLeafPool:
 
 
 def _convert_decode_leaf(value: t.Any, pool: _OpaqueLeafPool) -> t.Any:
+    """Convert a Python decode leaf into a native-compatible scalar or placeholder."""
     if value is None or isinstance(value, (str, bytes, datetime)):
         return value
     if isinstance(value, bool):

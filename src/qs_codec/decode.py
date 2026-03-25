@@ -134,13 +134,13 @@ def decode(
     options: t.Optional[DecodeOptions] = None,
 ) -> t.Dict[str, t.Any]:
     """Dispatch to the configured backend while preserving the public API."""
-    from ._backend import resolve_backend
+    from ._backend import resolve_backend  # pylint: disable=import-outside-toplevel
 
     selection = resolve_backend()
     if selection.name == "pure":
         return pure_decode(value, options)
 
-    from ._decode_rust import decode_with_rust
+    from ._decode_rust import decode_with_rust  # pylint: disable=import-outside-toplevel
 
     return decode_with_rust(selection.native_module, value, options)
 
