@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import typing as t
-from collections.abc import Mapping, Sequence as ABCSequence
+from collections.abc import Mapping
+from collections.abc import Sequence as ABCSequence
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
@@ -12,9 +13,6 @@ from enum import Enum
 from urllib.parse import unquote, unquote_plus
 
 from .constants.encode_constants import MAX_ENCODING_DEPTH_EXCEEDED
-from .enums.charset import Charset
-from .enums.format import Format
-from .enums.list_format import ListFormat
 from .encode import (
     _compute_step_and_check_cycle,
     _get_max_encode_depth,
@@ -22,6 +20,9 @@ from .encode import (
     _push_current_node,
     pure_encode,
 )
+from .enums.charset import Charset
+from .enums.format import Format
+from .enums.list_format import ListFormat
 from .models.cycle_state import CycleState
 from .models.encode_options import EncodeOptions
 from .models.undefined import Undefined
@@ -38,11 +39,7 @@ class _FallbackToPureEncode(RuntimeError):
 
 
 def _is_filter_sequence(value: t.Any) -> bool:
-    return (
-        value is not None
-        and isinstance(value, ABCSequence)
-        and not isinstance(value, (str, bytes, bytearray))
-    )
+    return value is not None and isinstance(value, ABCSequence) and not isinstance(value, (str, bytes, bytearray))
 
 
 def _normalize_root_object(value: t.Any, *, deep_copy: bool) -> t.Any:

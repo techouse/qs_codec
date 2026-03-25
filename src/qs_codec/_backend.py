@@ -29,9 +29,7 @@ def _requested_backend() -> str:
     raw_value = os.getenv(QS_CODEC_BACKEND_ENV, "auto").strip().lower() or "auto"
     if raw_value not in _VALID_BACKENDS:
         expected = ", ".join(sorted(_VALID_BACKENDS))
-        raise RuntimeError(
-            f"Invalid {QS_CODEC_BACKEND_ENV} value {raw_value!r}. Expected one of: {expected}."
-        )
+        raise RuntimeError(f"Invalid {QS_CODEC_BACKEND_ENV} value {raw_value!r}. Expected one of: {expected}.")
     return raw_value
 
 
@@ -59,8 +57,6 @@ def resolve_backend() -> BackendSelection:
     except ImportError as exc:
         if requested == "auto":
             return BackendSelection(name="pure")
-        raise RuntimeError(
-            "QS_CODEC_BACKEND=rust was requested, but qs_codec._qs_rust could not be imported."
-        ) from exc
+        raise RuntimeError("QS_CODEC_BACKEND=rust was requested, but qs_codec._qs_rust could not be imported.") from exc
 
     return BackendSelection(name="rust", native_module=native_module)

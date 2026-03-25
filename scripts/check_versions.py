@@ -9,7 +9,6 @@ from pathlib import Path
 
 import toml
 
-
 ROOT = Path(__file__).resolve().parent.parent
 PYPROJECT_PATH = ROOT / "pyproject.toml"
 INIT_PATH = ROOT / "src" / "qs_codec" / "__init__.py"

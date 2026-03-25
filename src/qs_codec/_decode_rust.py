@@ -134,7 +134,9 @@ def _split_query_parts(value: str, options: DecodeOptions) -> t.Tuple[t.List[str
             else:
                 parts = clean_str.split(options.delimiter, limit)
             if len(parts) > limit:
-                raise ValueError(f"Parameter limit exceeded: Only {limit} parameter{'s' if limit != 1 else ''} allowed.")
+                raise ValueError(
+                    f"Parameter limit exceeded: Only {limit} parameter{'s' if limit != 1 else ''} allowed."
+                )
         else:
             if isinstance(options.delimiter, re.Pattern):
                 parts = re.split(options.delimiter, clean_str)
@@ -182,7 +184,9 @@ def _tokenize_string_pairs(value: str, options: DecodeOptions, *, parse_lists: b
             if key is None or key == "":
                 continue
 
-            current_list_length = len(accumulator[key]) if key in accumulator and isinstance(accumulator[key], (list, tuple)) else 0
+            current_list_length = (
+                len(accumulator[key]) if key in accumulator and isinstance(accumulator[key], (list, tuple)) else 0
+            )
             parsed_value = _parse_array_value(part[pos + 1 :], options, current_list_length)
             if isinstance(parsed_value, (list, tuple)):
                 val = [options.decode_value(item, charset) for item in parsed_value]
@@ -193,9 +197,11 @@ def _tokenize_string_pairs(value: str, options: DecodeOptions, *, parse_lists: b
             val = (
                 re.sub(r"&#(\d+);", lambda match: chr(int(match.group(1))), val)
                 if isinstance(val, str)
-                else re.sub(r"&#(\d+);", lambda match: chr(int(match.group(1))), ",".join(map(str, val)))
-                if isinstance(val, (list, tuple))
-                else re.sub(r"&#(\d+);", lambda match: chr(int(match.group(1))), str(val))
+                else (
+                    re.sub(r"&#(\d+);", lambda match: chr(int(match.group(1))), ",".join(map(str, val)))
+                    if isinstance(val, (list, tuple))
+                    else re.sub(r"&#(\d+);", lambda match: chr(int(match.group(1))), str(val))
+                )
             )
 
         if parse_lists and pos != -1 and "[]=" in part and isinstance(val, (list, tuple)):
