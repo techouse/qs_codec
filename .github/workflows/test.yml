@@ -93,7 +93,7 @@ jobs:
           filename: ./coverage.xml
           thresholds: 90
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
