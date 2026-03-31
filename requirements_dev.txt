@@ -9,6 +9,7 @@ isort
 mypy<1.11; python_version < "3.9"
 mypy<1.19; python_version >= "3.9" and platform_python_implementation == "PyPy"
 mypy>=1.11; python_version >= "3.9" and platform_python_implementation != "PyPy"
+maturin>=1.12.6,<2.0
 pep8-naming
 pylint
 pyright

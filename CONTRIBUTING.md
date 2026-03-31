@@ -31,9 +31,26 @@ git clone https://github.com/techouse/qs_codec
 cd qs_codec
 python3 -m venv env
 source env/bin/activate
-pip install -e .
-pip install -r requirements_dev.txt
+pip install -e .[dev]
 tox
+```
+
+The mixed Rust/Python build uses `maturin` under the hood, so a working Rust
+toolchain is required when installing the package from source.
+
+### Backend matrix
+
+The public contract suite is expected to pass in both backend modes on CPython:
+
+```bash
+QS_CODEC_BACKEND=pure tox -e python3.14
+QS_CODEC_BACKEND=rust tox -e python3.14
+```
+
+PyPy remains pure-only in this tranche:
+
+```bash
+QS_CODEC_BACKEND=pure tox -e pypy3.11
 ```
 
 ## qs JavaScript package compatibility
@@ -48,7 +65,7 @@ To ensure compatibility with the Node.js package, please run the following comma
 
 ```bash
 # cd into the test/comparison directory
-pushd test/comparison || exit 1
+pushd tests/comparison || exit 1
 
 # Install the Node.js dependencies
 npm install
@@ -69,7 +86,7 @@ popd || exit 1
 ```
 
 For convenience, the same bash script exists
-in [test/comparison/compare_outputs.sh](test/comparison/compare_outputs.sh).
+in [tests/comparison/compare_outputs.sh](tests/comparison/compare_outputs.sh).
 
 ## Submitting changes
 
