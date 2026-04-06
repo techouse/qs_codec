@@ -40,6 +40,7 @@ jobs:
     needs: analyze
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - toxenv: "python3.8"
@@ -141,3 +142,38 @@ jobs:
               echo "The outputs are different."
               exit 1
           fi
+  ci_required:
+    name: "CI Required"
+    if: ${{ always() }}
+    needs:
+      - analyze
+      - test
+      - ensure_compatibility
+    runs-on: ubuntu-latest
+    env:
+      ANALYZE_RESULT: ${{ needs.analyze.result }}
+      TEST_RESULT: ${{ needs.test.result }}
+      ENSURE_COMPATIBILITY_RESULT: ${{ needs.ensure_compatibility.result }}
+    steps:
+      - name: Verify required job results
+        run: |
+          set -euo pipefail
+
+          results=(
+            "analyze:${ANALYZE_RESULT}"
+            "test:${TEST_RESULT}"
+            "ensure_compatibility:${ENSURE_COMPATIBILITY_RESULT}"
+          )
+
+          failed=0
+          for entry in "${results[@]}"; do
+            job="${entry%%:*}"
+            result="${entry#*:}"
+            echo "${job}: ${result}"
+            if [[ "${result}" != "success" ]]; then
+              echo "::error::${job} finished with result '${result}'"
+              failed=1
+            fi
+          done
+
+          exit "${failed}"
