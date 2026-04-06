@@ -83,6 +83,8 @@ Other ports
 +----------------------------+---------------------------------------------------------------+-----------------+
 | .NET / C#                  | `techouse/qs-net <https://github.com/techouse/qs-net>`__      | |nuget|         |
 +----------------------------+---------------------------------------------------------------+-----------------+
+| Rust                       | `techouse/qs_rust <https://github.com/techouse/qs_rust>`__    | |crates.io|     |
++----------------------------+---------------------------------------------------------------+-----------------+
 | Node.js (original)         | `ljharb/qs <https://github.com/ljharb/qs>`__                  | |npm|           |
 +----------------------------+---------------------------------------------------------------+-----------------+
 
@@ -174,6 +176,9 @@ Holowaychuk <https://github.com/visionmedia/node-querystring>`__
 .. |nuget| image:: https://img.shields.io/nuget/v/QsNet?logo=dotnet&label=NuGet
    :target: https://www.nuget.org/packages/QsNet
    :alt: NuGet version
+.. |crates.io| image:: https://img.shields.io/crates/v/qs_rust?logo=rust&label=crates.io
+   :target: https://crates.io/crates/qs_rust
+   :alt: crates.io version
 .. |npm| image:: https://img.shields.io/npm/v/qs?logo=javascript&label=npm
    :target: https://www.npmjs.com/package/qs
    :alt: npm version
