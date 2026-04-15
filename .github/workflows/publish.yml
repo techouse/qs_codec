@@ -33,10 +33,10 @@ jobs:
         id: compare
         run: |
           set -euo pipefail
-          VERSION=$(awk -F'"' '/__version__/ {print $2}' src/${{ env.NAME }}/__init__.py)
+          VERSION=$(python scripts/check_versions.py)
           TAG=${GITHUB_REF_NAME#v}
           if [[ "$VERSION" != "$TAG" ]]; then
-            echo "Version in src/$NAME/__init__.py ($VERSION) does not match tag ($TAG)"
+            echo "Package version ($VERSION) does not match tag ($TAG)"
             exit 1
           fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
@@ -55,9 +55,11 @@ jobs:
           python-version: "3.x"
           cache: "pip"
           cache-dependency-path: pyproject.toml
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
       - name: Install build dependencies
         id: install_build_dependencies
-        run: pip install build setuptools wheel twine
+        run: pip install build maturin setuptools wheel twine
       - name: Build a binary wheel and a source tarball
         id: build
         run: python -m build --sdist --wheel --outdir dist/ .
