@@ -1,0 +1,4 @@
+interface:
+  display_name: "qs-codec"
+  short_description: "Encode and decode nested Python query strings"
+  default_prompt: "Use $qs-codec to parse or build a Python query string with qs-codec."
