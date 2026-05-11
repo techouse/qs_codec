@@ -138,7 +138,8 @@ Use these options with `qs.encode(data, qs.EncodeOptions(...))`:
 - Emit `None` without `=`: `strict_null_handling=True`.
 - Omit `None` keys: `skip_nulls=True`.
 - Emit empty lists as `foo[]`: `allow_empty_lists=True`.
-- Omit a value entirely: use `qs.Undefined()`.
+- Omit arbitrary keys by filtering them out of the input mapping before
+  encoding; avoid internal sentinels in application snippets.
 - Legacy form spaces as `+`: `format=qs.Format.RFC1738`; the default is
   `qs.Format.RFC3986`, which emits spaces as `%20`.
 - Legacy charset output: `charset=qs.Charset.LATIN1`; use
