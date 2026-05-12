@@ -1,9 +1,10 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["maturin>=1.12.6,<2.0"]
+build-backend = "maturin"
 
 [project]
 name = "qs-codec"
+version = "1.5.0"
 description = "A query string encoding and decoding library for Python. Ported from qs for JavaScript."
 readme = { file = "README.rst", content-type = "text/x-rst" }
 license = "BSD-3-Clause"
@@ -45,8 +46,6 @@ classifiers = [
     "Topic :: Utilities",
     "Typing :: Typed",
 ]
-dynamic = ["version"]
-
 [project.urls]
 Homepage = "https://techouse.github.io/qs_codec/"
 Documentation = "https://techouse.github.io/qs_codec/"
@@ -69,6 +68,7 @@ dev = [
     "mypy<1.11; python_version < \"3.9\"",
     "mypy<1.19; python_version >= \"3.9\" and platform_python_implementation == \"PyPy\"",
     "mypy>=1.11; python_version >= \"3.9\" and platform_python_implementation != \"PyPy\"",
+    "maturin>=1.12.6,<2.0",
     "pep8-naming",
     "pylint",
     "pyright",
@@ -78,23 +78,11 @@ dev = [
     "tox",
 ]
 
-[tool.hatch.version]
-path = "src/qs_codec/__init__.py"
-
-[tool.hatch.build.targets.sdist]
-include = [
-    "src",
-    "tests",
-    "README.rst",
-    "CHANGELOG.md",
-    "CODE-OF-CONDUCT.md",
-    "LICENSE",
-    "requirements_dev.txt",
-]
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/qs_codec"]
-include = ["src/qs_codec/py.typed"]
+[tool.maturin]
+manifest-path = "rust/Cargo.toml"
+module-name = "qs_codec._qs_rust"
+python-source = "src"
+include = [{ path = "README.rst", format = "sdist" }]
 
 [tool.black]
 line-length = 120
