@@ -179,9 +179,9 @@ def encode(value: t.Any, options: t.Optional[EncodeOptions] = None) -> str:
     # Optional charset sentinel token for downstream parsers (e.g., "utf-8" or "iso-8859-1").
     if opts.charset_sentinel:
         if opts.charset == Charset.LATIN1:
-            prefix += f"{Sentinel.ISO.encoded}&"
+            prefix += f"{Sentinel.ISO.encoded}{opts.delimiter}"
         elif opts.charset == Charset.UTF8:
-            prefix += f"{Sentinel.CHARSET.encoded}&"
+            prefix += f"{Sentinel.CHARSET.encoded}{opts.delimiter}"
         else:
             raise ValueError("Invalid charset")
 
