@@ -226,10 +226,10 @@ class DecodeUtils:
 
         This runs in O(n) time over the key string.
         """
-        if max_depth <= 0:
-            return [original_key]
-
         key: str = cls.dot_to_bracket_top_level(original_key) if allow_dots else original_key
+
+        if max_depth <= 0:
+            return [key]
 
         segments: t.List[str] = []
 

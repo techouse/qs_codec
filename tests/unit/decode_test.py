@@ -303,6 +303,9 @@ class TestDecode:
     def test_uses_original_key_when_depth_is_0(self, query: str, expected: t.Dict) -> None:
         assert decode(query, DecodeOptions(depth=0)) == expected
 
+    def test_depth_0_normalizes_dots_before_preserving_original_key(self) -> None:
+        assert decode("a.b=c", DecodeOptions(depth=0, allow_dots=True)) == {"a[b]": "c"}
+
     def test_parses_a_simple_list(self) -> None:
         assert decode("a=b&a=c") == {"a": ["b", "c"]}
 
@@ -1859,9 +1862,9 @@ class TestAdditionalDotEncodingParity:
         assert decode("a%2Eb", opt2) == {"a": {"b": ""}}
 
     def test_depth_zero_with_allowdots_true_does_not_split_key(self) -> None:
-        # depth=0 with allowDots=true: do not split key
+        # qs normalizes allowDots notation before preserving the full depth=0 key.
         opt = DecodeOptions(allow_dots=True, depth=0)
-        assert decode("a.b=c", opt) == {"a.b": "c"}
+        assert decode("a.b=c", opt) == {"a[b]": "c"}
 
     def test_top_level_dot_to_bracket_guardrails_leading_trailing_double(self) -> None:
         # Leading dot: ".a" should yield {"a": ...} when allowDots=true
@@ -1925,6 +1928,10 @@ class TestSplitKeySegmentationRemainder:
     def test_unterminated_group_does_not_raise_under_strict_depth(self) -> None:
         segs = DecodeUtils.split_key_into_segments("a[b[c", allow_dots=False, max_depth=5, strict_depth=True)
         assert segs == ["a", "[[b[c]"]
+
+    def test_depth_zero_normalizes_dots_before_preserving_segment(self) -> None:
+        segs = DecodeUtils.split_key_into_segments("a.b", allow_dots=True, max_depth=0, strict_depth=False)
+        assert segs == ["a[b]"]
 
 
 class TestCVE2024:
