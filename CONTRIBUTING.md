@@ -51,7 +51,7 @@ To ensure compatibility with the Node.js package, please run the following comma
 pushd test/comparison || exit 1
 
 # Install the Node.js dependencies
-npm install
+pnpm install --frozen-lockfile
 
 # Run the JavaScript and Python scripts and save their outputs
 node_output=$(node qs.js)
