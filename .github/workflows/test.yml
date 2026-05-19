@@ -124,11 +124,18 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 24
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          package_json_file: tests/comparison/package.json
+          run_install: false
+          cache: true
+          cache_dependency_path: tests/comparison/pnpm-lock.yaml
       - name: Install Python dependencies
         run: pip install -e .
       - name: Install Node dependencies
         working-directory: tests/comparison
-        run: npm install
+        run: pnpm install --frozen-lockfile
       - name: Run a comparison test between qs_codec and qs for JavaScript
         working-directory: tests/comparison
         continue-on-error: true
