@@ -1,3 +1,8 @@
+## 1.5.1-dev
+
+* [FIX] align `decode` with Node `qs` 6.15.2 by normalizing dotted keys before preserving `depth=0` input
+* [FIX] align `encode` with Node `qs` 6.15.2 by using the configured delimiter after `charset_sentinel`
+
 ## 1.5.0
 
 * [FEAT] add the `Programming Language :: Python :: Free Threading :: 3 - Stable` classifier
