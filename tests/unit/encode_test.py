@@ -959,6 +959,29 @@ class TestEncode:
         assert encode(data, options) == expected
 
     @pytest.mark.parametrize(
+        "data, options, expected",
+        [
+            pytest.param(
+                {"a": "b", "undefined": "x", "c": "d"},
+                EncodeOptions(filter=["a", Undefined(), "c"]),
+                "a=b&c=d",
+                id="undefined-filter-entry",
+            ),
+            pytest.param(
+                {"a": "b", "null": "x", "c": "d"},
+                EncodeOptions(filter=["a", None, "c"]),
+                "a=b&c=d",
+                id="none-filter-entry",
+            ),
+            pytest.param({"null": "x"}, EncodeOptions(filter=[None]), "", id="only-none-filter-entry"),
+        ],
+    )
+    def test_filter_list_skips_none_and_undefined_entries(
+        self, data: t.Mapping[str, t.Any], options: EncodeOptions, expected: str
+    ) -> None:
+        assert encode(data, options) == expected
+
+    @pytest.mark.parametrize(
         "sequence, expected",
         [
             pytest.param([1, 2], "a%5B0%5D=1", id="list"),
@@ -1293,6 +1316,9 @@ class TestEncode:
     def test_charset_sentinel_option(self, data: t.Mapping[str, t.Any], options: EncodeOptions, expected: str) -> None:
         assert encode(data, options) == expected
 
+    def test_charset_sentinel_uses_configured_delimiter(self) -> None:
+        assert encode({"a": 1, "b": 2}, EncodeOptions(charset_sentinel=True, delimiter=";")) == "utf8=%E2%9C%93;a=1;b=2"
+
     def test_charset_sentinel_with_invalid_charset(self) -> None:
         # Create a custom EncodeOptions with an invalid charset
         options = EncodeOptions(charset_sentinel=True)
@@ -1620,6 +1646,46 @@ class TestEncodesAListValueWithOneItemVsMultipleItems:
         ],
     )
     def test_list_with_multiple_items_with_a_comma_inside(
+        self, data: t.Mapping[str, t.Any], options: EncodeOptions, expected: str
+    ) -> None:
+        assert encode(data, options) == expected
+
+    @pytest.mark.parametrize(
+        "data, options, expected",
+        [
+            pytest.param(
+                {"a": [None, "b"]},
+                EncodeOptions(list_format=ListFormat.COMMA, encode_values_only=True),
+                "a=,b",
+                id="none-slot",
+            ),
+            pytest.param(
+                {"a": [Undefined(), "b"]},
+                EncodeOptions(list_format=ListFormat.COMMA, encode_values_only=True),
+                "a=,b",
+                id="undefined-slot",
+            ),
+            pytest.param(
+                {"a": [None]},
+                EncodeOptions(list_format=ListFormat.COMMA, encode_values_only=True),
+                "a=",
+                id="single-none",
+            ),
+            pytest.param(
+                {"a": [None]},
+                EncodeOptions(list_format=ListFormat.COMMA, encode_values_only=True, strict_null_handling=True),
+                "a",
+                id="single-none-strict-null",
+            ),
+            pytest.param(
+                {"a": [None]},
+                EncodeOptions(list_format=ListFormat.COMMA, encode_values_only=True, skip_nulls=True),
+                "",
+                id="single-none-skip-nulls",
+            ),
+        ],
+    )
+    def test_comma_values_only_nullish_entries_are_empty_slots(
         self, data: t.Mapping[str, t.Any], options: EncodeOptions, expected: str
     ) -> None:
         assert encode(data, options) == expected
