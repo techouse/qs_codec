@@ -26,7 +26,7 @@ from decimal import Decimal
 from enum import Enum
 
 from ..models.decode_options import DecodeOptions
-from ..models.overflow_dict import OverflowDict
+from ..models.overflow_dict import CommaOverflowDict, OverflowDict
 from ..models.undefined import Undefined
 
 
@@ -523,12 +523,15 @@ class Utils:
             # a is already an OverflowDict. Append b to a *copy* at the next numeric index.
             # We assume sequential keys; len(a_copy) gives the next index.
             orig_a = t.cast(OverflowDict, a)
-            a_copy = OverflowDict({k: v for k, v in orig_a.items() if not isinstance(v, Undefined)})
+            a_copy = orig_a.__class__({k: v for k, v in orig_a.items() if not isinstance(v, Undefined)})
             # Use max key + 1 to handle sparse dicts safely, rather than len(a)
             key_pairs = _numeric_key_pairs(a_copy)
             idx = (max(key for key, _ in key_pairs) + 1) if key_pairs else 0
 
-            if isinstance(b, (list, tuple)):
+            if isinstance(orig_a, CommaOverflowDict):
+                if not isinstance(b, Undefined):
+                    a_copy[str(idx)] = b
+            elif isinstance(b, (list, tuple)):
                 for item in b:
                     if not isinstance(item, Undefined):
                         a_copy[str(idx)] = item
@@ -556,6 +559,8 @@ class Utils:
         # Flatten b, handling OverflowDict as a list source
         if isinstance(b, (list, tuple)):
             list_b = [x for x in b if not isinstance(x, Undefined)]
+        elif isinstance(b, CommaOverflowDict):
+            list_b = [b]
         elif Utils.is_overflow(b):
             b_of = t.cast(OverflowDict, b)
             list_b = [
