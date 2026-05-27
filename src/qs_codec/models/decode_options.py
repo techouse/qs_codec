@@ -142,6 +142,14 @@ class DecodeOptions:
     Prefer ``decoder`` which may optionally accept a ``kind`` argument. When both are supplied,
     ``decoder`` takes precedence (mirroring Kotlin/C#/Swift/Dart behavior)."""
 
+    strict_merge: bool = True
+    """Wrap object/scalar conflicts in a list.
+
+    When ``True`` (default), input such as ``a[b]=c&a=d`` decodes to ``{"a": [{"b": "c"}, "d"]}``.
+    When ``False``, the decoder restores the legacy behavior and adds non-empty string scalars as object keys,
+    e.g. ``{"a": {"b": "c", "d": True}}``.
+    """
+
     def __post_init__(self) -> None:
         """Post-initialization."""
         # Default `decode_dot_in_keys` first, then mirror into `allow_dots` when unspecified.

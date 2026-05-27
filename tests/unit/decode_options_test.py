@@ -3,7 +3,7 @@ import typing as t
 
 import pytest
 
-from qs_codec import Charset, DecodeOptions
+from qs_codec import Charset, DecodeOptions, Duplicates
 from qs_codec.enums.decode_kind import DecodeKind
 from qs_codec.utils.decode_utils import DecodeUtils
 
@@ -13,6 +13,26 @@ class TestDecodeOptionsPostInitDefaults:
         opts = DecodeOptions()
         assert opts.decode_dot_in_keys is False
         assert opts.allow_dots is False
+        assert opts.strict_merge is True
+
+    def test_strict_merge_append_preserves_existing_positional_slots(self) -> None:
+        opts = DecodeOptions(
+            None,
+            None,
+            False,
+            20,
+            Charset.UTF8,
+            False,
+            False,
+            "&",
+            5,
+            1000,
+            Duplicates.COMBINE,
+            True,
+        )
+
+        assert opts.ignore_query_prefix is True
+        assert opts.strict_merge is True
 
     def test_decode_dot_implies_allow_dots(self) -> None:
         opts = DecodeOptions(decode_dot_in_keys=True)

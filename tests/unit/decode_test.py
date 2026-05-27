@@ -1264,6 +1264,48 @@ class TestDuplicatesOption:
         assert decode(query, options) == expected
 
 
+class TestStrictMergeOption:
+    @pytest.mark.parametrize(
+        "query, options, expected",
+        [
+            pytest.param("a[b]=c&a=d", DecodeOptions(), {"a": [{"b": "c"}, "d"]}, id="object-then-scalar"),
+            pytest.param("a=d&a[b]=c", DecodeOptions(), {"a": ["d", {"b": "c"}]}, id="scalar-then-object"),
+            pytest.param(
+                "a[b]=c&a=d",
+                DecodeOptions(strict_merge=False),
+                {"a": {"b": "c", "d": True}},
+                id="legacy-object-then-scalar",
+            ),
+            pytest.param(
+                "a[b]=c&a=",
+                DecodeOptions(strict_merge=False),
+                {"a": {"b": "c"}},
+                id="legacy-ignores-empty-assigned-scalar",
+            ),
+            pytest.param(
+                "a[b]=c&a",
+                DecodeOptions(strict_merge=False),
+                {"a": {"b": "c"}},
+                id="legacy-ignores-empty-missing-value-scalar",
+            ),
+            pytest.param(
+                "a[b]=c&a=",
+                DecodeOptions(),
+                {"a": {"b": "c"}},
+                id="default-ignores-empty-assigned-scalar",
+            ),
+            pytest.param(
+                "a[b]=c&a",
+                DecodeOptions(strict_null_handling=True),
+                {"a": {"b": "c"}},
+                id="default-ignores-strict-null-scalar",
+            ),
+        ],
+    )
+    def test_strict_merge(self, query: str, options: DecodeOptions, expected: t.Mapping[str, t.Any]) -> None:
+        assert decode(query, options) == expected
+
+
 class TestStrictDepthOption:
     @pytest.mark.parametrize(
         "query, options, expected, raises_error",
@@ -1515,6 +1557,16 @@ class TestListLimit:
 
         assert isinstance(result["a"], OverflowDict)
         assert result == {"a": {"0": "1", "1": "2", "2": "3", "3": "4"}}
+
+    def test_mapping_comma_list_over_limit_converts_to_overflow_dict(self) -> None:
+        result = decode({"a": "1,2,3,4"}, DecodeOptions(comma=True, list_limit=3))
+
+        assert isinstance(result["a"], OverflowDict)
+        assert result == {"a": {"0": "1", "1": "2", "2": "3", "3": "4"}}
+
+    def test_mapping_comma_list_over_limit_raises(self) -> None:
+        with pytest.raises(ValueError):
+            decode({"a": "1,2,3,4"}, DecodeOptions(comma=True, list_limit=3, raise_on_limit_exceeded=True))
 
     def test_comma_list_negative_limit_converts_to_overflow_dict(self) -> None:
         result = decode("a=1,2", DecodeOptions(comma=True, list_limit=-1))
@@ -1788,7 +1840,7 @@ class TestDecodeMixedBypassParity:
         "query, options, expected",
         [
             pytest.param("a=1&a[b]=2", None, {"a": ["1", {"b": "2"}]}, id="flat-before-structured"),
-            pytest.param("a[b]=2&a=1", None, {"a": {"b": "2"}}, id="structured-before-flat"),
+            pytest.param("a[b]=2&a=1", None, {"a": [{"b": "2"}, "1"]}, id="structured-before-flat"),
             pytest.param("0=y&[]=x", None, {"0": "x"}, id="flat-zero-collides-leading-bracket-root"),
             pytest.param("[]=x&0=y", None, {"0": ["x", "y"]}, id="leading-bracket-root-collides-flat-zero"),
             pytest.param(

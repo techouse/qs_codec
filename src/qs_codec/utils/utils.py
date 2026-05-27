@@ -205,8 +205,25 @@ class Utils:
                             last_result = new_target
                             continue
 
+                        if isinstance(current_source, Undefined) or current_source == "":
+                            stack.pop()
+                            last_result = current_target
+                            continue
+
+                        if frame.options.strict_merge:
+                            stack.pop()
+                            last_result = [dict(current_target), current_source]
+                            continue
+
+                        if isinstance(current_source, str):
+                            new_target = dict(current_target)
+                            new_target[current_source] = True
+                            stack.pop()
+                            last_result = new_target
+                            continue
+
                         stack.pop()
-                        last_result = current_target
+                        last_result = [current_target, current_source]
                         continue
 
                     if not isinstance(current_target, (list, tuple)) and isinstance(current_source, (list, tuple)):
