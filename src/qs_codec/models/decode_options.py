@@ -47,8 +47,10 @@ class DecodeOptions:
     limit, index ``19`` is the last index that can create a list; index ``20`` already
     overflows to a ``dict``.
 
-    This limit also applies to comma–split lists when ``comma=True``. Set a larger value if
-    you explicitly need more items, or set a smaller one to harden against abuse.
+    This limit also applies to decoded list growth from comma-split values when ``comma=True``.
+    For bracket-array assignments such as ``foo[]=1,2,3``, the comma-split payload is wrapped
+    as a single outer list element, so the inner payload may contain more values than
+    ``list_limit`` while still respecting the outer container limit.
     """
 
     charset: Charset = Charset.UTF8

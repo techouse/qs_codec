@@ -134,10 +134,10 @@ class TestDecoding:
         assert qs_codec.decode("a[]=&a[]=b") == {"a": ["", "b"]}
         assert qs_codec.decode("a[0]=b&a[1]=&a[2]=c") == {"a": ["b", "", "c"]}
 
-        # **qs_codec** will also limit specifying indices in a `list` to a maximum index of `20`.
-        # Any `list` members with an index of greater than `20` will instead be converted to a `dict` with the index as
-        # the key. This is needed to handle cases when someone sent, for example, `a[999999999]` and it will take
-        # significant time to iterate over this huge `list`.
+        # **qs_codec** will also limit specifying indices in a `list` to a maximum element count of `20`.
+        # Index `19` is the last index that can create a default `list`; index `20` and higher are converted to a
+        # `dict` with the index as the key. This is needed to handle cases when someone sent, for example,
+        # `a[999999999]` and it will take significant time to iterate over this huge `list`.
         assert qs_codec.decode("a[100]=b") == {"a": {"100": "b"}}
 
         # This limit can be overridden by passing an `DecodeOptions.list_limit` option:
