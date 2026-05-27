@@ -12,11 +12,11 @@ from qs_codec import DecodeOptions, Duplicates, EncodeOptions, ListFormat, decod
 from qs_codec.models.key_path_node import KeyPathNode
 from qs_codec.models.weak_wrapper import WeakWrapper, _proxy_cache
 
-IS_PYPY_38: bool = sys.implementation.name == "pypy" and sys.version_info[:2] == (3, 8)
+IS_PYPY: bool = sys.implementation.name == "pypy"
 THREAD_COUNT: int = 8
-ITERATION_COUNT: int = 100 if IS_PYPY_38 else 250
-HEAVY_ENCODE_ITERATION_COUNT: int = 25 if IS_PYPY_38 else ITERATION_COUNT
-JOIN_TIMEOUT_SECONDS: float = 60.0 if IS_PYPY_38 else 30.0
+ITERATION_COUNT: int = 100 if IS_PYPY else 250
+HEAVY_ENCODE_ITERATION_COUNT: int = 25 if IS_PYPY else ITERATION_COUNT
+JOIN_TIMEOUT_SECONDS: float = 60.0 if IS_PYPY else 30.0
 
 
 def _run_concurrently(
