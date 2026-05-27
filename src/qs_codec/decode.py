@@ -24,11 +24,15 @@ from .enums.decode_kind import DecodeKind
 from .enums.duplicates import Duplicates
 from .enums.sentinel import Sentinel
 from .models.decode_options import DecodeOptions
-from .models.overflow_dict import OverflowDict
+from .models.overflow_dict import CommaOverflowDict, OverflowDict
 from .models.structured_key_scan import StructuredKeyScan
 from .models.undefined import UNDEFINED
 from .utils.decode_utils import DecodeUtils
 from .utils.utils import Utils
+
+
+def _list_limit_exceeded_message(limit: int) -> str:
+    return f"List limit exceeded: Only {limit} element{'' if limit == 1 else 's'} allowed in a list."
 
 
 def decode(
@@ -86,9 +90,7 @@ def decode(
             parse_lists_effective = False
 
     if decode_from_string:
-        temp_obj: t.Optional[t.Dict[str, t.Any]] = _parse_query_string_values(
-            str_value, opts, parse_lists=parse_lists_effective
-        )
+        temp_obj: t.Optional[t.Dict[str, t.Any]] = _parse_query_string_values(str_value, opts)
     else:
         temp_obj = dict(mapping_value)
     if not temp_obj:
@@ -221,20 +223,27 @@ def _interpret_numeric_entities(value: str) -> str:
     return re.sub(r"&#(\d+);", lambda match: chr(int(match.group(1))), value)
 
 
-def _parse_array_value(value: t.Any, options: DecodeOptions, current_list_length: int) -> t.Any:
+def _parse_array_value(
+    value: t.Any,
+    options: DecodeOptions,
+    current_list_length: int,
+    *,
+    enforce_comma_limit: bool = True,
+) -> t.Any:
     """Post-process a raw scalar for list semantics and enforce ``list_limit``.
 
     Behavior
     --------
     - If ``comma=True`` and ``value`` is a string that contains commas, split into a list.
+      When ``enforce_comma_limit`` is ``True``, over-limit comma values raise or degrade to an ``OverflowDict`` here.
+      Raw query-string parsing and mapping key paths ending in ``[]`` pass ``False`` so the caller can account for
+      bracket-array key context first.
     - Otherwise, enforce the per-list length limit by comparing ``current_list_length`` to ``options.list_limit``.
       When ``raise_on_limit_exceeded=True``, violations raise ``ValueError``.
-    - When ``list_limit`` is negative:
-        * if ``raise_on_limit_exceeded=True``, **any** list-growth operation here (e.g., comma-splitting)
-          raises immediately;
-        * if ``raise_on_limit_exceeded=False`` (default), comma-splitting still returns a list; numeric
-          bracket indices are handled later by ``_parse_object`` (where negative ``list_limit`` disables
-          numeric-index parsing only).
+    - When ``list_limit`` is negative, any non-empty comma split exceeds the limit: raising mode raises,
+      while non-raising mode degrades to an ``OverflowDict``/``CommaOverflowDict``. Raw query-string
+      parsing temporarily returns the split list when ``enforce_comma_limit=False`` so the caller can
+      apply bracket-array wrapping before the final limit check.
 
     Returns
     -------
@@ -243,23 +252,19 @@ def _parse_array_value(value: t.Any, options: DecodeOptions, current_list_length
     """
     if isinstance(value, str) and value and options.comma and "," in value:
         split_val: t.List[str] = value.split(",")
-        if options.raise_on_limit_exceeded and len(split_val) > options.list_limit:
-            raise ValueError(
-                f"List limit exceeded: Only {options.list_limit} element{'' if options.list_limit == 1 else 's'} allowed in a list."
-            )
+        if enforce_comma_limit and len(split_val) > options.list_limit:
+            if options.raise_on_limit_exceeded:
+                raise ValueError(_list_limit_exceeded_message(options.list_limit))
+            return CommaOverflowDict({str(i): item for i, item in enumerate(split_val)})
         return split_val
 
     if options.raise_on_limit_exceeded and current_list_length >= options.list_limit:
-        raise ValueError(
-            f"List limit exceeded: Only {options.list_limit} element{'' if options.list_limit == 1 else 's'} allowed in a list."
-        )
+        raise ValueError(_list_limit_exceeded_message(options.list_limit))
 
     return value
 
 
-def _parse_query_string_values(
-    value: str, options: DecodeOptions, *, parse_lists: t.Optional[bool] = None
-) -> t.Dict[str, t.Any]:
+def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str, t.Any]:
     """Tokenize a raw query string into a flat ``Dict[str, Any]``.
 
     Responsibilities
@@ -273,7 +278,7 @@ def _parse_query_string_values(
         * Decode key/value via ``options.decoder`` (default: percent-decoding using the selected ``charset``).
           Keys are passed with ``kind=DecodeKind.KEY`` and values with ``kind=DecodeKind.VALUE``; a custom decoder
           may return the raw token or ``None``.
-        * Apply comma-split list logic to values (handled here). Index-based list growth from bracket segments is applied later in ``_parse_object``. When ``list_limit < 0`` and ``raise_on_limit_exceeded=True``, any comma-split that would increase the list length raises immediately; otherwise the split proceeds.
+        * Apply comma-split list logic to values (handled here). Index-based list growth from bracket segments is applied later in ``_parse_object``. When ``list_limit < 0``, comma-split values always exceed the limit: they raise under ``raise_on_limit_exceeded=True`` and degrade to overflow dictionaries otherwise.
         * Interpret numeric entities for Latin-1 when requested.
         * Handle empty brackets ``[]`` as list markers (wrapping exactly once).
         * Merge duplicate keys according to ``duplicates`` policy.
@@ -282,7 +287,6 @@ def _parse_query_string_values(
     ``_parse_keys`` / ``_parse_object``.
     """
     obj: t.Dict[str, t.Any] = {}
-    parse_lists_enabled = options.parse_lists if parse_lists is None else parse_lists
 
     clean_str: str = value.replace("?", "", 1) if options.ignore_query_prefix else value
     # Normalize %5B/%5D to literal brackets before splitting (case-insensitive).
@@ -354,9 +358,11 @@ def _parse_query_string_values(
             continue
         bracket_equals_pos: int = part.find("]=")
         pos: int = part.find("=") if bracket_equals_pos == -1 else (bracket_equals_pos + 1)
+        bracket_array_assignment = pos != -1 and "[]=" in part
 
         # Decode key and value with a key-aware decoder; skip pairs whose key decodes to None
         raw_key = ""
+        list_limit_exceeded = False
         if pos == -1:
             key_decoded = decoder_fn(part, charset, kind=DecodeKind.KEY)
             if key_decoded is None:
@@ -377,7 +383,9 @@ def _parse_query_string_values(
                 part[pos + 1 :],
                 options,
                 len(obj[key]) if key in obj and isinstance(obj[key], (list, tuple)) else 0,
+                enforce_comma_limit=False,
             )
+            list_limit_exceeded = isinstance(parsed_value, (list, tuple)) and len(parsed_value) > options.list_limit
             if isinstance(parsed_value, (list, tuple)):
                 val = [decoder_fn(v, charset, kind=DecodeKind.VALUE) for v in parsed_value]
             else:
@@ -390,15 +398,21 @@ def _parse_query_string_values(
 
         # Upstream parity: if token contains "[]=", only wrap values that are already arrays
         # (typically produced by comma splitting), preserving list-of-lists semantics.
-        if parse_lists_enabled and pos != -1 and "[]=" in part and isinstance(val, (list, tuple)):
+        if bracket_array_assignment and isinstance(val, (list, tuple)):
             val = [val]
+            list_limit_exceeded = len(val) > options.list_limit
+        if list_limit_exceeded and isinstance(val, (list, tuple)):
+            if options.raise_on_limit_exceeded:
+                raise ValueError(_list_limit_exceeded_message(options.list_limit))
+            val = CommaOverflowDict({str(i): item for i, item in enumerate(val)})
 
         existing: bool = key in obj
+        part_duplicates = Duplicates.COMBINE if bracket_array_assignment else duplicates
 
         # Combine/overwrite according to the configured duplicates policy.
-        if existing and duplicates == Duplicates.COMBINE:
+        if existing and part_duplicates == Duplicates.COMBINE:
             obj[key] = Utils.combine(obj[key], val, options)
-        elif not existing or duplicates == Duplicates.LAST:
+        elif not existing or part_duplicates == Duplicates.LAST:
             obj[key] = val
 
     return obj
@@ -467,7 +481,31 @@ def _parse_object(
         if parent_key is not None and isinstance(val, (list, tuple)) and parent_key in dict(enumerate(val)):
             current_list_length = len(val[parent_key])
 
-    leaf: t.Any = val if values_parsed else _parse_array_value(val, options, current_list_length)
+    bracket_array_comma_value = (
+        not values_parsed
+        and bool(chain)
+        and chain[-1] == "[]"
+        and isinstance(val, str)
+        and val
+        and options.comma
+        and "," in val
+    )
+    leaf: t.Any = (
+        val
+        if values_parsed
+        else _parse_array_value(
+            val,
+            options,
+            current_list_length,
+            enforce_comma_limit=not bracket_array_comma_value,
+        )
+    )
+    if bracket_array_comma_value and isinstance(leaf, (list, tuple)):
+        leaf = [leaf]
+        if len(leaf) > options.list_limit:
+            if options.raise_on_limit_exceeded:
+                raise ValueError(_list_limit_exceeded_message(options.list_limit))
+            leaf = CommaOverflowDict({str(i): item for i, item in enumerate(leaf)})
 
     # Walk the chain from the leaf to the root, building nested containers on the way out.
     i: int
@@ -518,10 +556,14 @@ def _parse_object(
                 and root != decoded_root
                 and str(index) == decoded_root
                 and parse_lists_enabled
-                and index <= options.list_limit
             ):
-                obj = [UNDEFINED for _ in range(index + 1)]
-                obj[index] = leaf
+                if index < options.list_limit:
+                    obj = [UNDEFINED for _ in range(index + 1)]
+                    obj[index] = leaf
+                elif options.raise_on_limit_exceeded:
+                    raise ValueError(_list_limit_exceeded_message(options.list_limit))
+                else:
+                    obj[decoded_root] = leaf
             else:
                 # Preserve the literal decoded key for non-array roots (e.g. "[01]" -> "01"),
                 # matching Node `qs` behavior for leading-zero numeric-like segments.

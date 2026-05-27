@@ -406,9 +406,11 @@ class TestDecode:
     @pytest.mark.parametrize(
         "query, options, expected",
         [
-            pytest.param("a[20]=a", DecodeOptions(list_limit=20), {"a": ["a"]}, id="at-limit"),
+            pytest.param("a[19]=a", DecodeOptions(list_limit=20), {"a": ["a"]}, id="below-limit"),
+            pytest.param("a[20]=a", DecodeOptions(list_limit=20), {"a": {"20": "a"}}, id="at-limit"),
             pytest.param("a[21]=a", DecodeOptions(list_limit=20), {"a": {"21": "a"}}, id="above-limit"),
-            pytest.param("a[20]=a", None, {"a": ["a"]}, id="default-at-limit"),
+            pytest.param("a[19]=a", None, {"a": ["a"]}, id="default-below-limit"),
+            pytest.param("a[20]=a", None, {"a": {"20": "a"}}, id="default-at-limit"),
             pytest.param("a[21]=a", None, {"a": {"21": "a"}}, id="default-above-limit"),
         ],
     )
@@ -712,7 +714,7 @@ class TestDecode:
         "query, options, expected",
         [
             pytest.param("a[0]=b", DecodeOptions(list_limit=-1), {"a": {"0": "b"}}, id="limit--1-single-index-0"),
-            pytest.param("a[0]=b", DecodeOptions(list_limit=0), {"a": ["b"]}, id="limit-0-single-index-0"),
+            pytest.param("a[0]=b", DecodeOptions(list_limit=0), {"a": {"0": "b"}}, id="limit-0-single-index-0"),
             pytest.param("a[-1]=b", DecodeOptions(list_limit=-1), {"a": {"-1": "b"}}, id="limit--1-negative-index"),
             pytest.param("a[-1]=b", DecodeOptions(list_limit=0), {"a": {"-1": "b"}}, id="limit-0-negative-index"),
             pytest.param(
@@ -868,6 +870,30 @@ class TestDecode:
                 DecodeOptions(comma=True),
                 {"foo": [["1", "2", "3"], "a"]},
                 id="string-second-list",
+            ),
+            pytest.param(
+                "foo[]=1,2,3,4",
+                DecodeOptions(comma=True, list_limit=3),
+                {"foo": [["1", "2", "3", "4"]]},
+                id="bracket-list-comma-value-can-exceed-list-limit",
+            ),
+            pytest.param(
+                "foo[]=1,2,3,4",
+                DecodeOptions(comma=True, list_limit=3, raise_on_limit_exceeded=True),
+                {"foo": [["1", "2", "3", "4"]]},
+                id="bracket-list-comma-value-does-not-raise-when-over-limit",
+            ),
+            pytest.param(
+                "foo[]=1,2,3,4",
+                DecodeOptions(comma=True, list_limit=0),
+                {"foo": {"0": ["1", "2", "3", "4"]}},
+                id="bracket-list-comma-value-over-zero-limit-becomes-dict",
+            ),
+            pytest.param(
+                "foo[]=1,2,3,4",
+                DecodeOptions(comma=True, list_limit=3, parse_lists=False),
+                {"foo": {"0": [["1", "2", "3", "4"]]}},
+                id="bracket-list-comma-value-keeps-nesting-when-list-parsing-disabled",
             ),
             pytest.param(
                 "a[b]=x,y[]=z",
@@ -1197,6 +1223,46 @@ class TestDuplicatesOption:
         result = decode(query) if options is None else decode(query, options)
         assert result == expected
 
+    @pytest.mark.parametrize(
+        "query, options, expected",
+        [
+            pytest.param(
+                "b[]=1&b[]=2",
+                DecodeOptions(duplicates=Duplicates.LAST),
+                {"b": ["1", "2"]},
+                id="last-bracket-array-combines",
+            ),
+            pytest.param(
+                "b[]=1&b[]=2",
+                DecodeOptions(duplicates=Duplicates.FIRST),
+                {"b": ["1", "2"]},
+                id="first-bracket-array-combines",
+            ),
+            pytest.param(
+                "a=1&a=2&b[]=1&b[]=2",
+                DecodeOptions(duplicates=Duplicates.LAST),
+                {"a": "2", "b": ["1", "2"]},
+                id="last-preserves-flat-policy",
+            ),
+            pytest.param(
+                "a=1&a=2&b[]=1&b[]=2",
+                DecodeOptions(duplicates=Duplicates.FIRST),
+                {"a": "1", "b": ["1", "2"]},
+                id="first-preserves-flat-policy",
+            ),
+            pytest.param(
+                "b%5B%5D=1&b%5B%5D=2",
+                DecodeOptions(duplicates=Duplicates.LAST),
+                {"b": ["1", "2"]},
+                id="encoded-bracket-array-combines",
+            ),
+        ],
+    )
+    def test_bracket_notation_always_combines_regardless_of_duplicates(
+        self, query: str, options: DecodeOptions, expected: t.Mapping[str, t.Any]
+    ) -> None:
+        assert decode(query, options) == expected
+
 
 class TestStrictDepthOption:
     @pytest.mark.parametrize(
@@ -1405,6 +1471,34 @@ class TestListLimit:
                 True,
                 id="comma-separated-list-exceed-limit",
             ),
+            pytest.param(
+                "foo[]=1,2",
+                DecodeOptions(list_limit=0, raise_on_limit_exceeded=True, comma=True),
+                None,
+                True,
+                id="bracket-comma-list-zero-limit-raise",
+            ),
+            pytest.param(
+                "foo[]=1,2",
+                DecodeOptions(list_limit=-1, raise_on_limit_exceeded=True, comma=True),
+                None,
+                True,
+                id="bracket-comma-list-negative-limit-raise",
+            ),
+            pytest.param(
+                "a[1001]=b",
+                DecodeOptions(list_limit=1000, raise_on_limit_exceeded=True),
+                None,
+                True,
+                id="indexed-notation-exceeds-list-limit-raise",
+            ),
+            pytest.param(
+                "a[0]=1&a[1]=2&a[2]=3&a[10]=4",
+                DecodeOptions(list_limit=6, raise_on_limit_exceeded=True),
+                None,
+                True,
+                id="sparse-index-exceeds-list-limit-raise",
+            ),
         ],
     )
     def test_list_limit(
@@ -1415,6 +1509,105 @@ class TestListLimit:
                 decode(query, options)
         else:
             assert decode(query, options) == expected
+
+    def test_comma_list_over_limit_converts_to_overflow_dict(self) -> None:
+        result = decode("a=1,2,3,4", DecodeOptions(comma=True, list_limit=3))
+
+        assert isinstance(result["a"], OverflowDict)
+        assert result == {"a": {"0": "1", "1": "2", "2": "3", "3": "4"}}
+
+    def test_comma_list_negative_limit_converts_to_overflow_dict(self) -> None:
+        result = decode("a=1,2", DecodeOptions(comma=True, list_limit=-1))
+
+        assert isinstance(result["a"], OverflowDict)
+        assert result == {"a": {"0": "1", "1": "2"}}
+
+    def test_bracket_comma_list_negative_limit_converts_wrapped_value_to_overflow_dict(self) -> None:
+        result = decode("a[]=1,2", DecodeOptions(comma=True, list_limit=-1))
+
+        assert isinstance(result["a"], OverflowDict)
+        assert result == {"a": {"0": ["1", "2"]}}
+
+    @pytest.mark.parametrize(
+        "options, expected",
+        [
+            pytest.param(
+                DecodeOptions(comma=True, list_limit=3),
+                {"foo": [["1", "2", "3", "4"]]},
+                id="over-inner-list-limit",
+            ),
+            pytest.param(
+                DecodeOptions(comma=True, list_limit=3, raise_on_limit_exceeded=True),
+                {"foo": [["1", "2", "3", "4"]]},
+                id="over-inner-list-limit-raise-enabled",
+            ),
+            pytest.param(
+                DecodeOptions(comma=True, list_limit=0),
+                {"foo": {"0": ["1", "2", "3", "4"]}},
+                id="over-outer-list-limit",
+            ),
+            pytest.param(
+                DecodeOptions(comma=True, list_limit=3, parse_lists=False),
+                {"foo": {"0": [["1", "2", "3", "4"]]}},
+                id="parse-lists-disabled",
+            ),
+        ],
+    )
+    def test_mapping_bracket_comma_list_matches_query_string_path(
+        self, options: DecodeOptions, expected: t.Mapping[str, t.Any]
+    ) -> None:
+        assert decode("foo[]=1,2,3,4", options) == expected
+        assert decode({"foo[]": "1,2,3,4"}, options) == expected
+
+    def test_mapping_bracket_comma_list_over_zero_limit_raises(self) -> None:
+        options = DecodeOptions(comma=True, list_limit=0, raise_on_limit_exceeded=True)
+
+        with pytest.raises(ValueError):
+            decode("foo[]=1,2,3,4", options)
+        with pytest.raises(ValueError):
+            decode({"foo[]": "1,2,3,4"}, options)
+
+    @pytest.mark.parametrize(
+        "query, options, expected",
+        [
+            pytest.param(
+                "a=5&a=1,2,3,4",
+                DecodeOptions(comma=True, list_limit=3),
+                {"a": ["5", {"0": "1", "1": "2", "2": "3", "3": "4"}]},
+                id="scalar-then-overflow-comma-list",
+            ),
+            pytest.param(
+                "a=5&a=1,2,3,4",
+                DecodeOptions(comma=True, list_limit=1),
+                {"a": {"0": "5", "1": {"0": "1", "1": "2", "2": "3", "3": "4"}}},
+                id="scalar-then-overflow-comma-list-over-combined-limit",
+            ),
+            pytest.param(
+                "a=1,2,3,4&a=5,6",
+                DecodeOptions(comma=True, list_limit=3),
+                {"a": {"0": "1", "1": "2", "2": "3", "3": "4", "4": ["5", "6"]}},
+                id="overflow-comma-list-then-in-limit-comma-list",
+            ),
+            pytest.param(
+                "a=1,2,3,4&a=5,6,7,8",
+                DecodeOptions(comma=True, list_limit=3),
+                {
+                    "a": {
+                        "0": "1",
+                        "1": "2",
+                        "2": "3",
+                        "3": "4",
+                        "4": {"0": "5", "1": "6", "2": "7", "3": "8"},
+                    }
+                },
+                id="overflow-comma-list-then-overflow-comma-list",
+            ),
+        ],
+    )
+    def test_comma_overflow_duplicates_keep_overflow_values_nested(
+        self, query: str, options: DecodeOptions, expected: t.Mapping[str, t.Any]
+    ) -> None:
+        assert decode(query, options) == expected
 
 
 # --- Additional tests for decoder kind and parser state isolation ---

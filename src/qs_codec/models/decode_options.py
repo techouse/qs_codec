@@ -38,12 +38,14 @@ class DecodeOptions:
     """Set to ``True`` to allow empty ``list`` values inside ``dict``\\s in the encoded input."""
 
     list_limit: int = 20
-    """Maximum number of **indexed** items allowed in a single list (default: ``20``).
+    """Maximum number of items allowed in a single decoded list (default: ``20``).
 
     During decoding, keys like ``a[0]``, ``a[1]``, … are treated as list indices. If an
-    index exceeds this limit, the container is treated as a ``dict`` instead, with the
-    numeric index kept as a string key (e.g., ``{"999": "x"}``) to prevent creation of
-    massive sparse lists (e.g., ``a[999999999]``).
+    index is greater than or equal to this limit, the container is treated as a ``dict``
+    instead, with the numeric index kept as a string key (e.g., ``{"999": "x"}``) to
+    prevent creation of massive sparse lists (e.g., ``a[999999999]``). With the default
+    limit, index ``19`` is the last index that can create a list; index ``20`` already
+    overflows to a ``dict``.
 
     This limit also applies to comma–split lists when ``comma=True``. Set a larger value if
     you explicitly need more items, or set a smaller one to harden against abuse.
