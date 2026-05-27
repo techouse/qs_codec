@@ -1,5 +1,8 @@
 ## 1.5.1-dev
 
+* [FEAT] add `DecodeOptions.strict_merge` for Node `qs` 6.15 `strictMerge` parity
+* [FIX] align `decode` `list_limit` semantics with Node `qs` `arrayLimit` as a maximum element count
+* [FIX] combine bracket-array duplicate assignments regardless of `DecodeOptions.duplicates`
 * [FIX] align `decode` with Node `qs` 6.15.2 by normalizing dotted keys before preserving `depth=0` input
 * [FIX] align `encode` with Node `qs` 6.15.2 by using the configured delimiter after `charset_sentinel`
 

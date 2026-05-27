@@ -196,6 +196,38 @@ change the behavior when duplicate keys are encountered
        qs.DecodeOptions(duplicates=qs.Duplicates.LAST),
    ) == {'foo': 'baz'}
 
+Bracket-array keys always combine, regardless of the duplicate strategy:
+
+.. code:: python
+
+   import qs_codec as qs
+
+   assert qs.decode(
+       'a=1&a=2&b[]=1&b[]=2',
+       qs.DecodeOptions(duplicates=qs.Duplicates.LAST),
+   ) == {'a': '2', 'b': ['1', '2']}
+
+When a key appears as both an object and a scalar,
+:py:attr:`strict_merge <qs_codec.models.decode_options.DecodeOptions.strict_merge>` wraps the conflicting values in a
+``list`` by default:
+
+.. code:: python
+
+   import qs_codec as qs
+
+   assert qs.decode('a[b]=c&a=d') == {'a': [{'b': 'c'}, 'd']}
+
+Set ``strict_merge`` to ``False`` to restore the legacy behavior, where non-empty string scalars become object keys:
+
+.. code:: python
+
+   import qs_codec as qs
+
+   assert qs.decode(
+       'a[b]=c&a=d',
+       qs.DecodeOptions(strict_merge=False),
+   ) == {'a': {'b': 'c', 'd': True}}
+
 If you have to deal with legacy browsers or services, there’s also
 support for decoding percent-encoded octets as :py:attr:`LATIN1 <qs_codec.enums.charset.Charset.LATIN1>`:
 
@@ -310,11 +342,11 @@ Note that an empty ``str``\ing is also a value and will be preserved:
    assert qs.decode('a[0]=b&a[1]=&a[2]=c') == {'a': ['b', '', 'c']}
 
 :py:attr:`decode <qs_codec.decode>` will also limit specifying indices
-in a ``list`` to a maximum index of ``20``. Any ``list`` members with an
-index of greater than ``20`` will instead be converted to a ``dict`` with
-the index as the key. This is needed to handle cases when someone sent,
-for example, ``a[999999999]`` and it will take significant time to iterate
-over this huge ``list``.
+in a ``list`` to a maximum element count of ``20``. Index ``19`` is the
+last index that can create a default ``list``; index ``20`` and higher
+are converted to a ``dict`` with the index as the key. This is needed to
+handle cases when someone sent, for example, ``a[999999999]`` and it
+would take significant time to iterate over this huge ``list``.
 
 .. code:: python
 
