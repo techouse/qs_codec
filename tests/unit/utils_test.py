@@ -775,7 +775,7 @@ class TestUtils:
         combined = Utils.combine(a, b)
         assert isinstance(combined, OverflowDict)
         assert combined["0"] == "x"
-        assert combined["1"] == "y"
+        assert combined["1"] == {"0": "y"}
         assert len(combined) == 2
 
     def test_compact_removes_undefined_entries_and_avoids_cycles(self) -> None:
@@ -1149,12 +1149,13 @@ class TestUtils:
         result = Utils.combine(a, b)
         assert result == ["start", "x", "y"]
 
-    def test_combine_skips_undefined_in_overflow_dict_append(self) -> None:
+    def test_combine_overflow_dict_appends_list_as_single_value(self) -> None:
         a = OverflowDict({"0": "x"})
         b = ["y", Undefined(), "z"]
         result = Utils.combine(a, b)
         assert isinstance(result, OverflowDict)
-        assert result == {"0": "x", "1": "y", "2": "z"}
+        assert result == {"0": "x", "1": ["y", Undefined(), "z"]}
+        assert result["1"] is not b
 
     def test_combine_skips_undefined_in_list_flattening(self) -> None:
         a = ["x", Undefined()]
@@ -1178,13 +1179,14 @@ class TestUtils:
         assert result["skip"] == "keep"
         assert "1" in a  # Original should remain unchanged
 
-    def test_combine_overflow_dict_source_skips_non_numeric_keys(self) -> None:
+    def test_combine_overflow_dict_appends_overflow_source_as_single_value(self) -> None:
         a = OverflowDict({"0": "x"})
         b = OverflowDict({"foo": "bar", "1": "y", "0": "z"})
         result = Utils.combine(a, b)
         assert isinstance(result, OverflowDict)
-        assert result == {"0": "x", "1": "z", "2": "y"}
-        assert "foo" not in result
+        assert result == {"0": "x", "1": {"foo": "bar", "1": "y", "0": "z"}}
+        assert isinstance(result["1"], OverflowDict)
+        assert result["1"] is not b
 
     def test_merge_overflow_dict_source_preserves_non_numeric_keys(self) -> None:
         target = "a"

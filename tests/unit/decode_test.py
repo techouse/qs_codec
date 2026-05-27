@@ -1654,6 +1654,12 @@ class TestListLimit:
                 },
                 id="overflow-comma-list-then-overflow-comma-list",
             ),
+            pytest.param(
+                "a[]=1&a[]=2&a[]=3,4",
+                DecodeOptions(comma=True, list_limit=1),
+                {"a": {"0": "1", "1": "2", "2": [["3", "4"]]}},
+                id="bracket-overflow-then-comma-list",
+            ),
         ],
     )
     def test_comma_overflow_duplicates_keep_overflow_values_nested(

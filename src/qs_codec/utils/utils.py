@@ -17,6 +17,7 @@ Notes:
 - Several routines use an object-identity `visited` set to avoid infinite recursion when user inputs contain cycles.
 """
 
+import copy
 import typing as t
 from collections import deque
 from collections.abc import Mapping as ABCMapping
@@ -44,6 +45,13 @@ def _numeric_key_pairs(mapping: t.Mapping[t.Any, t.Any]) -> t.List[t.Tuple[int, 
             continue
         pairs.append((numeric_key, key))
     return pairs
+
+
+def _copy_overflow_append_value(value: t.Any) -> t.Any:
+    """Copy container values before storing them in an overflow append slot."""
+    if isinstance(value, (ABCMapping, list, tuple)):
+        return copy.copy(value)
+    return value
 
 
 @dataclass
@@ -523,6 +531,14 @@ class Utils:
         """
         Concatenate two values, treating non-sequences as singletons.
 
+        Normal list/tuple inputs are flattened into the combined result. When
+        ``a`` is already an :class:`OverflowDict`, however, ``b`` is appended as
+        one value at the next numeric key, even if ``b`` is a list, tuple, or
+        another :class:`OverflowDict`. This preserves qs parity for duplicate
+        values after list-limit overflow: a later comma-split or bracket-array
+        payload remains a nested value instead of being flattened into the
+        overflowed container.
+
         If `list_limit` is exceeded, converts the list to an `OverflowDict`
         (a dict with numeric keys) to prevent memory exhaustion.
         When `options` is provided, its ``list_limit`` controls when a list is
@@ -537,33 +553,15 @@ class Utils:
         list to :class:`OverflowDict`.
         """
         if Utils.is_overflow(a):
-            # a is already an OverflowDict. Append b to a *copy* at the next numeric index.
-            # We assume sequential keys; len(a_copy) gives the next index.
+            # a is already an OverflowDict. Append b as one value at the next numeric index.
             orig_a = t.cast(OverflowDict, a)
             a_copy = orig_a.__class__({k: v for k, v in orig_a.items() if not isinstance(v, Undefined)})
             # Use max key + 1 to handle sparse dicts safely, rather than len(a)
             key_pairs = _numeric_key_pairs(a_copy)
             idx = (max(key for key, _ in key_pairs) + 1) if key_pairs else 0
 
-            if isinstance(orig_a, CommaOverflowDict):
-                if not isinstance(b, Undefined):
-                    a_copy[str(idx)] = b
-            elif isinstance(b, (list, tuple)):
-                for item in b:
-                    if not isinstance(item, Undefined):
-                        a_copy[str(idx)] = item
-                        idx += 1
-            elif Utils.is_overflow(b):
-                b = t.cast(OverflowDict, b)
-                # Iterate in numeric key order to preserve list semantics
-                for _, k in sorted(_numeric_key_pairs(b), key=lambda item: item[0]):
-                    val = b[k]
-                    if not isinstance(val, Undefined):
-                        a_copy[str(idx)] = val
-                        idx += 1
-            else:
-                if not isinstance(b, Undefined):
-                    a_copy[str(idx)] = b
+            if not isinstance(b, Undefined):
+                a_copy[str(idx)] = _copy_overflow_append_value(b)
             return a_copy
 
         # Normal combination: flatten lists/tuples
