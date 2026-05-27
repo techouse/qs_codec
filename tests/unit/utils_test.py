@@ -601,14 +601,34 @@ class TestUtils:
             {"foo": ["xyzzy"]},
         ) == {"foo": {"bar": "baz", "0": "xyzzy"}}
 
-    def test_merge_mapping_target_with_scalar_source_returns_target_unchanged(self) -> None:
+    def test_merge_mapping_target_with_scalar_source_wraps_with_strict_merge(self) -> None:
         target = {"a": "b"}
         source = "scalar"
 
         result = Utils.merge(target, source)  # type: ignore[arg-type]
 
-        assert result == {"a": "b"}
-        assert result is target
+        assert result == [{"a": "b"}, "scalar"]
+        assert target == {"a": "b"}
+        assert isinstance(result, list)
+        assert result[0] is not target
+
+    def test_merge_mapping_target_with_scalar_source_uses_legacy_strict_merge_false(self) -> None:
+        target = {"a": "b"}
+        source = "scalar"
+
+        result = Utils.merge(target, source, DecodeOptions(strict_merge=False))  # type: ignore[arg-type]
+
+        assert result == {"a": "b", "scalar": True}
+        assert target == {"a": "b"}
+        assert result is not target
+
+    def test_merge_mapping_target_with_non_string_scalar_source_wraps_in_legacy_mode(self) -> None:
+        target = {"a": "b"}
+        source = 1
+
+        result = Utils.merge(target, source, DecodeOptions(strict_merge=False))  # type: ignore[arg-type]
+
+        assert result == [{"a": "b"}, 1]
 
     def test_merge_structured_lists_prefers_source_when_target_slot_is_undefined(self) -> None:
         options = DecodeOptions()

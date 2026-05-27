@@ -79,6 +79,14 @@ class TestDecoding:
         assert qs_codec.decode("foo=bar&foo=baz", qs_codec.DecodeOptions(duplicates=qs_codec.Duplicates.LAST)) == {
             "foo": "baz"
         }
+        assert qs_codec.decode(
+            "a=1&a=2&b[]=1&b[]=2",
+            qs_codec.DecodeOptions(duplicates=qs_codec.Duplicates.LAST),
+        ) == {"a": "2", "b": ["1", "2"]}
+
+        # When a key appears as both an object and a scalar, `DecodeOptions.strict_merge` wraps the conflict in a list.
+        assert qs_codec.decode("a[b]=c&a=d") == {"a": [{"b": "c"}, "d"]}
+        assert qs_codec.decode("a[b]=c&a=d", qs_codec.DecodeOptions(strict_merge=False)) == {"a": {"b": "c", "d": True}}
 
         # If you have to deal with legacy browsers or services, there's also support for decoding percent-encoded octets
         # as `Charset.LATIN1`:
