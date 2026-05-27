@@ -1,4 +1,4 @@
-## 1.5.1-dev
+## 1.5.1
 
 * [FEAT] add `DecodeOptions.strict_merge` for Node `qs` 6.15 `strictMerge` parity
 * [FIX] align `decode` `list_limit` semantics with Node `qs` `arrayLimit` as a maximum element count
