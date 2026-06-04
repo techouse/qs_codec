@@ -46,24 +46,28 @@ class EncodeUtils:
     ) -> str:
         """Emulate the legacy JavaScript escaping behavior.
 
-        This function operates on UTF-16 *code units* to emulate JavaScript's legacy `%uXXXX` behavior. Non-BMP code
-        points are first expanded into surrogate pairs via `_to_surrogates`, then each code unit is processed.
+        This function operates on UTF-16 *code units* to emulate JavaScript's legacy `%uXXXX` behavior.
+        Non-BMP code points are first expanded into surrogate pairs via `_to_surrogates`, then each code unit is
+        processed.
 
-        - Safe set: when `format == Format.RFC1738`, the characters `(` and `)` are additionally treated as safe. Otherwise, the RFC3986 safe set is used.
+        - Safe set: when `format == Format.RFC1738`, the characters `(` and `)` are additionally treated as safe.
+          Otherwise, the RFC3986 safe set is used.
         - ASCII characters in the safe set are emitted unchanged.
         - Code units &lt; 256 are emitted as `%XX`.
         - Other code units are emitted as `%uXXXX`.
 
         Reference: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/escape
         """
-        safe_points_ascii = cls.RFC1738_SAFE_POINTS_ASCII if format == Format.RFC1738 else cls.SAFE_POINTS_ASCII
+        safe_points_ascii: t.Tuple[bool, ...] = (
+            cls.RFC1738_SAFE_POINTS_ASCII if format == Format.RFC1738 else cls.SAFE_POINTS_ASCII
+        )
         if string.isascii() and cls._all_ascii_safe(string, safe_points_ascii):
             return string
 
         if not string.isascii():
             string = cls._to_surrogates(string)
 
-        hex_table = cls.HEX_TABLE
+        hex_table: t.Tuple[str, ...] = cls.HEX_TABLE
 
         buffer: t.List[str] = []
 
@@ -112,9 +116,9 @@ class EncodeUtils:
             return ""
 
         if charset == Charset.LATIN1:
-            _pat = cls._RE_UXXXX
-            _esc = cls.escape(string, format)
-            return _pat.sub(lambda m: f"%26%23{int(m.group(1), 16)}%3B", _esc)
+            u_escape_pattern: t.Pattern[str] = cls._RE_UXXXX
+            escaped: str = cls.escape(string, format)
+            return u_escape_pattern.sub(lambda m: f"%26%23{int(m.group(1), 16)}%3B", escaped)
 
         return cls._encode_string(string, format)
 
@@ -129,20 +133,19 @@ class EncodeUtils:
         """
         if isinstance(value, bytes):
             return value.decode("utf-8")
-        elif isinstance(value, bool):
+        if isinstance(value, bool):
             return str(value).lower()
-        elif isinstance(value, str):
+        if isinstance(value, str):
             return value
-        else:
-            return str(value)
+        return str(value)
 
     @classmethod
     def _encode_string(cls, string: str, format: t.Optional[Format]) -> str:
         """Percent-encode `string` per RFC3986 or RFC1738, operating on UTF-16 code units.
 
-        We first expand non-BMP code points into surrogate pairs so that indexing and length checks are done in *code units*,
-        matching JavaScript semantics. We then walk the string with a manual index, skipping the low surrogate when we emit a
-        surrogate pair.
+        We first expand non-BMP code points into surrogate pairs so that indexing and length checks are done in
+        *code units*, matching JavaScript semantics. We then walk the string with a manual index, skipping the low
+        surrogate when we emit a surrogate pair.
         """
         safe_chars_ascii = cls.RFC1738_SAFE_CHARS_ASCII if format == Format.RFC1738 else cls.SAFE_CHARS_ASCII
         if string.isascii():
@@ -152,7 +155,7 @@ class EncodeUtils:
         else:
             s = cls._to_surrogates(string)
 
-        hex_table = cls.HEX_TABLE
+        hex_table: t.Tuple[str, ...] = cls.HEX_TABLE
         buffer: t.List[str] = []
 
         i = 0
@@ -214,48 +217,43 @@ class EncodeUtils:
         """
         if c < 0x80:  # ASCII
             return [cls.HEX_TABLE[c]]
-        elif c < 0x800:  # 2 bytes
+        if c < 0x800:  # 2 bytes
             return [
                 cls.HEX_TABLE[0xC0 | (c >> 6)],
                 cls.HEX_TABLE[0x80 | (c & 0x3F)],
             ]
-        elif c < 0xD800 or c >= 0xE000:  # 3 bytes
+        if c < 0xD800 or c >= 0xE000:  # 3 bytes
             return [
                 cls.HEX_TABLE[0xE0 | (c >> 12)],
                 cls.HEX_TABLE[0x80 | ((c >> 6) & 0x3F)],
                 cls.HEX_TABLE[0x80 | (c & 0x3F)],
             ]
-        else:
-            return cls._encode_surrogate_pair(string, i, c)
+        return cls._encode_surrogate_pair(string, i, c)
 
     @classmethod
     def _encode_surrogate_pair(cls, string: str, i: int, c: int) -> t.List[str]:
         """Encode a surrogate pair starting at `i` as a 4-byte UTF-8 sequence."""
-        buffer: t.List[str] = []
         low = ord(string[i + 1])
         c = 0x10000 + (((c & 0x3FF) << 10) | (low & 0x3FF))
-        buffer.extend(
-            [
-                cls.HEX_TABLE[0xF0 | (c >> 18)],
-                cls.HEX_TABLE[0x80 | ((c >> 12) & 0x3F)],
-                cls.HEX_TABLE[0x80 | ((c >> 6) & 0x3F)],
-                cls.HEX_TABLE[0x80 | (c & 0x3F)],
-            ],
-        )
-        return buffer
+        return [
+            cls.HEX_TABLE[0xF0 | (c >> 18)],
+            cls.HEX_TABLE[0x80 | ((c >> 12) & 0x3F)],
+            cls.HEX_TABLE[0x80 | ((c >> 6) & 0x3F)],
+            cls.HEX_TABLE[0x80 | (c & 0x3F)],
+        ]
 
     @staticmethod
     def _to_surrogates(string: str) -> str:
         """Expand non-BMP code points (code point &gt; 0xFFFF) into UTF-16 surrogate pairs.
 
         This mirrors how JavaScript strings store characters, allowing compatibility with legacy `%uXXXX` encoding paths
-        and consistent behavior with the Node `qs` implementation. If no non-BMP
-        code point is present, the original string is returned unchanged.
+        and consistent behavior with the Node `qs` implementation. If no non-BMP code point is present, the original
+        string is returned unchanged.
         """
         buffer: t.Optional[t.List[str]] = None
 
         for index, ch in enumerate(string):
-            cp = ord(ch)
+            cp: int = ord(ch)
             if cp <= 0xFFFF:
                 if buffer is not None:
                     buffer.append(ch)
@@ -266,8 +264,8 @@ class EncodeUtils:
 
             # Convert to surrogate pair.
             cp -= 0x10000
-            high = 0xD800 + (cp >> 10)
-            low = 0xDC00 + (cp & 0x3FF)
+            high: int = 0xD800 + (cp >> 10)
+            low: int = 0xDC00 + (cp & 0x3FF)
             buffer.append(chr(high))
             buffer.append(chr(low))
 
