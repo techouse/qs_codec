@@ -134,8 +134,8 @@ class Utils:
             frame: _MergeFrame = stack[-1]
 
             if frame.phase == "start":
-                current_target = frame.target
-                current_source = frame.source
+                current_target: t.Any = frame.target
+                current_source: t.Any = frame.source
 
                 if current_source is None:
                     stack.pop()
@@ -184,7 +184,7 @@ class Utils:
                                 frame.phase = "list_iter"
                                 continue
 
-                            mutable_target = (
+                            mutable_target: t.List[t.Any] = (
                                 list(current_target) if isinstance(current_target, tuple) else current_target
                             )
                             # Mutates in-place by design for list targets to preserve merge performance.
@@ -262,16 +262,18 @@ class Utils:
                         continue
 
                     if Utils.is_overflow(current_source):
-                        source_of = t.cast(OverflowDict, current_source)
-                        sorted_pairs = sorted(_numeric_key_pairs(source_of), key=lambda item: item[0])
-                        numeric_keys = {key for _, key in sorted_pairs}
+                        source_of: OverflowDict = t.cast(OverflowDict, current_source)
+                        sorted_pairs: t.List[t.Tuple[int, t.Any]] = sorted(
+                            _numeric_key_pairs(source_of), key=lambda item: item[0]
+                        )
+                        numeric_keys: t.Set[str] = {key for _, key in sorted_pairs}
                         result = OverflowDict()
-                        offset = 0
+                        offset: int = 0
                         if not isinstance(current_target, Undefined):
                             result["0"] = current_target
                             offset = 1
                         for numeric_key, key in sorted_pairs:
-                            val = source_of[key]
+                            val: t.Any = source_of[key]
                             if not isinstance(val, Undefined):
                                 # Offset ensures target occupies index "0"; source indices shift up by 1.
                                 result[str(numeric_key + offset)] = val
@@ -304,7 +306,7 @@ class Utils:
                 continue
 
             if frame.phase == "map_iter":
-                merge_target = frame.merge_target
+                merge_target: t.Optional[t.MutableMapping[t.Any, t.Any]] = frame.merge_target
                 if merge_target is None:  # pragma: no cover - internal invariant
                     raise RuntimeError("merge target is not initialized")  # noqa: TRY003
 
@@ -441,7 +443,7 @@ class Utils:
         """
         i: int = len(value) - 1
         while i >= 0:
-            item = value[i]
+            item: t.Any = value[i]
             if isinstance(item, Undefined):
                 value.pop(i)
             elif isinstance(item, dict):
@@ -464,7 +466,7 @@ class Utils:
         # Snapshot keys so we can delete while iterating.
         keys: t.List[t.Any] = list(obj)
         for key in keys:
-            val = obj[key]
+            val: t.Any = obj[key]
             if isinstance(val, Undefined):
                 obj.pop(key)
             elif isinstance(val, dict) and not Utils._dicts_are_equal(val, obj):
@@ -553,11 +555,11 @@ class Utils:
         """
         if Utils.is_overflow(a):
             # a is already an OverflowDict. Append b as one value at the next numeric index.
-            orig_a = t.cast(OverflowDict, a)
-            a_copy = orig_a.__class__({k: v for k, v in orig_a.items() if not isinstance(v, Undefined)})
+            orig_a: OverflowDict = t.cast(OverflowDict, a)
+            a_copy: OverflowDict = orig_a.__class__({k: v for k, v in orig_a.items() if not isinstance(v, Undefined)})
             # Use max key + 1 to handle sparse dicts safely, rather than len(a)
-            key_pairs = _numeric_key_pairs(a_copy)
-            idx = (max(key for key, _ in key_pairs) + 1) if key_pairs else 0
+            key_pairs: t.List[t.Tuple[int, str]] = _numeric_key_pairs(a_copy)
+            idx: int = (max(key for key, _ in key_pairs) + 1) if key_pairs else 0
 
             if not isinstance(b, Undefined):
                 a_copy[str(idx)] = _copy_overflow_append_value(b)
@@ -566,17 +568,17 @@ class Utils:
         # Normal combination: flatten lists/tuples
         # Flatten a
         if isinstance(a, (list, tuple)):
-            list_a = [x for x in a if not isinstance(x, Undefined)]
+            list_a: t.List[t.Any] = [x for x in a if not isinstance(x, Undefined)]
         else:
             list_a = [a] if not isinstance(a, Undefined) else []
 
         # Flatten b, handling OverflowDict as a list source
         if isinstance(b, (list, tuple)):
-            list_b = [x for x in b if not isinstance(x, Undefined)]
+            list_b: t.List[t.Any] = [x for x in b if not isinstance(x, Undefined)]
         elif isinstance(b, CommaOverflowDict):
             list_b = [b]
         elif Utils.is_overflow(b):
-            b_of = t.cast(OverflowDict, b)
+            b_of: OverflowDict = t.cast(OverflowDict, b)
             list_b = [
                 b_of[k]
                 for _, k in sorted(_numeric_key_pairs(b_of), key=lambda item: item[0])
@@ -585,9 +587,9 @@ class Utils:
         else:
             list_b = [b] if not isinstance(b, Undefined) else []
 
-        res = [*list_a, *list_b]
+        res: t.List[t.Any] = [*list_a, *list_b]
 
-        list_limit = options.list_limit if options else DecodeOptions().list_limit
+        list_limit: int = options.list_limit if options else DecodeOptions().list_limit
         if list_limit < 0:
             return OverflowDict({str(i): x for i, x in enumerate(res)}) if res else res
         if len(res) > list_limit:
