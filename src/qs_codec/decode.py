@@ -194,7 +194,7 @@ def _scan_structured_keys(temp_obj: Mapping[str, t.Any], options: DecodeOptions)
     structured_roots: t.Set[str] = set()
     structured_keys: t.Set[str] = set()
 
-    for key in temp_obj.keys():
+    for key in temp_obj:
         split_at = _first_structured_split_index(key, allow_dots)
         if split_at < 0:
             continue
