@@ -166,9 +166,8 @@ class EncodeOptions:
             name = f.name
             if name == "encoder":
                 continue
-            else:
-                v1 = getattr(self, name)
-                v2 = getattr(other, name)
+            v1 = getattr(self, name)
+            v2 = getattr(other, name)
             if v1 != v2:
                 return False
         return True
