@@ -73,12 +73,12 @@ def decode(
     if not isinstance(value, (str, Mapping)):
         raise ValueError("value must be a str or a Mapping[str, Any]")
 
-    opts = options if options is not None else DecodeOptions()
-    decode_from_string = isinstance(value, str)
+    opts: DecodeOptions = options if options is not None else DecodeOptions()
+    decode_from_string: bool = isinstance(value, str)
     str_value: str = t.cast(str, value) if decode_from_string else ""
     mapping_value: t.Mapping[str, t.Any] = t.cast(t.Mapping[str, t.Any], value) if not decode_from_string else {}
 
-    parse_lists_effective = opts.parse_lists
+    parse_lists_effective: bool = opts.parse_lists
     if decode_from_string and parse_lists_effective:
         # Keep caller options immutable: compute a local parse_lists switch only for this invocation.
         query = str_value.replace("?", "", 1) if opts.ignore_query_prefix else str_value
@@ -96,7 +96,9 @@ def decode(
     if not temp_obj:
         return obj
 
-    structured_scan = _scan_structured_keys(temp_obj, opts) if decode_from_string else StructuredKeyScan.empty()
+    structured_scan: StructuredKeyScan = (
+        _scan_structured_keys(temp_obj, opts) if decode_from_string else StructuredKeyScan.empty()
+    )
     if decode_from_string and not structured_scan.has_any_structured_syntax:
         return Utils.compact(temp_obj)
 
@@ -142,18 +144,18 @@ def loads(value: t.Optional[str], options: t.Optional[DecodeOptions] = None) -> 
 
 def _first_structured_split_index(key: str, allow_dots: bool) -> int:
     """Return the earliest index that indicates structured syntax in ``key``."""
-    split_at = key.find("[")
+    split_at: int = key.find("[")
     if not allow_dots:
         return split_at
 
-    dot_index = key.find(".")
+    dot_index: int = key.find(".")
     if dot_index >= 0 and (split_at < 0 or dot_index < split_at):
         split_at = dot_index
 
-    encoded_dot_index = -1
+    encoded_dot_index: int = -1
     if "%" in key:
-        upper = key.find("%2E")
-        lower = key.find("%2e")
+        upper: int = key.find("%2E")
+        lower: int = key.find("%2e")
         if upper >= 0 and lower >= 0:
             encoded_dot_index = upper if upper < lower else lower
         else:
@@ -167,7 +169,7 @@ def _first_structured_split_index(key: str, allow_dots: bool) -> int:
 
 def _leading_structured_root(key: str, options: DecodeOptions) -> str:
     """Extract root key for leading-bracket structured keys (``[]`` normalizes to ``"0"``)."""
-    segments = DecodeUtils.split_key_into_segments(
+    segments: t.List[str] = DecodeUtils.split_key_into_segments(
         original_key=key,
         allow_dots=t.cast(bool, options.allow_dots),
         max_depth=options.depth,
@@ -190,12 +192,12 @@ def _scan_structured_keys(temp_obj: Mapping[str, t.Any], options: DecodeOptions)
     if not temp_obj:
         return StructuredKeyScan.empty()
 
-    allow_dots = t.cast(bool, options.allow_dots)
+    allow_dots: bool = t.cast(bool, options.allow_dots)
     structured_roots: t.Set[str] = set()
     structured_keys: t.Set[str] = set()
 
     for key in temp_obj:
-        split_at = _first_structured_split_index(key, allow_dots)
+        split_at: int = _first_structured_split_index(key, allow_dots)
         if split_at < 0:
             continue
         structured_keys.add(key)
@@ -346,7 +348,7 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
 
     # Local, non-optional decoder reference for type-checkers
     decoder_fn: t.Callable[..., t.Optional[str]] = options.decoder or DecodeUtils.decode
-    duplicates = options.duplicates
+    duplicates: Duplicates = options.duplicates
 
     # Iterate over parts and decode each key/value pair.
     for i, part in enumerate(parts):
@@ -357,11 +359,11 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
             continue
         bracket_equals_pos: int = part.find("]=")
         pos: int = part.find("=") if bracket_equals_pos == -1 else (bracket_equals_pos + 1)
-        bracket_array_assignment = pos != -1 and "[]=" in part
+        bracket_array_assignment: bool = pos != -1 and "[]=" in part
 
         # Decode key and value with a key-aware decoder; skip pairs whose key decodes to None
-        raw_key = ""
-        list_limit_exceeded = False
+        raw_key: str = ""
+        list_limit_exceeded: bool = False
         if pos == -1:
             key_decoded = decoder_fn(part, charset, kind=DecodeKind.KEY)
             if key_decoded is None:
@@ -452,7 +454,7 @@ def _parse_object(
       handled by the splitter.
     - When list parsing is disabled and an empty segment is encountered, coerces to ``{"0": leaf}`` to preserve round-trippability with other ports.
     """
-    parse_lists_enabled = options.parse_lists if parse_lists is None else parse_lists
+    parse_lists_enabled: bool = options.parse_lists if parse_lists is None else parse_lists
     current_list_length: int = 0
 
     # If the chain ends with an empty list marker, compute current list length for limit checks.
@@ -480,12 +482,12 @@ def _parse_object(
         if parent_key is not None and isinstance(val, (list, tuple)) and parent_key in dict(enumerate(val)):
             current_list_length = len(val[parent_key])
 
-    bracket_array_comma_value = (
+    bracket_array_comma_value: bool = (
         not values_parsed
         and bool(chain)
         and chain[-1] == "[]"
         and isinstance(val, str)
-        and val
+        and bool(val)
         and options.comma
         and "," in val
     )
