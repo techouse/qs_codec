@@ -1,3 +1,9 @@
+## 1.5.2
+
+* [CHORE] simplify mapping and key-iteration checks in encode/decode internals
+* [CHORE] improve readability in `EncodeOptions`, `Utils`, `DecodeUtils`, and `EncodeUtils` helper code
+* [CHORE] expand internal type annotations across encode, decode, utils, and weak-wrapper helpers
+
 ## 1.5.1
 
 * [FEAT] add `DecodeOptions.strict_merge` for Node `qs` 6.15 `strictMerge` parity
