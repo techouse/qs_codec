@@ -125,13 +125,13 @@ class Utils:
             The merged structure. May be the original `target` object when
             `source` is ``None``.
         """
-        opts = options if options is not None else DecodeOptions()
+        opts: DecodeOptions = options if options is not None else DecodeOptions()
         last_result: t.Any = None
 
         stack: t.List[_MergeFrame] = [_MergeFrame(target=target, source=source, options=opts)]
 
         while stack:
-            frame = stack[-1]
+            frame: _MergeFrame = stack[-1]
 
             if frame.phase == "start":
                 current_target = frame.target
@@ -148,24 +148,26 @@ class Utils:
                         # If the target sequence contains `Undefined`, we may need to promote it
                         # to a dict keyed by indices for stable writes.
                         if any(isinstance(el, Undefined) for el in current_target):
-                            target_: t.Dict[int, t.Any] = dict(enumerate(current_target))
+                            target_by_index: t.Dict[int, t.Any] = dict(enumerate(current_target))
 
                             if isinstance(current_source, (list, tuple)):
                                 for i, item in enumerate(current_source):
                                     if not isinstance(item, Undefined):
-                                        target_[i] = item
+                                        target_by_index[i] = item
                             else:
-                                target_[len(target_)] = current_source
+                                target_by_index[len(target_by_index)] = current_source
 
                             # When list parsing is disabled, collapse to a string-keyed dict and drop sentinels.
                             if not frame.options.parse_lists and any(
-                                isinstance(value, Undefined) for value in target_.values()
+                                isinstance(value, Undefined) for value in target_by_index.values()
                             ):
                                 result: t.Any = {
-                                    str(i): target_[i] for i in target_ if not isinstance(target_[i], Undefined)
+                                    str(i): target_by_index[i]
+                                    for i in target_by_index
+                                    if not isinstance(target_by_index[i], Undefined)
                                 }
                             else:
-                                result = [el for el in target_.values() if not isinstance(el, Undefined)]
+                                result = [el for el in target_by_index.values() if not isinstance(el, Undefined)]
                             stack.pop()
                             last_result = result
                             continue
