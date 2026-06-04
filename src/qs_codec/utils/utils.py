@@ -38,7 +38,7 @@ def _numeric_key_pairs(mapping: t.Mapping[t.Any, t.Any]) -> t.List[t.Tuple[int, 
     may overwrite earlier values when materializing numeric-keyed dicts.
     """
     pairs: t.List[t.Tuple[int, t.Any]] = []
-    for key in mapping.keys():
+    for key in mapping:
         try:
             numeric_key = int(key)
         except (TypeError, ValueError):
@@ -283,19 +283,17 @@ class Utils:
                         continue
 
                     result_list: t.List[t.Any] = []
-                    for element in (current_target,):
-                        if not isinstance(element, Undefined):
-                            result_list.append(element)
-                    for element in (current_source,):
-                        if not isinstance(element, Undefined):
-                            result_list.append(element)
+                    if not isinstance(current_target, Undefined):
+                        result_list.append(current_target)
+                    if not isinstance(current_source, Undefined):
+                        result_list.append(current_source)
                     stack.pop()
                     last_result = result_list
                     continue
 
                 # Prepare a mutable target we can merge into; reuse dict targets for performance.
                 frame.merge_target = current_target if isinstance(current_target, dict) else dict(current_target)
-                frame.merge_existing_keys = set(frame.merge_target.keys())
+                frame.merge_existing_keys = set(frame.merge_target)
                 frame.pending_updates = {}
                 frame.source_items = list(current_source.items())
                 frame.entry_index = 0
@@ -462,7 +460,7 @@ class Utils:
         `_dicts_are_equal` to avoid descending into the same mapping from itself.
         """
         # Snapshot keys so we can delete while iterating.
-        keys: t.List[t.Any] = list(obj.keys())
+        keys: t.List[t.Any] = list(obj)
         for key in keys:
             val = obj[key]
             if isinstance(val, Undefined):
@@ -514,8 +512,7 @@ class Utils:
                 if not Utils._dicts_are_equal(v, d2[k], path):
                     return False
             return True
-        else:
-            return d1 == d2
+        return d1 == d2
 
     @staticmethod
     def is_overflow(obj: t.Any) -> bool:
