@@ -31,9 +31,9 @@ _proxy_cache_lock = RLock()
 
 def _get_proxy(value: t.Any) -> "_Proxy":
     """Return a per-object proxy, cached by id(value)."""
-    key = id(value)
+    key: int = id(value)
     with _proxy_cache_lock:
-        proxy = _proxy_cache.get(key)
+        proxy: t.Optional[_Proxy] = _proxy_cache.get(key)
         if proxy is None:
             proxy = _Proxy(value)
             _proxy_cache[key] = proxy
@@ -54,7 +54,7 @@ class WeakWrapper:
 
     def __init__(self, value: t.Any) -> None:
         """Initialize the wrapper with a value."""
-        proxy = _get_proxy(value)
+        proxy: _Proxy = _get_proxy(value)
         # Strong edge: wrapper -> proxy
         object.__setattr__(self, "_proxy", proxy)
         # Weak edge so tests can observe GC of the proxy
