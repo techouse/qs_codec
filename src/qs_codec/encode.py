@@ -83,9 +83,7 @@ def encode(value: t.Any, options: t.Optional[EncodeOptions] = None) -> str:
     # - Sequence -> optionally deep-copy for callable filters, then promote to {"0": v0, "1": v1, ...}
     # - Other    -> empty (encodes to "")
     obj: t.Mapping[str, t.Any]
-    if isinstance(value, dict):
-        obj = deepcopy(value) if filter_is_callable else dict(value)
-    elif isinstance(value, ABCMapping):
+    if isinstance(value, ABCMapping):
         obj = deepcopy(value) if filter_is_callable else dict(value)
     elif isinstance(value, (list, tuple)):
         sequence = deepcopy(value) if filter_is_callable else value
