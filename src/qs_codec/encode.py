@@ -64,19 +64,21 @@ def encode(value: t.Any, options: t.Optional[EncodeOptions] = None) -> str:
     if value is None:
         return ""
 
-    opts = options if options is not None else EncodeOptions()
+    opts: EncodeOptions = options if options is not None else EncodeOptions()
 
-    filter_opt = opts.filter
-    filter_is_callable = callable(filter_opt)
-    filter_is_sequence = (
+    filter_opt: t.Optional[t.Union[t.Callable, t.Sequence[t.Union[str, int]]]] = opts.filter
+    filter_is_callable: bool = callable(filter_opt)
+    filter_is_sequence: bool = (
         filter_opt is not None
         and isinstance(filter_opt, ABCSequence)
         and not isinstance(filter_opt, (str, bytes, bytearray))
     )
-    list_format = opts.list_format
-    sort_opt = opts.sort if callable(opts.sort) else None
-    encoder = opts.encoder if opts.encode else None
-    formatter = opts.format.formatter
+    list_format: ListFormat = opts.list_format
+    sort_opt: t.Optional[t.Callable[[t.Any, t.Any], int]] = opts.sort if callable(opts.sort) else None
+    encoder: t.Optional[t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str]] = (
+        opts.encoder if opts.encode else None
+    )
+    formatter: t.Optional[t.Callable[[str], str]] = opts.format.formatter
 
     # Normalize the root into a mapping we can traverse deterministically:
     # - Mapping  -> shallow copy (deep-copy only when a callable filter may mutate)
@@ -121,17 +123,17 @@ def encode(value: t.Any, options: t.Optional[EncodeOptions] = None) -> str:
 
     # Side channel seed for legacy `_encode` compatibility (and cycle-state bootstrap when provided).
     side_channel: WeakKeyDictionary = WeakKeyDictionary()
-    max_depth = _get_max_encode_depth(opts.max_depth)
+    max_depth: int = _get_max_encode_depth(opts.max_depth)
 
     # Encode each selected root key.
-    missing = _MISSING
+    missing: t.Any = _MISSING
     for _key in obj_keys:
         if not isinstance(_key, str):
             # Skip non-string keys; parity with ports that stringify key paths.
             continue
 
-        obj_value = obj.get(_key, missing)
-        key_is_undefined = obj_value is missing
+        obj_value: t.Any = obj.get(_key, missing)
+        key_is_undefined: bool = obj_value is missing
 
         # Optionally drop explicit nulls at the root.
         if opts.skip_nulls and obj_value is None:
@@ -230,12 +232,12 @@ def _bootstrap_cycle_state_from_side_channel(side_channel: WeakKeyDictionary) ->
         from the current frame to the top-most side-channel mapping.
     """
     chain: t.List[WeakKeyDictionary] = []
-    tmp_sc = side_channel.get(_sentinel)
+    tmp_sc: t.Any = side_channel.get(_sentinel)
     while isinstance(tmp_sc, WeakKeyDictionary):
         chain.append(tmp_sc)
         tmp_sc = tmp_sc.get(_sentinel)  # type: ignore[assignment]
 
-    state = CycleState()
+    state: CycleState = CycleState()
     for level, ancestor in enumerate(reversed(chain)):
         is_top = ancestor.get(_sentinel) is None
         for key, pos in ancestor.items():
@@ -255,8 +257,8 @@ def _compute_step_and_check_cycle(state: CycleState, node_key: t.Any, current_le
       * raise when ancestor_pos == distance
       * return 0 when no match or when nearest match is the top-most side-channel
     """
-    key_id = node_key if isinstance(node_key, int) else _identity_key(node_key)
-    entries = state.entries.get(key_id)
+    key_id: int = node_key if isinstance(node_key, int) else _identity_key(node_key)
+    entries: t.Optional[t.List[t.Tuple[int, int, bool]]] = state.entries.get(key_id)
     if not entries:
         return 0
 
@@ -269,13 +271,13 @@ def _compute_step_and_check_cycle(state: CycleState, node_key: t.Any, current_le
 
 
 def _push_current_node(state: CycleState, node_key: t.Any, current_level: int, pos: int, is_top: bool) -> None:
-    key_id = node_key if isinstance(node_key, int) else _identity_key(node_key)
+    key_id: int = node_key if isinstance(node_key, int) else _identity_key(node_key)
     state.entries.setdefault(key_id, []).append((current_level, pos, is_top))
 
 
 def _pop_current_node(state: CycleState, node_key: t.Any) -> None:
-    key_id = node_key if isinstance(node_key, int) else _identity_key(node_key)
-    entries = state.entries.get(key_id)
+    key_id: int = node_key if isinstance(node_key, int) else _identity_key(node_key)
+    entries: t.Optional[t.List[t.Tuple[int, int, bool]]] = state.entries.get(key_id)
     if not entries:
         return
 
@@ -284,10 +286,10 @@ def _pop_current_node(state: CycleState, node_key: t.Any) -> None:
         del state.entries[key_id]
 
 
-_INDICES_GENERATOR = ListFormat.INDICES.generator
-_BRACKETS_GENERATOR = ListFormat.BRACKETS.generator
-_REPEAT_GENERATOR = ListFormat.REPEAT.generator
-_COMMA_GENERATOR = ListFormat.COMMA.generator
+_INDICES_GENERATOR: t.Callable[[str, t.Optional[str]], str] = ListFormat.INDICES.generator
+_BRACKETS_GENERATOR: t.Callable[[str, t.Optional[str]], str] = ListFormat.BRACKETS.generator
+_REPEAT_GENERATOR: t.Callable[[str, t.Optional[str]], str] = ListFormat.REPEAT.generator
+_COMMA_GENERATOR: t.Callable[[str, t.Optional[str]], str] = ListFormat.COMMA.generator
 
 
 def _uses_legacy_cycle_state(side_channel: WeakKeyDictionary) -> bool:
@@ -378,19 +380,19 @@ def _try_encode_linear_chain_plain_dict(
     ):
         return None
 
-    current = value
+    current: t.Any = value
     if type(current) is not dict:  # pylint: disable=unidiomatic-typecheck
         return None
 
-    current_depth = _depth
-    max_depth = _get_max_encode_depth(_max_depth)
-    formatter_fn = formatter if formatter is not None else format.formatter
-    prefix_value = prefix if prefix is not None else ("?" if add_query_prefix else "")
+    current_depth: int = _depth
+    max_depth: int = _get_max_encode_depth(_max_depth)
+    formatter_fn: t.Callable[[str], str] = formatter if formatter is not None else format.formatter
+    prefix_value: str = prefix if prefix is not None else ("?" if add_query_prefix else "")
     path_parts: t.List[str] = [prefix_value]
     # Match the generic walker so bounded cyclic payloads still let `max_depth`
     # win before the eventual cycle error on the same shapes.
-    cycle_state = CycleState()
-    root_level = _depth
+    cycle_state: CycleState = CycleState()
+    root_level: int = _depth
 
     while True:
         if current_depth > max_depth:
@@ -414,11 +416,11 @@ def _try_encode_linear_chain_plain_dict(
             continue
 
         if current is None:
-            path = formatter_fn("".join(path_parts))
+            path: str = formatter_fn("".join(path_parts))
             return [f"{path}="]
 
         if current_type is bool:
-            value_str = "true" if current else "false"
+            value_str: str = "true" if current else "false"
             path = formatter_fn("".join(path_parts))
             return [f"{path}={formatter_fn(value_str)}"]
 
@@ -427,7 +429,7 @@ def _try_encode_linear_chain_plain_dict(
             return [f"{path}={formatter_fn(str(current))}"]
 
         if current_type is datetime:
-            date_value = t.cast(datetime, current)
+            date_value: datetime = t.cast(datetime, current)
             current = serialize_date(date_value) if callable(serialize_date) else date_value.isoformat()
             continue
 
@@ -487,19 +489,19 @@ def _try_encode_linear_chain(
     ):
         return None
 
-    current = value
+    current: t.Any = value
     if type(current) is not dict and not isinstance(current, ABCMapping):  # pylint: disable=unidiomatic-typecheck
         return None
 
-    current_depth = _depth
-    max_depth = _get_max_encode_depth(_max_depth)
-    formatter_fn = formatter if formatter is not None else format.formatter
-    prefix_value = prefix if prefix is not None else ("?" if add_query_prefix else "")
+    current_depth: int = _depth
+    max_depth: int = _get_max_encode_depth(_max_depth)
+    formatter_fn: t.Callable[[str], str] = formatter if formatter is not None else format.formatter
+    prefix_value: str = prefix if prefix is not None else ("?" if add_query_prefix else "")
     path_segments: t.List[str] = []
     # Match the generic walker so bounded cyclic payloads still let `max_depth`
     # win before the eventual cycle error on the same shapes.
-    cycle_state = CycleState()
-    root_level = _depth
+    cycle_state: CycleState = CycleState()
+    root_level: int = _depth
 
     while True:
         if current_depth > max_depth:
@@ -508,11 +510,11 @@ def _try_encode_linear_chain(
         current_type = type(current)
 
         if current is None:
-            path = prefix_value + "".join(path_segments)
+            path: str = prefix_value + "".join(path_segments)
             return [f"{formatter_fn(path)}="]
 
         if current_type is bool:
-            value_str = "true" if current else "false"
+            value_str: str = "true" if current else "false"
             path = prefix_value + "".join(path_segments)
             return [f"{formatter_fn(path)}={formatter_fn(value_str)}"]
 
@@ -522,7 +524,7 @@ def _try_encode_linear_chain(
             return [f"{formatter_fn(path)}={formatter_fn(value_str)}"]
 
         if current_type is datetime:
-            date_value = t.cast(datetime, current)
+            date_value: datetime = t.cast(datetime, current)
             current = serialize_date(date_value) if callable(serialize_date) else date_value.isoformat()
             continue
 
@@ -544,8 +546,8 @@ def _try_encode_linear_chain(
         else:
             return None
 
-        current_id = id(mapping)
-        step = _compute_step_and_check_cycle(cycle_state, current_id, current_depth)
+        current_id: int = id(mapping)
+        step: int = _compute_step_and_check_cycle(cycle_state, current_id, current_depth)
 
         if len(mapping) != 1:
             return None
@@ -574,8 +576,8 @@ def _next_path_for_sequence(
     if generator is _REPEAT_GENERATOR or generator is _COMMA_GENERATOR:
         return path
 
-    parent = path.materialize()
-    child = generator(parent, encoded_key)
+    parent: str = path.materialize()
+    child: str = generator(parent, encoded_key)
     if child.startswith(parent):
         return path.append(child[len(parent) :])
 
@@ -647,7 +649,7 @@ def _encode(
     Returns:
         Either a list/tuple of tokens or a single token string.
     """
-    fast_path_result = _try_encode_linear_chain_plain_dict(
+    fast_path_result: t.Optional[t.List[t.Any]] = _try_encode_linear_chain_plain_dict(
         value=value,
         is_undefined=is_undefined,
         side_channel=side_channel,
@@ -714,7 +716,7 @@ def _encode(
         if last_bracket_key == encoded_key and last_bracket_segment is not None:
             return last_bracket_segment
 
-        segment = f"[{encoded_key}]"
+        segment: str = f"[{encoded_key}]"
         last_bracket_key = encoded_key
         last_bracket_segment = segment
         return segment
@@ -777,7 +779,7 @@ def _encode(
     ]
 
     while stack:
-        frame = stack[-1]
+        frame: EncodeFrame = stack[-1]
 
         if frame.phase == PHASE_START:
             if frame.max_depth is None:
@@ -789,7 +791,7 @@ def _encode(
                 if frame.prefix is None:
                     frame.prefix = "?" if frame.add_query_prefix else ""
                 frame.path = KeyPathNode.from_materialized(frame.prefix)
-            current_path = frame.path
+            current_path: KeyPathNode = frame.path
             if current_path is None:  # pragma: no cover - internal invariant
                 raise RuntimeError("path is not initialized")  # noqa: TRY003
             if frame.comma_round_trip is None:
@@ -798,8 +800,8 @@ def _encode(
                 frame.formatter = frame.format.formatter
 
             obj: t.Any = frame.value
-            filter_opt = frame.filter_
-            filter_is_sequence = (
+            filter_opt: t.Optional[t.Union[t.Callable, t.Sequence[t.Union[str, int]]]] = frame.filter_
+            filter_is_sequence: bool = (
                 filter_opt is not None
                 and isinstance(filter_opt, ABCSequence)
                 and not isinstance(filter_opt, (str, bytes, bytearray))
@@ -818,13 +820,13 @@ def _encode(
 
             if not frame.is_undefined and obj is None:
                 if frame.strict_null_handling:
-                    key_text = current_path.materialize()
-                    key_value = (
+                    key_text: str = current_path.materialize()
+                    key_value: str = (
                         frame.encoder(key_text, frame.charset, frame.format)
                         if callable(frame.encoder) and not frame.encode_values_only
                         else key_text
                     )
-                    result_token = frame.formatter(key_value) if frame.formatter is not None else key_value
+                    result_token: str = frame.formatter(key_value) if frame.formatter is not None else key_value
                     stack.pop()
                     last_result = result_token
                     continue
@@ -861,7 +863,7 @@ def _encode(
                 last_result = []
                 continue
 
-            obj_id = id(obj)
+            obj_id: int = id(frame.obj)
             frame.obj_id = obj_id
             if use_legacy_cycle_state:
                 if frame.cycle_state is None or frame.cycle_level is None:
@@ -882,7 +884,7 @@ def _encode(
 
                 if frame.encode_values_only and callable(frame.encoder):
                     encoded_items = [frame.encoder(item, frame.charset, frame.format) for item in comma_items]
-                    obj_keys_value = ",".join("" if e is None else str(e) for e in encoded_items)
+                    obj_keys_value: str = ",".join("" if e is None else str(e) for e in encoded_items)
                 else:
                     obj_keys_value = ",".join(Utils.normalize_comma_elem(e) for e in comma_items)
 
@@ -891,20 +893,20 @@ def _encode(
                 else:
                     frame.obj_keys = [{"value": UNDEFINED}]
             elif filter_is_sequence:
-                filter_keys = t.cast(t.Sequence[t.Union[str, int]], filter_opt)
+                filter_keys: t.Sequence[t.Union[str, int]] = t.cast(t.Sequence[t.Union[str, int]], filter_opt)
                 frame.obj_keys = list(filter_keys)
             else:
                 if frame.is_mapping:
-                    keys = list(obj) if isinstance(obj, dict) else list(obj.keys())
+                    keys: t.List[t.Any] = list(obj) if isinstance(obj, dict) else list(obj.keys())
                 elif frame.is_sequence:
                     keys = list(range(len(obj)))
                 else:
                     keys = []
                 frame.obj_keys = sorted(keys, key=cmp_to_key(frame.sort)) if frame.sort is not None else keys
 
-            path_for_children = current_path.as_dot_encoded() if frame.encode_dot_in_keys else current_path
+            path_for_children: KeyPathNode = current_path.as_dot_encoded() if frame.encode_dot_in_keys else current_path
 
-            single_item_for_round_trip = False
+            single_item_for_round_trip: bool = False
             if frame.comma_round_trip and frame.is_sequence:
                 if frame.generate_array_prefix is _COMMA_GENERATOR and comma_effective_length is not None:
                     single_item_for_round_trip = comma_effective_length == 1
@@ -950,7 +952,7 @@ def _encode(
                     _push_current_node(public_cycle_state, frame.obj_id, frame.depth, frame.step, frame.depth == 0)
                 frame.cycle_pushed = True
 
-            _key = frame.obj_keys[frame.index]
+            _key: t.Any = frame.obj_keys[frame.index]
             frame.index += 1
 
             _value: t.Any
@@ -986,13 +988,15 @@ def _encode(
                 continue
 
             key_text = str(_key)
-            encoded_key = key_text.replace(".", "%2E") if frame.allow_dots and frame.encode_dot_in_keys else key_text
+            encoded_key: str = (
+                key_text.replace(".", "%2E") if frame.allow_dots and frame.encode_dot_in_keys else key_text
+            )
             if frame.path is None:  # pragma: no cover - internal invariant
                 raise RuntimeError("path is not initialized")  # noqa: TRY003
-            adjusted_path = frame.adjusted_path if frame.adjusted_path is not None else frame.path
+            adjusted_path: KeyPathNode = frame.adjusted_path if frame.adjusted_path is not None else frame.path
 
             if frame.is_sequence:
-                child_path = _next_path_for_sequence(
+                child_path: KeyPathNode = _next_path_for_sequence(
                     adjusted_path,
                     frame.generate_array_prefix,
                     encoded_key,
