@@ -349,11 +349,10 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
     duplicates = options.duplicates
 
     # Iterate over parts and decode each key/value pair.
-    for i, _ in enumerate(parts):
+    for i, part in enumerate(parts):
         if i == skip_index:
             continue
 
-        part: str = parts[i]
         if not part:
             continue
         bracket_equals_pos: int = part.find("]=")
