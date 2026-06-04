@@ -4,7 +4,11 @@ This mirrors the semantics of the Node `qs` library:
 
 - Decoding handles both UTF-8 and Latin-1 code paths.
 - Key splitting keeps bracket groups *balanced* and optionally treats dots as path separators when ``allow_dots=True``.
-- Top-level dot splitting uses a character-scanner that handles degenerate cases (leading '.' starts a bracket segment; '.[' is skipped; double dots preserve the first; trailing '.' is preserved) and never treats literal percent-encoded sequences (e.g., '%2E') as split points; only actual '.' characters at depth 0 are split.
+- Top-level dot splitting uses a character-scanner that handles degenerate cases
+  (leading '.' starts a bracket segment; '.[' is skipped; double dots preserve
+  the first; trailing '.' is preserved) and never treats literal percent-encoded
+  sequences (e.g., '%2E') as split points; only actual '.' characters at depth
+  0 are split.
 """
 
 import re
@@ -62,70 +66,70 @@ class DecodeUtils:
         """
         if "." not in s:
             return s
-        sb: t.List[str] = []
-        depth = 0
-        i = 0
-        n = len(s)
+        buffer: t.List[str] = []
+        depth: int = 0
+        i: int = 0
+        n: int = len(s)
         while i < n:
-            ch = s[i]
+            ch: str = s[i]
             if ch == "[":
                 depth += 1
-                sb.append(ch)
+                buffer.append(ch)
                 i += 1
             elif ch == "]":
                 if depth > 0:
                     depth -= 1
-                sb.append(ch)
+                buffer.append(ch)
                 i += 1
             elif ch == ".":
                 if depth == 0:
-                    has_next = i + 1 < n
-                    next_ch = s[i + 1] if has_next else "\0"
+                    has_next: bool = i + 1 < n
+                    next_ch: str = s[i + 1] if has_next else "\0"
                     if next_ch == "[":
                         # skip the dot so 'a.[b]' acts like 'a[b]'
                         i += 1
                     elif next_ch == "]":
                         # preserve ambiguous '.]' as a literal to avoid constructing '[]]'
-                        sb.append(".")
+                        buffer.append(".")
                         i += 1
                     elif i == 0:
                         # If input starts with '..', preserve the first dot like the 'a..b' case.
                         if has_next and next_ch == ".":
-                            sb.append(".")
+                            buffer.append(".")
                             i += 1
                             continue
                         # leading '.' starts a bracket segment: ".a" -> "[a]"
                         start = i + 1
-                        j = start
-                        while j < n and s[j] != "." and s[j] != "[" and s[j] != "]":
+                        j: int = start
+                        while j < n and s[j] not in ".[]":
                             j += 1
-                        sb.append("[")
-                        sb.append(s[start:j])
-                        sb.append("]")
+                        buffer.append("[")
+                        buffer.append(s[start:j])
+                        buffer.append("]")
                         i = j
                     elif (not has_next) or next_ch == ".":
                         # trailing dot, or first of a double dot
-                        sb.append(".")
+                        buffer.append(".")
                         i += 1
                     else:
                         # normal split at top level: convert a.b → a[b]
                         start = i + 1
                         j = start
-                        while j < n and s[j] != "." and s[j] != "[" and s[j] != "]":
+                        while j < n and s[j] not in ".[]":
                             j += 1
-                        sb.append("[")
-                        sb.append(s[start:j])
-                        sb.append("]")
+                        buffer.append("[")
+                        buffer.append(s[start:j])
+                        buffer.append("]")
                         i = j
                 else:
-                    sb.append(".")
+                    buffer.append(".")
                     i += 1
             else:
                 # No special handling for percent sequences here; characters are appended as-is.
                 # We never split on '%2E' at this stage.
-                sb.append(ch)
+                buffer.append(ch)
                 i += 1
-        return "".join(sb)
+        return "".join(buffer)
 
     # Precompiled pattern for %XX hex bytes (Latin-1 path fast path)
     HEX2_PATTERN: t.Pattern[str] = re.compile(r"%([0-9A-Fa-f]{2})")
@@ -153,7 +157,7 @@ class DecodeUtils:
         def replacer(match: t.Match[str]) -> str:
             if (unicode_val := match.group("unicode")) is not None:
                 return chr(int(unicode_val, 16))
-            elif (hex_val := match.group("hex")) is not None:
+            if (hex_val := match.group("hex")) is not None:
                 return chr(int(hex_val, 16))
             return match.group(0)
 
@@ -199,8 +203,7 @@ class DecodeUtils:
             _int, _chr = int, chr
             return cls.HEX2_PATTERN.sub(lambda m: _chr(_int(m.group(1), 16)), s)
 
-        s = string_without_plus
-        return s if "%" not in s else unquote(s)
+        return string_without_plus if "%" not in string_without_plus else unquote(string_without_plus)
 
     @classmethod
     def split_key_into_segments(
