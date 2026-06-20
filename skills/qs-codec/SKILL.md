@@ -1,6 +1,6 @@
 ---
 name: qs-codec
-description: Use this skill whenever a user wants to install, configure, troubleshoot, or write Python application code for encoding and decoding nested query strings with the qs-codec package. This skill helps produce practical qs_codec.decode, qs_codec.encode, qs_codec.loads, and qs_codec.dumps snippets, choose DecodeOptions and EncodeOptions, explain option tradeoffs, and avoid qs-codec edge-case pitfalls around lists, dot notation, duplicates, null handling, charset sentinels, depth limits, and untrusted input.
+description: Use this skill whenever a user wants to install, configure, troubleshoot, or write Python application code for encoding and decoding nested query strings with the qs-codec package, including composing qs-codec with urllib.parse URL components. This skill helps produce practical qs_codec.decode, qs_codec.encode, qs_codec.loads, and qs_codec.dumps snippets, choose DecodeOptions and EncodeOptions, explain option tradeoffs, and avoid qs-codec edge-case pitfalls around lists, dot notation, duplicates, null handling, charset sentinels, depth limits, URL replacement, and untrusted input.
 ---
 
 # qs-codec Usage Assistant
@@ -70,6 +70,67 @@ assert query == "a%5Bb%5D%5Bc%5D=d&tags%5B0%5D=python&tags%5B1%5D=web"
 
 Use `qs.loads(...)` as a string-only alias for `qs.decode(...)`, and
 `qs.dumps(...)` as an alias for `qs.encode(...)`.
+
+## Standard-Library URL Recipes
+
+Use `urllib.parse.urlsplit` to separate URL parsing from qs decoding. Pass the
+encoded `.query` component directly to `qs.decode`; do not call `unquote`,
+`unquote_plus`, `parse_qs`, or `parse_qsl` first. Pre-decoding can turn escaped
+delimiters into structure, double-decode percent signs, and flatten qs bracket
+syntax.
+
+```python
+from urllib.parse import urlsplit
+
+import qs_codec as qs
+
+parts = urlsplit(
+    "https://example.com/search?filter%5Bname%5D=Jane%20Doe&flag#results"
+)
+params = qs.decode(
+    parts.query,
+    qs.DecodeOptions(strict_null_handling=True),
+)
+
+assert params == {"filter": {"name": "Jane Doe"}, "flag": None}
+```
+
+For a `bytes` URL, `urlsplit` returns a byte query while `qs.decode` accepts
+text. Use `.query.decode("ascii")` only when the application boundary guarantees
+a conforming ASCII percent-encoded URL; otherwise ask the caller to define the
+outer byte-decoding policy.
+
+Replace a query with freshly encoded data:
+
+```python
+updated = parts._replace(
+    query=qs.encode({
+        "filter": {"name": "John Doe"},
+        "tags": ["a", "b"],
+    }),
+).geturl()
+```
+
+Apply these constraints when recommending URL composition:
+
+- Keep `EncodeOptions.add_query_prefix=False` when assigning to
+  `SplitResult.query`; a prefixed encoded value creates `??`.
+- Default percent-encoded output is appropriate for replacement. Treat
+  `encode=False`, `encode_values_only=True`, custom encoders, and raw query text
+  as caller-managed because they can emit `#`, `&`, `?`, or malformed percent
+  escapes.
+- Describe `_replace(query=...).geturl()` as replacement, not append or merge.
+  It intentionally discards the existing query and may normalize URL spelling;
+  empty encoded output removes an explicit query delimiter.
+- Do not propose a generic append helper when existing and new queries may use
+  different delimiters. Mixing `&` and `;` cannot be interpreted generally
+  without choosing a parser and rewriting one side.
+- Do not decode and re-encode an arbitrary existing query to "normalize" it.
+  That can regroup interleaved duplicates, convert bare names to empty values,
+  change list formats and delimiters, reorder tokens, and select new percent
+  spellings.
+- Use the direct standard-library expression for raw replacement. A wrapper
+  around `_replace(query=raw).geturl()` does not add validation or escaping.
 
 ## Decode Recipes
 
