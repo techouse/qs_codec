@@ -10,6 +10,67 @@ Do not mutate caller-owned input containers or shared callback state while an
 free-threaded CPython build, which is supported and covered by the thread-safety
 test suite without changing these mutation guarantees.
 
+Working with URLs
+~~~~~~~~~~~~~~~~~
+
+Use `urllib.parse.urlsplit <https://docs.python.org/3/library/urllib.parse.html#urllib.parse.urlsplit>`_
+to keep URL parsing separate from query-string decoding. Pass the encoded
+``query`` component directly to :py:attr:`qs_codec.decode` without calling
+``unquote``, ``unquote_plus``, ``parse_qs``, or ``parse_qsl`` first:
+
+.. code:: python
+
+   from urllib.parse import urlsplit
+
+   import qs_codec as qs
+
+   parts = urlsplit(
+       'https://example.com/search?filter%5Bname%5D=Jane%20Doe&flag#results'
+   )
+   params = qs.decode(
+       parts.query,
+       qs.DecodeOptions(strict_null_handling=True),
+   )
+
+   assert params == {
+       'filter': {'name': 'Jane Doe'},
+       'flag': None,
+   }
+
+Passing the encoded component unchanged ensures that escaped delimiters such as
+``%26``, escaped percent signs such as ``%2525``, and encoded bracket syntax
+reach :py:attr:`qs_codec.decode` without being decoded twice.
+
+To replace a URL query, encode fresh data and assign it to the split result's
+``query`` component:
+
+.. code:: python
+
+   updated = parts._replace(
+       query=qs.encode({
+           'filter': {'name': 'John Doe'},
+           'tags': ['a', 'b'],
+       }),
+   ).geturl()
+
+   assert updated == (
+       'https://example.com/search?'
+       'filter%5Bname%5D=John%20Doe&tags%5B0%5D=a&tags%5B1%5D=b'
+       '#results'
+   )
+
+Keep :py:attr:`add_query_prefix <qs_codec.models.encode_options.EncodeOptions.add_query_prefix>`
+set to ``False`` (the default) when assigning to ``SplitResult.query``. Options
+such as ``encode=False``, ``encode_values_only=True``, or a custom encoder can
+emit raw URL-structural characters, so callers using them must ensure the result
+is safe query-component text.
+
+This pattern replaces the existing query; it does not append or merge it.
+Appending or decoding and re-encoding an arbitrary query can change delimiter,
+duplicate-key, name-only, list-format, ordering, and percent-encoding semantics.
+``SplitResult.geturl()`` may also normalize URL spelling and removes an explicit
+empty ``?`` delimiter.
+
 Decoding
 ~~~~~~~~
 
