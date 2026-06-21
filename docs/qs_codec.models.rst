@@ -20,14 +20,6 @@ qs\_codec.models.encode\_options module
    :undoc-members:
    :show-inheritance:
 
-qs\_codec.models.undefined module
----------------------------------
-
-.. automodule:: qs_codec.models.undefined
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 qs\_codec.models.weak\_wrapper module
 -------------------------------------
 

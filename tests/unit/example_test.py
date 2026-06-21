@@ -271,9 +271,6 @@ class TestEncoding:
         assert qs_codec.encode({"a": {"b": []}}) == ""
         assert qs_codec.encode({"a": {"b": {}}}) == ""
 
-        # Properties that are `Undefined` will be omitted entirely:
-        assert qs_codec.encode({"a": None, "b": qs_codec.Undefined()}) == "a="
-
         # The query string may optionally be prepended with a question mark:
         assert qs_codec.encode({"a": "b", "c": "d"}, qs_codec.EncodeOptions(add_query_prefix=True)) == "?a=b&c=d"
 
