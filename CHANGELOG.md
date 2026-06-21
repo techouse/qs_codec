@@ -1,4 +1,4 @@
-## 1.6.0-dev
+## 1.6.0
 
 * [CHORE] make `Undefined` internal by removing `qs_codec.Undefined` and its public documentation
 
