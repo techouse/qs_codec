@@ -750,14 +750,6 @@ Keys with no values (such as an empty ``dict`` or ``list``) will return nothing:
 
    assert qs.encode({'a': {'b': {}}}) == ''
 
-`Undefined <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.undefined.Undefined>`__ properties will be omitted entirely:
-
-.. code:: python
-
-   import qs_codec as qs
-
-   assert qs.encode({'a': None, 'b': qs.Undefined()}) == 'a='
-
 The query string may optionally be prepended with a question mark (``?``) by setting
 `add_query_prefix <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.add_query_prefix>`__ to ``True``:
 

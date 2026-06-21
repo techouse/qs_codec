@@ -1,24 +1,26 @@
-"""Sentinel values and their percent-encoded forms.
+"""Charset sentinel values and their percent-encoded forms.
 
-Browsers sometimes include an ``utf8=…`` “sentinel” in
+Browsers sometimes include an ``utf8=…`` sentinel in
 ``application/x-www-form-urlencoded`` submissions to signal the character
-encoding that was used. This module exposes those sentinels as an ``Enum``,
-where each member carries both the raw token (what the page emits) and the
-fully URL-encoded fragment (what appears on the wire).
+encoding that was used. This module exposes those sentinels as an enum whose
+members carry both the raw token emitted by the page and the fully URL-encoded
+fragment that appears on the wire.
 """
 
 from dataclasses import dataclass
 from enum import Enum
 
+__all__ = ("Sentinel",)
+
 
 @dataclass(frozen=True)
 class _SentinelDataMixin:
-    """Common data carried by each sentinel.
+    """Common data carried by each charset sentinel.
 
     Attributes:
-        raw: The unencoded token browsers start with. For example, the HTML
-            entity string ``"&#10003;"`` or the literal check mark ``"✓"``.
-        encoded: The full ``key=value`` fragment after URL-encoding, e.g.
+        raw: The unencoded token browsers start with, such as the HTML entity
+            string ``"&#10003;"`` or the literal check mark ``"✓"``.
+        encoded: The full URL-encoded ``key=value`` fragment, such as
             ``"utf8=%26%2310003%3B"`` or ``"utf8=%E2%9C%93"``.
     """
 
@@ -27,24 +29,22 @@ class _SentinelDataMixin:
 
 
 class Sentinel(_SentinelDataMixin, Enum):
-    """All supported ``utf8`` sentinels.
+    """Charset sentinels recognized and emitted by the codec.
 
-    Each enum member provides:
-        - ``raw``: the source token a browser starts with, and
-        - ``encoded``: the final, percent-encoded ``utf8=…`` fragment.
+    Each member provides the source token through ``raw`` and the final
+    percent-encoded ``utf8=…`` fragment through ``encoded``.
     """
 
     ISO = r"&#10003;", r"utf8=%26%2310003%3B"
     """HTML-entity sentinel used by non-UTF-8 submissions.
 
-    When a check mark (✓) appears but the page/form encoding is ``iso-8859-1``
-    (or another charset that lacks ✓), browsers first HTML-entity-escape it as
-    ``"&#10003;"`` and then URL-encode it, producing ``utf8=%26%2310003%3B``.
+    When a check mark (✓) appears but the form encoding is ``iso-8859-1`` or
+    another charset that lacks it, browsers HTML-entity-escape the character
+    and then URL-encode it, producing ``utf8=%26%2310003%3B``.
     """
 
     CHARSET = r"✓", r"utf8=%E2%9C%93"
-    """UTF-8 sentinel indicating the request is UTF-8 encoded.
+    """UTF-8 sentinel indicating that the request is UTF-8 encoded.
 
-    This is the percent-encoded UTF-8 sequence for ✓, yielding the fragment
-    ``utf8=%E2%9C%93``.
+    The encoded form contains the percent-encoded UTF-8 sequence for ✓.
     """

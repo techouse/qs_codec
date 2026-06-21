@@ -31,7 +31,6 @@ __all__ = [
     "Sentinel",
     "DecodeOptions",
     "EncodeOptions",
-    "Undefined",
 ]
 
 from .decode import decode, load, loads
@@ -44,4 +43,3 @@ from .enums.list_format import ListFormat
 from .enums.sentinel import Sentinel
 from .models.decode_options import DecodeOptions
 from .models.encode_options import EncodeOptions
-from .models.undefined import Undefined

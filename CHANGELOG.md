@@ -1,3 +1,7 @@
+## 1.6.0-dev
+
+* [CHORE] make `Undefined` internal by removing `qs_codec.Undefined` and its public documentation
+
 ## 1.5.2
 
 * [CHORE] simplify mapping and key-iteration checks in encode/decode internals
