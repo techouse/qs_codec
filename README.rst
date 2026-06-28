@@ -49,6 +49,96 @@ A simple usage example:
    # Decoding
    assert qs.decode('a=b') == {'a': 'b'}
 
+Compared with ``urllib.parse``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The standard library's
+`urlencode <https://docs.python.org/3/library/urllib.parse.html#urllib.parse.urlencode>`__,
+`parse_qs <https://docs.python.org/3/library/urllib.parse.html#urllib.parse.parse_qs>`__,
+and
+`parse_qsl <https://docs.python.org/3/library/urllib.parse.html#urllib.parse.parse_qsl>`__
+are designed for conventional flat ``application/x-www-form-urlencoded``
+data. Use ``qs_codec`` when the query represents nested dictionaries or lists,
+must interoperate with Node ``qs``, or needs configurable list, duplicate, null,
+or resource-limit behavior.
+
+``urlencode`` can expand a flat sequence into repeated keys with
+``doseq=True``, which corresponds to ``ListFormat.REPEAT``. It does not
+recursively encode nested mappings; ``qs.encode`` uses bracket or dot paths
+instead:
+
+.. code:: python
+
+   from urllib.parse import urlencode
+
+   import qs_codec as qs
+
+   assert urlencode({'tags': ['a', 'b']}, doseq=True) == 'tags=a&tags=b'
+   assert qs.encode(
+       {'tags': ['a', 'b']},
+       qs.EncodeOptions(list_format=qs.ListFormat.REPEAT),
+   ) == 'tags=a&tags=b'
+   assert qs.encode(
+       {'filter': {'name': 'Jane'}},
+   ) == 'filter%5Bname%5D=Jane'
+
+The encoding defaults also differ: ``urlencode`` emits spaces as ``+`` and
+uses Python scalar spellings such as ``True`` and ``None``; ``qs.encode`` uses
+``%20``, lowercase booleans, and an empty value for ``None`` by default.
+
+On decode, ``parse_qs`` returns a dictionary whose values are always lists,
+while ``parse_qsl`` returns an ordered list of name/value pairs and preserves
+interleaved duplicate keys. Both treat bracket expressions as literal key
+names, drop blank values unless ``keep_blank_values=True``, and collapse a
+name-only token and an explicit empty value to the same empty string.
+``qs.decode`` normally returns a scalar for one value, reconstructs bracket
+paths, and can preserve that null distinction:
+
+.. code:: python
+
+   from urllib.parse import parse_qs, parse_qsl
+
+   import qs_codec as qs
+
+   query = 'a=1&b=2&a=3&filter%5Bname%5D=Jane&flag&empty='
+
+   assert parse_qs(query, keep_blank_values=True) == {
+       'a': ['1', '3'],
+       'b': ['2'],
+       'filter[name]': ['Jane'],
+       'flag': [''],
+       'empty': [''],
+   }
+   assert parse_qsl(query, keep_blank_values=True) == [
+       ('a', '1'),
+       ('b', '2'),
+       ('a', '3'),
+       ('filter[name]', 'Jane'),
+       ('flag', ''),
+       ('empty', ''),
+   ]
+   assert qs.decode(
+       query,
+       qs.DecodeOptions(strict_null_handling=True),
+   ) == {
+       'a': ['1', '3'],
+       'b': '2',
+       'filter': {'name': 'Jane'},
+       'flag': None,
+       'empty': '',
+   }
+
+All three decoders leave primitive values as strings. ``parse_qs`` and
+``qs.decode`` combine repeated flat keys under their default behavior;
+``parse_qsl`` instead retains each pair in input order. The standard-library
+parsers offer ``max_num_fields``; ``qs.decode`` additionally provides default
+parameter, nesting-depth, and list limits plus configurable duplicate handling.
+
+Use ``parse_qsl`` when flat pair order or duplicate interleaving matters, but
+not as a raw-query round-trip format: it percent-decodes names and values,
+normalizes ``+`` and ``%20`` to the same space, and cannot retain the distinction
+between a name-only token and an explicit empty value.
+
 Working with URLs
 ~~~~~~~~~~~~~~~~~
 

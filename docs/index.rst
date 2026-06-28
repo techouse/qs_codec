@@ -53,6 +53,18 @@ A simple usage example:
    # Decoding
    assert qs.decode('a=b') == {'a': 'b'}
 
+Compared with ``urllib.parse``
+-------------------------------
+
+Use ``urllib.parse.urlencode``, ``parse_qs``, and ``parse_qsl`` for conventional
+flat form data. ``urlencode`` does not recursively encode nested mappings.
+``parse_qs`` groups values by name; ``parse_qsl`` instead preserves pair order
+and interleaved duplicates. Both parsers treat bracket expressions as literal
+keys and collapse a name-only token and an explicit empty value when blanks are
+retained. Use ``qs_codec`` for nested dictionaries and lists, Node ``qs``
+interoperability, configurable duplicate and null semantics, or matching
+``encode``/``decode`` support. See :doc:`README` for URL composition guidance.
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
