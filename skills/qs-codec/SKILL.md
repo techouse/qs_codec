@@ -1,6 +1,6 @@
 ---
 name: qs-codec
-description: Use this skill whenever a user wants to install, configure, troubleshoot, or write Python application code for encoding and decoding nested query strings with the qs-codec package, including composing qs-codec with urllib.parse URL components. This skill helps produce practical qs_codec.decode, qs_codec.encode, qs_codec.loads, and qs_codec.dumps snippets, choose DecodeOptions and EncodeOptions, explain option tradeoffs, and avoid qs-codec edge-case pitfalls around lists, dot notation, duplicates, null handling, charset sentinels, depth limits, URL replacement, and untrusted input.
+description: Use this skill whenever a user wants to install, configure, troubleshoot, or write Python application code for encoding and decoding nested query strings with the qs-codec package, including comparing or composing qs-codec with urllib.parse.urlencode, parse_qs, parse_qsl, and URL components. This skill helps produce practical qs_codec.decode, qs_codec.encode, qs_codec.loads, and qs_codec.dumps snippets, choose DecodeOptions and EncodeOptions, explain option tradeoffs, and avoid qs-codec edge-case pitfalls around lists, dot notation, duplicates, null handling, charset sentinels, depth limits, URL replacement, and untrusted input.
 ---
 
 # qs-codec Usage Assistant
@@ -70,6 +70,46 @@ assert query == "a%5Bb%5D%5Bc%5D=d&tags%5B0%5D=python&tags%5B1%5D=web"
 
 Use `qs.loads(...)` as a string-only alias for `qs.decode(...)`, and
 `qs.dumps(...)` as an alias for `qs.encode(...)`.
+
+## Standard-Library Codec Selection
+
+Choose `urllib.parse.urlencode`, `parse_qs`, and `parse_qsl` for conventional
+flat `application/x-www-form-urlencoded` data. Choose `qs-codec` when callers
+need nested dictionaries or lists, Node `qs` interoperability, configurable
+list, duplicate, or null semantics, or matching structure-aware encode/decode
+behavior.
+
+Apply these distinctions when comparing the APIs:
+
+- Treat `urlencode` as a flat encoder. With `doseq=True`, expand sequence
+  values as repeated keys; use `ListFormat.REPEAT` for the equivalent
+  `qs.encode` output. Do not pass nested mappings to `urlencode` expecting
+  recursive query paths.
+- Account for different defaults: `urlencode` emits spaces as `+` and uses
+  Python scalar spellings such as `True` and `None`; `qs.encode` defaults to
+  `%20`, lowercase booleans, and an empty value for `None`.
+- Treat `parse_qs` as a grouped flat parser whose dictionary values are always
+  lists. It leaves bracket syntax in literal keys, drops blanks unless
+  `keep_blank_values=True`, and cannot distinguish a name-only token from an
+  explicit empty value.
+- Prefer `parse_qsl` when flat pair order and interleaved duplicates matter. It
+  returns an ordered list of name/value pairs, but otherwise shares
+  `parse_qs`'s literal bracket, blank-value, and null-distinction limitations.
+  It also percent-decodes names and values and normalizes `+` and `%20`, so do
+  not present its output as a lossless representation of the raw query.
+- Use `qs.decode` to reconstruct bracket or dot paths. A singleton normally
+  remains scalar, duplicate policies support combine/first/last, and
+  `strict_null_handling=True` distinguishes a bare name as `None` from an
+  explicit empty string.
+- Note that all three parsers leave primitive values as strings. `parse_qs` and
+  `qs.decode` combine repeated flat keys by default, while `parse_qsl` retains
+  each occurrence. For resource limits, compare the standard-library parsers'
+  `max_num_fields` with `DecodeOptions.parameter_limit`, `depth`, and
+  `list_limit` plus `raise_on_limit_exceeded`.
+
+Do not preprocess a complete URL's raw query with `parse_qs` or `parse_qsl`
+before `qs.decode`; doing so flattens structured syntax and loses name-only
+distinctions.
 
 ## Standard-Library URL Recipes
 
