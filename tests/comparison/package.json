@@ -4,8 +4,8 @@
   "description": "A comparison of query string parsing libraries",
   "author": "Klemen Tusar",
   "license": "BSD-3-Clause",
-  "packageManager": "pnpm@11.5.2",
+  "packageManager": "pnpm@11.9.0",
   "dependencies": {
-    "qs": "^6.15.2"
+    "qs": "^6.15.3"
   }
 }
