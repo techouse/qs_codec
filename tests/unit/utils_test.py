@@ -545,11 +545,19 @@ class TestUtils:
         assert result == {"a": 1}
         assert result is target
 
-    def test_merge_promotes_list_with_undefined_when_lists_disabled(self) -> None:
+    @pytest.mark.parametrize(
+        "source, expected",
+        [
+            pytest.param([Undefined()], {"1": "keep"}, id="undefined-source-keeps-sparse-dict"),
+            pytest.param(["replace"], ["replace", "keep"], id="list-source-fills-sparse-slot"),
+            pytest.param("append", {"1": "keep", "2": "append"}, id="scalar-source-appends-to-sparse-dict"),
+        ],
+    )
+    def test_merge_promotes_list_with_undefined_when_lists_disabled(self, source: t.Any, expected: t.Any) -> None:
         options = DecodeOptions(parse_lists=False)
         target = [Undefined(), "keep"]
-        result = Utils.merge(target, [Undefined()], options)
-        assert result == {"1": "keep"}
+        result = Utils.merge(target, source, options)
+        assert result == expected
 
     def test_merges_two_dicts_with_same_key(self) -> None:
         assert Utils.merge({"a": "b"}, {"a": "c"}) == {"a": ["b", "c"]}
@@ -569,6 +577,79 @@ class TestUtils:
 
     def test_merges_two_arrays_into_an_array(self) -> None:
         assert Utils.merge({"foo": ["baz"]}, {"foo": ["bar", "xyzzy"]}) == {"foo": ["baz", "bar", "xyzzy"]}
+
+    @pytest.mark.parametrize(
+        "target, source",
+        [
+            pytest.param(["a"], "b", id="list-scalar"),
+            pytest.param("a", ["b", "c"], id="scalar-list"),
+            pytest.param("a", {"b": "c"}, id="scalar-mapping"),
+            pytest.param(["a"], ["b"], id="list-list"),
+        ],
+    )
+    def test_merge_raises_when_list_growth_exceeds_limit(self, target: t.Any, source: t.Any) -> None:
+        original_target = list(target) if isinstance(target, list) else target
+        options = DecodeOptions(list_limit=1, raise_on_limit_exceeded=True)
+
+        with pytest.raises(ValueError, match="List limit exceeded"):
+            Utils.merge(target, source, options)
+
+        assert target == original_target
+
+    @pytest.mark.parametrize(
+        "target, source, expected",
+        [
+            pytest.param(["a"], "b", {"0": "a", "1": "b"}, id="list-scalar"),
+            pytest.param("a", ["b", "c"], {"0": "a", "1": "b", "2": "c"}, id="scalar-list"),
+            pytest.param("a", {"b": "c"}, {"0": "a", "1": {"b": "c"}}, id="scalar-mapping"),
+            pytest.param(["a"], ["b"], {"0": "a", "1": "b"}, id="list-list"),
+        ],
+    )
+    def test_merge_converts_over_limit_growth_to_overflow_dict(
+        self, target: t.Any, source: t.Any, expected: t.Mapping[str, t.Any]
+    ) -> None:
+        result = Utils.merge(target, source, DecodeOptions(list_limit=1))
+
+        assert result == expected
+        assert isinstance(result, OverflowDict)
+
+    def test_merge_keeps_list_at_limit(self) -> None:
+        assert Utils.merge([], "a", DecodeOptions(list_limit=1, raise_on_limit_exceeded=True)) == ["a"]
+
+    def test_merge_enforces_limit_after_nested_list_merge(self) -> None:
+        target = [{"a": 1}]
+        source = [{"b": 2}, {"c": 3}]
+
+        result = Utils.merge(target, source, DecodeOptions(list_limit=1))
+
+        assert result == {"0": {"a": 1, "b": 2}, "1": {"c": 3}}
+        assert isinstance(result, OverflowDict)
+
+        with pytest.raises(ValueError, match="List limit exceeded"):
+            Utils.merge([{"a": 1}], source, DecodeOptions(list_limit=1, raise_on_limit_exceeded=True))
+
+    def test_merge_combines_overflow_target_with_list_by_index(self) -> None:
+        target = OverflowDict({"0": "1", "1": "2"})
+
+        result = Utils.merge(target, ["x"], DecodeOptions(list_limit=1))
+
+        assert result == {"0": ["1", "x"], "1": "2"}
+        assert isinstance(result, OverflowDict)
+
+    def test_merge_combines_list_target_with_overflow_source_by_index(self) -> None:
+        source = OverflowDict({"0": "1", "1": "2"})
+
+        result = Utils.merge(["x"], source, DecodeOptions(list_limit=1))
+
+        assert result == {"0": ["x", "1"], "1": "2"}
+        assert isinstance(result, OverflowDict)
+
+    def test_merge_combines_mapping_target_with_list_by_index(self) -> None:
+        target = {"0": "1", "1": "2", "2": "z"}
+
+        result = Utils.merge(target, ["x"], DecodeOptions(list_limit=2))
+
+        assert result == {"0": ["1", "x"], "1": "2", "2": "z"}
 
     def test_merge_preserves_target_only_slots_in_structured_lists(self) -> None:
         options = DecodeOptions()
@@ -742,6 +823,21 @@ class TestUtils:
         combined = Utils.combine(["a"], ["b"], options)
         assert combined == ["a", "b"]
 
+    def test_combine_raises_when_list_limit_is_exceeded(self) -> None:
+        options = DecodeOptions(list_limit=1, raise_on_limit_exceeded=True)
+
+        with pytest.raises(ValueError, match="List limit exceeded"):
+            Utils.combine(["a"], "b", options)
+
+    def test_combine_raises_before_copying_existing_overflow_dict(self) -> None:
+        overflow = Utils.combine(["a"], "b", DecodeOptions(list_limit=1))
+        assert isinstance(overflow, OverflowDict)
+
+        with pytest.raises(ValueError, match="List limit exceeded"):
+            Utils.combine(overflow, "c", DecodeOptions(list_limit=1, raise_on_limit_exceeded=True))
+
+        assert overflow == {"0": "a", "1": "b"}
+
     def test_combine_negative_list_limit_with_empty_result_stays_list(self) -> None:
         options = DecodeOptions(list_limit=-1)
         combined = Utils.combine([], [], options)
@@ -793,6 +889,20 @@ class TestUtils:
 
         assert "drop" not in root
         assert root["nested"][0] == {"keep": "ok"}
+
+    def test_compact_handles_multi_step_cycles(self) -> None:
+        a: t.Dict[str, t.Any] = {}
+        b: t.Dict[str, t.Any] = {}
+        c: t.Dict[str, t.Any] = {}
+        a["b"] = b
+        b["c"] = c
+        c["d"] = a
+        c["drop"] = Undefined()
+
+        result = Utils.compact(a)
+
+        assert result["b"]["c"]["d"] is result
+        assert "drop" not in result["b"]["c"]
 
     def test_remove_undefined_from_list_handles_nested_structures(self) -> None:
         data: t.List[t.Any] = [
@@ -1041,9 +1151,8 @@ class TestUtils:
         # source has key '0', which collides with target's index 0
         source = OverflowDict({"0": "b"})
         result = Utils.merge(target, source)  # type: ignore[arg-type]
-        assert isinstance(result, dict)
-        # Source overwrites target at key '0'
-        assert result == {"0": "b"}
+        assert isinstance(result, OverflowDict)
+        assert result == {"0": ["a", "b"]}
 
     def test_merge_overflow_dict_with_mapping_preserves_overflow(self) -> None:
         target = OverflowDict({"0": "a"})

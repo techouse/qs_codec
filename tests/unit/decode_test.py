@@ -1107,6 +1107,51 @@ class TestDecode:
         assert decode(encoded) == decoded
 
 
+class TestUnbalancedBracketKeys:
+    @pytest.mark.parametrize(
+        "query, options, expected",
+        [
+            pytest.param("a[bc=v", DecodeOptions(), {"a": {"[bc": "v"}}, id="unclosed-group"),
+            pytest.param("a[=v", DecodeOptions(), {"a": {"[": "v"}}, id="bare-unclosed-bracket"),
+            pytest.param("a[b][c=v", DecodeOptions(), {"a": {"b": {"[c": "v"}}}, id="after-valid-group"),
+            pytest.param("a[b]c[d=v", DecodeOptions(), {"a": {"b": {"[d": "v"}}}, id="after-text"),
+            pytest.param(
+                "filters[customtags:Env: Prod=v",
+                DecodeOptions(),
+                {"filters": {"[customtags:Env: Prod": "v"}},
+                id="issue-558",
+            ),
+            pytest.param("][a=v", DecodeOptions(), {"]": {"[a": "v"}}, id="stray-close-prefix"),
+            pytest.param("a][b=v", DecodeOptions(), {"a]": {"[b": "v"}}, id="stray-close-parent"),
+            pytest.param("a[b[c=v", DecodeOptions(), {"a": {"[b[c": "v"}}, id="inner-open-bracket"),
+            pytest.param("a[b[c]=v", DecodeOptions(), {"a": {"[b[c]": "v"}}, id="inner-balanced-bracket"),
+            pytest.param("a[b][c[d=v", DecodeOptions(), {"a": {"b": {"[c[d": "v"}}}, id="inner-open-after-valid"),
+            pytest.param("[abc=v", DecodeOptions(), {"[abc": "v"}, id="bracket-prefixed"),
+            pytest.param("[[]b=v", DecodeOptions(), {"[[]b": "v"}, id="nested-bracket-prefixed"),
+            pytest.param(
+                "a[b]c[d]e[f=v",
+                DecodeOptions(depth=5),
+                {"a": {"b": {"d": {"[f": "v"}}}},
+                id="depth-five",
+            ),
+            pytest.param(
+                "a[b]c[d]e[f=v",
+                DecodeOptions(depth=1),
+                {"a": {"b": {"[d]e[f": "v"}}},
+                id="depth-one",
+            ),
+            pytest.param("a[bc=v", DecodeOptions(depth=0), {"a[bc": "v"}, id="depth-zero"),
+            pytest.param("a.b[c=v", DecodeOptions(allow_dots=True), {"a": {"b": {"[c": "v"}}}, id="allow-dots"),
+            pytest.param("a]b=v", DecodeOptions(), {"a]b": "v"}, id="stray-close-literal"),
+            pytest.param("a[b]extra=v", DecodeOptions(), {"a": {"b": "v"}}, id="trailing-text"),
+        ],
+    )
+    def test_decodes_unbalanced_brackets_leniently(
+        self, query: str, options: DecodeOptions, expected: t.Mapping[str, t.Any]
+    ) -> None:
+        assert decode(query, options) == expected
+
+
 class TestCharset:
     url_encoded_checkmark_in_utf_8: str = "%E2%9C%93"
     url_encoded_oslash_in_utf_8: str = "%C3%B8"
@@ -1446,6 +1491,134 @@ class TestParameterList:
 
 class TestListLimit:
 
+    @pytest.mark.parametrize(
+        "query, options",
+        [
+            pytest.param(
+                "a=1,2,3&a=4,5,6",
+                DecodeOptions(comma=True, list_limit=5, raise_on_limit_exceeded=True),
+                id="cumulative-comma-groups",
+            ),
+            pytest.param(
+                "a=v,v,v,v,v&a=v,v,v,v,v&a=v,v,v,v,v",
+                DecodeOptions(comma=True, list_limit=5, raise_on_limit_exceeded=True),
+                id="already-overflowed-comma-groups",
+            ),
+            pytest.param("a=x&a=y", DecodeOptions(list_limit=1, raise_on_limit_exceeded=True), id="duplicate-scalars"),
+            pytest.param(
+                "a[]=x&a[]=y", DecodeOptions(list_limit=1, raise_on_limit_exceeded=True), id="duplicate-brackets"
+            ),
+            pytest.param(
+                "a=x&a[0]=y", DecodeOptions(list_limit=1, raise_on_limit_exceeded=True), id="scalar-then-index"
+            ),
+            pytest.param(
+                "a[0]=x&a=y", DecodeOptions(list_limit=1, raise_on_limit_exceeded=True), id="index-then-scalar"
+            ),
+            pytest.param(
+                "a[0]=x&a[]=y", DecodeOptions(list_limit=1, raise_on_limit_exceeded=True), id="index-then-bracket"
+            ),
+        ],
+    )
+    def test_raises_when_cumulative_list_growth_exceeds_limit(self, query: str, options: DecodeOptions) -> None:
+        with pytest.raises(ValueError, match="List limit exceeded"):
+            decode(query, options)
+
+    @pytest.mark.parametrize(
+        "query",
+        [
+            pytest.param("a=x&a[0]=y", id="scalar-then-index"),
+            pytest.param("a[0]=x&a=y", id="index-then-scalar"),
+            pytest.param("a[0]=x&a[]=y", id="index-then-bracket"),
+        ],
+    )
+    def test_mixed_notation_becomes_overflow_dict_without_raising(self, query: str) -> None:
+        result = decode(query, DecodeOptions(list_limit=1))
+
+        assert result == {"a": {"0": "x", "1": "y"}}
+        assert isinstance(result["a"], OverflowDict)
+
+    def test_cumulative_comma_groups_become_overflow_dict_without_raising(self) -> None:
+        result = decode("a=1,2,3&a=4,5,6", DecodeOptions(comma=True, list_limit=5))
+
+        assert result == {"a": {"0": "1", "1": "2", "2": "3", "3": "4", "4": "5", "5": "6"}}
+        assert isinstance(result["a"], OverflowDict)
+
+    @pytest.mark.parametrize(
+        "query, expected",
+        [
+            pytest.param(
+                "a=1,2&a[]=x",
+                {"a": {"0": ["1", "x"], "1": "2"}},
+                id="overflow-then-bracket",
+            ),
+            pytest.param(
+                "a[]=x&a=1,2",
+                {"a": {"0": ["x", "1"], "1": "2"}},
+                id="bracket-then-overflow",
+            ),
+            pytest.param(
+                "a=x&a=x&a[]=x",
+                {"a": {"0": ["x", "x"], "1": "x"}},
+                id="duplicates-then-bracket",
+            ),
+        ],
+    )
+    def test_overflow_values_merge_with_bracket_assignments(self, query: str, expected: t.Mapping[str, t.Any]) -> None:
+        result = decode(query, DecodeOptions(comma=True, list_limit=1))
+
+        assert result == expected
+        assert isinstance(result["a"], OverflowDict)
+
+    def test_mapping_values_merge_with_later_bracket_assignment(self) -> None:
+        result = decode("a=1,2&a[2]=z&a[]=x", DecodeOptions(comma=True, list_limit=2))
+
+        assert result == {"a": {"0": ["1", "x"], "1": "2", "2": "z"}}
+
+    def test_raises_before_decoding_oversized_flat_comma_value(self) -> None:
+        decoded_values: t.List[str] = []
+
+        def decoder(value: t.Optional[str], charset: t.Optional[Charset], kind: DecodeKind) -> t.Optional[str]:
+            if kind == DecodeKind.VALUE and value is not None:
+                decoded_values.append(value)
+            return DecodeUtils.decode(value, charset)
+
+        options = DecodeOptions(
+            comma=True,
+            list_limit=1,
+            raise_on_limit_exceeded=True,
+            decoder=decoder,
+        )
+
+        with pytest.raises(ValueError, match="List limit exceeded"):
+            decode("a=1,2", options)
+
+        assert decoded_values == []
+
+    def test_raises_before_decoding_oversized_nested_flat_comma_value(self) -> None:
+        with pytest.raises(ValueError, match="List limit exceeded"):
+            decode(
+                "a[b]=1,2,3,4,5,6",
+                DecodeOptions(comma=True, list_limit=5, raise_on_limit_exceeded=True),
+            )
+
+    def test_keeps_flat_comma_values_at_or_below_limit(self) -> None:
+        options = DecodeOptions(comma=True, list_limit=5, raise_on_limit_exceeded=True)
+
+        assert decode("a=1,2,3&a=4", options) == {"a": ["1", "2", "3", "4"]}
+        assert decode("a=1,2,3,4,5", options) == {"a": ["1", "2", "3", "4", "5"]}
+
+    def test_counts_bracketed_comma_groups_as_outer_elements(self) -> None:
+        options = DecodeOptions(comma=True, list_limit=5, raise_on_limit_exceeded=True)
+
+        assert decode("a[]=1,2,3&a[]=4,5,6", options) == {"a": [["1", "2", "3"], ["4", "5", "6"]]}
+        assert decode("a[]=1,2,3,4,5,6", options) == {"a": [["1", "2", "3", "4", "5", "6"]]}
+
+        with pytest.raises(ValueError, match="List limit exceeded"):
+            decode(
+                "a[]=1,2,3",
+                DecodeOptions(comma=True, list_limit=0, raise_on_limit_exceeded=True),
+            )
+
     def test_current_list_length_calculation(self) -> None:
         # Test for line 166 in decode.py
         # This test creates a scenario where the current list length is calculated
@@ -1602,6 +1775,11 @@ class TestListLimit:
                 DecodeOptions(comma=True, list_limit=3, parse_lists=False),
                 {"foo": {"0": [["1", "2", "3", "4"]]}},
                 id="parse-lists-disabled",
+            ),
+            pytest.param(
+                DecodeOptions(comma=True, list_limit=0, parse_lists=False),
+                {"foo": {"0": ["1", "2", "3", "4"]}},
+                id="parse-lists-disabled-over-outer-list-limit",
             ),
         ],
     )
@@ -1847,7 +2025,12 @@ class TestDecodeMixedBypassParity:
         [
             pytest.param("a=1&a[b]=2", None, {"a": ["1", {"b": "2"}]}, id="flat-before-structured"),
             pytest.param("a[b]=2&a=1", None, {"a": [{"b": "2"}, "1"]}, id="structured-before-flat"),
-            pytest.param("0=y&[]=x", None, {"0": "x"}, id="flat-zero-collides-leading-bracket-root"),
+            pytest.param(
+                "0=y&[]=x",
+                None,
+                {"0": ["y", "x"]},
+                id="flat-zero-combines-leading-bracket-root",
+            ),
             pytest.param("[]=x&0=y", None, {"0": ["x", "y"]}, id="leading-bracket-root-collides-flat-zero"),
             pytest.param(
                 "a[b]=1&002=2",

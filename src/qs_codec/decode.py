@@ -63,7 +63,8 @@ def decode(
     Notes
     -----
     - Empty/falsey ``value`` returns an empty dict.
-    - When the *number of top-level tokens* exceeds ``list_limit`` and ``parse_lists`` is enabled, the parser temporarily **disables list parsing** for this invocation to avoid quadratic work. This mirrors the behavior of other ports and keeps large flat query strings efficient.
+    - ``parse_lists`` is honored directly throughout decoding. ``list_limit`` is enforced while constructing and
+      merging lists without changing the configured list-parsing mode.
     """
     obj: t.Dict[str, t.Any] = {}
 
@@ -77,17 +78,6 @@ def decode(
     decode_from_string: bool = isinstance(value, str)
     str_value: str = t.cast(str, value) if decode_from_string else ""
     mapping_value: t.Mapping[str, t.Any] = t.cast(t.Mapping[str, t.Any], value) if not decode_from_string else {}
-
-    parse_lists_effective: bool = opts.parse_lists
-    if decode_from_string and parse_lists_effective:
-        # Keep caller options immutable: compute a local parse_lists switch only for this invocation.
-        query = str_value.replace("?", "", 1) if opts.ignore_query_prefix else str_value
-        if isinstance(opts.delimiter, re.Pattern):
-            parts_count = len(re.split(opts.delimiter, query)) if query else 0
-        else:
-            parts_count = (query.count(opts.delimiter) + 1) if query else 0
-        if 0 < opts.list_limit < parts_count:
-            parse_lists_effective = False
 
     if decode_from_string:
         temp_obj: t.Optional[t.Dict[str, t.Any]] = _parse_query_string_values(str_value, opts)
@@ -118,7 +108,7 @@ def decode(
                 obj[key] = val
             continue
 
-        new_obj: t.Any = _parse_keys(key, val, opts, decode_from_string, parse_lists=parse_lists_effective)
+        new_obj: t.Any = _parse_keys(key, val, opts, decode_from_string, parse_lists=opts.parse_lists)
 
         if not obj and isinstance(new_obj, dict):
             obj = new_obj
@@ -253,10 +243,17 @@ def _parse_array_value(
         Either the original value or a list of values, without decoding (that happens later).
     """
     if isinstance(value, str) and value and options.comma and "," in value:
+        if enforce_comma_limit and options.raise_on_limit_exceeded:
+            comma_count = 0
+            comma_index = value.find(",")
+            while comma_index >= 0:
+                comma_count += 1
+                if comma_count >= options.list_limit:
+                    raise ValueError(_list_limit_exceeded_message(options.list_limit))
+                comma_index = value.find(",", comma_index + 1)
+
         split_val: t.List[str] = value.split(",")
         if enforce_comma_limit and len(split_val) > options.list_limit:
-            if options.raise_on_limit_exceeded:
-                raise ValueError(_list_limit_exceeded_message(options.list_limit))
             return CommaOverflowDict({str(i): item for i, item in enumerate(split_val)})
         return split_val
 
@@ -384,7 +381,7 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
                 part[pos + 1 :],
                 options,
                 len(obj[key]) if key in obj and isinstance(obj[key], (list, tuple)) else 0,
-                enforce_comma_limit=False,
+                enforce_comma_limit=not bracket_array_assignment,
             )
             list_limit_exceeded = isinstance(parsed_value, (list, tuple)) and len(parsed_value) > options.list_limit
             if isinstance(parsed_value, (list, tuple)):

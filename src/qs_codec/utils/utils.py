@@ -54,6 +54,16 @@ def _copy_overflow_append_value(value: t.Any) -> t.Any:
     return value
 
 
+def _enforce_list_limit(values: t.List[t.Any], options: DecodeOptions) -> t.Union[t.List[t.Any], OverflowDict]:
+    """Return list values within the configured limit, or raise/degrade on overflow."""
+    if not values or len(values) <= options.list_limit:
+        return values
+    if options.raise_on_limit_exceeded:
+        limit = options.list_limit
+        raise ValueError(f"List limit exceeded: Only {limit} element{'' if limit == 1 else 's'} allowed in a list.")
+    return OverflowDict({str(i): value for i, value in enumerate(values) if not isinstance(value, Undefined)})
+
+
 @dataclass
 class _MergeFrame:
     target: t.Any
@@ -66,7 +76,6 @@ class _MergeFrame:
     source_items: t.List[t.Tuple[t.Any, t.Any]] = field(default_factory=list)
     entry_index: int = 0
     pending_key: t.Any = None
-    list_target: t.Dict[int, t.Any] = field(default_factory=dict)
     list_source: t.Dict[int, t.Any] = field(default_factory=dict)
     list_max_len: int = 0
     list_index: int = 0
@@ -97,18 +106,20 @@ class Utils:
         ------------------
         - If `source` is ``None``: return `target` unchanged.
         - If `source` is **not** a mapping:
-          * `target` is a sequence → append/extend, skipping :class:`Undefined`.
-          * `target` is a mapping → write items from the sequence under string indices ("0", "1", …).
-          * otherwise → return ``[target, source]`` (skipping :class:`Undefined` where applicable).
+          * `target` is a sequence → merge sequence positions or append a scalar, retaining sparse holes as needed.
+          * `target` is a mapping → convert sequence positions to string keys ("0", "1", …) and deep-merge them.
+          * otherwise → combine the values, retaining sequence holes until final compaction.
         - If `source` **is** a mapping:
-          * `target` is not a mapping → if `target` is a sequence, coerce it to an index-keyed dict and merge; otherwise, concatenate as a list ``[target, source]`` while skipping :class:`Undefined`.
+          * `target` is not a mapping → if `target` is a sequence, coerce it to an index-keyed dict and merge;
+            otherwise, concatenate as a list ``[target, source]`` while skipping :class:`Undefined`.
           * `target` is a mapping → deep-merge keys; where keys collide, merge values recursively.
 
         List handling
         -------------
-        When a list that already contains :class:`Undefined` must receive new values and ``options.parse_lists`` is ``False``,
-        the list is promoted to a dict with string indices so positions can be addressed deterministically. Otherwise,
-        sentinels are simply removed as we go.
+        :class:`Undefined` entries model sparse-array holes. They may remain in intermediate lists so indices and
+        ``list_limit`` checks match JavaScript array-length semantics. When ``options.parse_lists`` is ``False``, sparse
+        lists are promoted to dicts with string indices. Public decoding calls :meth:`compact` before returning, which
+        removes any retained placeholders; direct callers of :meth:`merge` may observe them in intermediate list results.
 
         Parameters
         ----------
@@ -147,7 +158,7 @@ class Utils:
                     if isinstance(current_target, (list, tuple)):
                         # If the target sequence contains `Undefined`, we may need to promote it
                         # to a dict keyed by indices for stable writes.
-                        if any(isinstance(el, Undefined) for el in current_target):
+                        if not frame.options.parse_lists and any(isinstance(el, Undefined) for el in current_target):
                             target_by_index: t.Dict[int, t.Any] = dict(enumerate(current_target))
 
                             if isinstance(current_source, (list, tuple)):
@@ -158,9 +169,7 @@ class Utils:
                                 target_by_index[len(target_by_index)] = current_source
 
                             # When list parsing is disabled, collapse to a string-keyed dict and drop sentinels.
-                            if not frame.options.parse_lists and any(
-                                isinstance(value, Undefined) for value in target_by_index.values()
-                            ):
+                            if any(isinstance(value, Undefined) for value in target_by_index.values()):
                                 result: t.Any = {
                                     str(i): target_by_index[i]
                                     for i in target_by_index
@@ -169,28 +178,24 @@ class Utils:
                             else:
                                 result = [el for el in target_by_index.values() if not isinstance(el, Undefined)]
                             stack.pop()
-                            last_result = result
+                            last_result = (
+                                _enforce_list_limit(result, frame.options) if isinstance(result, list) else result
+                            )
                             continue
 
                         if isinstance(current_source, (list, tuple)):
-                            if all(isinstance(el, (ABCMapping, Undefined)) for el in current_target) and all(
-                                isinstance(el, (ABCMapping, Undefined)) for el in current_source
-                            ):
-                                frame.list_target = dict(enumerate(current_target))
-                                frame.list_source = dict(enumerate(current_source))
-                                frame.list_max_len = max(len(frame.list_target), len(frame.list_source))
-                                frame.list_index = 0
-                                frame.list_merged = []
-                                frame.phase = "list_iter"
-                                continue
+                            frame.list_source = dict(enumerate(current_source))
+                            frame.list_max_len = len(current_source)
+                            frame.list_index = 0
+                            frame.list_merged = list(current_target)
+                            frame.phase = "list_iter"
+                            continue
 
-                            mutable_target: t.List[t.Any] = (
-                                list(current_target) if isinstance(current_target, tuple) else current_target
-                            )
-                            # Mutates in-place by design for list targets to preserve merge performance.
-                            mutable_target.extend(el for el in current_source if not isinstance(el, Undefined))
+                        candidate = [*current_target, current_source]
+                        enforced = _enforce_list_limit(candidate, frame.options)
+                        if isinstance(enforced, OverflowDict):
                             stack.pop()
-                            last_result = mutable_target
+                            last_result = enforced
                             continue
 
                         mutable_target = list(current_target) if isinstance(current_target, tuple) else current_target
@@ -200,19 +205,20 @@ class Utils:
                         continue
 
                     if isinstance(current_target, ABCMapping):
+                        if isinstance(current_source, (list, tuple)):
+                            if Utils.is_overflow(current_target):
+                                overflow_target = t.cast(OverflowDict, current_target)
+                                frame.target = overflow_target.copy()
+                            else:
+                                frame.target = dict(current_target)
+                            frame.source = {
+                                str(i): item for i, item in enumerate(current_source) if not isinstance(item, Undefined)
+                            }
+                            continue
+
                         if Utils.is_overflow(current_target):
                             stack.pop()
                             last_result = Utils.combine(current_target, current_source, frame.options)
-                            continue
-
-                        # Target is a mapping but source is a sequence — coerce indices to string keys.
-                        if isinstance(current_source, (list, tuple)):
-                            new_target = dict(current_target)
-                            for i, item in enumerate(current_source):
-                                if not isinstance(item, Undefined):
-                                    new_target[str(i)] = item
-                            stack.pop()
-                            last_result = new_target
                             continue
 
                         if isinstance(current_source, Undefined) or current_source == "":
@@ -238,10 +244,10 @@ class Utils:
 
                     if not isinstance(current_target, (list, tuple)) and isinstance(current_source, (list, tuple)):
                         stack.pop()
-                        last_result = [
-                            current_target,
-                            *(el for el in current_source if not isinstance(el, Undefined)),
-                        ]
+                        last_result = _enforce_list_limit(
+                            [current_target, *current_source],
+                            frame.options,
+                        )
                         continue
 
                     stack.pop()
@@ -252,13 +258,12 @@ class Utils:
                 # concatenate as a list, then proceed.
                 if current_target is None or not isinstance(current_target, ABCMapping):
                     if isinstance(current_target, (list, tuple)):
-                        stack.pop()
-                        last_result = {
-                            **{
-                                str(i): item for i, item in enumerate(current_target) if not isinstance(item, Undefined)
-                            },
-                            **current_source,
+                        target_values = {
+                            str(i): item for i, item in enumerate(current_target) if not isinstance(item, Undefined)
                         }
+                        frame.target = (
+                            OverflowDict(target_values) if Utils.is_overflow(current_source) else target_values
+                        )
                         continue
 
                     if Utils.is_overflow(current_source):
@@ -292,7 +297,7 @@ class Utils:
                     if not isinstance(current_source, Undefined):
                         result_list.append(current_source)
                     stack.pop()
-                    last_result = result_list
+                    last_result = _enforce_list_limit(result_list, frame.options)
                     continue
 
                 # Prepare a mutable target we can merge into; reuse dict targets for performance.
@@ -347,39 +352,37 @@ class Utils:
             if frame.phase == "list_iter":
                 if frame.list_index >= frame.list_max_len:
                     stack.pop()
-                    last_result = frame.list_merged
+                    enforced = _enforce_list_limit(frame.list_merged, frame.options)
+                    if isinstance(frame.target, list) and isinstance(enforced, list):
+                        frame.target[:] = enforced
+                        last_result = frame.target
+                    else:
+                        last_result = enforced
                     continue
 
                 idx = frame.list_index
                 frame.list_index += 1
-                has_target = idx in frame.list_target
-                has_source = idx in frame.list_source
-
-                if has_target and has_source:
-                    target_value = frame.list_target[idx]
-                    source_value = frame.list_source[idx]
-
-                    if isinstance(source_value, Undefined):
-                        if not isinstance(target_value, Undefined):
-                            frame.list_merged.append(target_value)
-                        continue
-
-                    frame.phase = "list_wait_child"
-                    stack.append(_MergeFrame(target=target_value, source=source_value, options=frame.options))
+                source_value = frame.list_source[idx]
+                if isinstance(source_value, Undefined):
                     continue
 
+                has_target = idx < len(frame.list_merged) and not isinstance(frame.list_merged[idx], Undefined)
                 if has_target:
-                    target_value = frame.list_target[idx]
-                    if not isinstance(target_value, Undefined):
-                        frame.list_merged.append(target_value)
-                elif has_source:
-                    source_value = frame.list_source[idx]
-                    if not isinstance(source_value, Undefined):
+                    target_value = frame.list_merged[idx]
+                    if isinstance(target_value, ABCMapping) and isinstance(source_value, ABCMapping):
+                        frame.phase = "list_wait_child"
+                        stack.append(_MergeFrame(target=target_value, source=source_value, options=frame.options))
+                    else:
                         frame.list_merged.append(source_value)
+                    continue
+
+                while len(frame.list_merged) <= idx:
+                    frame.list_merged.append(Undefined())
+                frame.list_merged[idx] = source_value
                 continue
 
             # frame.phase == "list_wait_child"
-            frame.list_merged.append(last_result)
+            frame.list_merged[frame.list_index - 1] = last_result
             frame.phase = "list_iter"
 
         return last_result
@@ -548,12 +551,15 @@ class Utils:
         ``list_limit`` from :class:`DecodeOptions` is used.
         A negative ``list_limit`` is treated as "overflow immediately": any
         non-empty combined result will be converted to :class:`OverflowDict`.
-        This helper never raises an exception when the limit is exceeded; even
-        if :class:`DecodeOptions` has ``raise_on_limit_exceeded`` set to
-        ``True``, ``combine`` will still handle overflow only by converting the
-        list to :class:`OverflowDict`.
+        When :attr:`DecodeOptions.raise_on_limit_exceeded` is ``True``, an
+        over-limit result raises ``ValueError`` instead of being converted.
         """
         if Utils.is_overflow(a):
+            if options is not None and options.raise_on_limit_exceeded:
+                limit = options.list_limit
+                raise ValueError(
+                    f"List limit exceeded: Only {limit} element{'' if limit == 1 else 's'} allowed in a list."
+                )
             # a is already an OverflowDict. Append b as one value at the next numeric index.
             orig_a: OverflowDict = t.cast(OverflowDict, a)
             a_copy: OverflowDict = orig_a.__class__({k: v for k, v in orig_a.items() if not isinstance(v, Undefined)})
@@ -589,14 +595,7 @@ class Utils:
 
         res: t.List[t.Any] = [*list_a, *list_b]
 
-        list_limit: int = options.list_limit if options else DecodeOptions().list_limit
-        if list_limit < 0:
-            return OverflowDict({str(i): x for i, x in enumerate(res)}) if res else res
-        if len(res) > list_limit:
-            # Convert to OverflowDict
-            return OverflowDict({str(i): x for i, x in enumerate(res)})
-
-        return res
+        return _enforce_list_limit(res, options if options is not None else DecodeOptions())
 
     @staticmethod
     def apply(
