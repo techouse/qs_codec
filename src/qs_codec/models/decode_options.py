@@ -47,7 +47,11 @@ class DecodeOptions:
     limit, index ``19`` is the last index that can create a list; index ``20`` already
     overflows to a ``dict``.
 
-    This limit also applies to decoded list growth from comma-split values when ``comma=True``.
+    This limit also applies cumulatively to list growth from duplicate keys, mixed list
+    notation, and comma-split values when ``comma=True``. A result exactly at the limit remains
+    a list. Above the limit, decoding either uses a numeric-keyed mapping or raises ``ValueError``
+    when ``raise_on_limit_exceeded=True``.
+
     For bracket-array assignments such as ``foo[]=1,2,3``, the comma-split payload is wrapped
     as a single outer list element, so the inner payload may contain more values than
     ``list_limit`` while still respecting the outer container limit.
@@ -122,11 +126,11 @@ class DecodeOptions:
     """Raise instead of degrading gracefully when limits are exceeded.
 
     When ``True``, the decoder raises:
-    - a ``DecodeError`` for parameter and list limit violations; and
+    - a ``ValueError`` for parameter and list limit violations; and
     - an ``IndexError`` when nesting deeper than ``depth`` **and** ``strict_depth=True``.
 
     When ``False`` (default), the decoder degrades gracefully: it slices the parameter list
-    at ``parameter_limit``, stops adding items beyond ``list_limit``, and—if
+    at ``parameter_limit``, represents list overflows as numeric-keyed mappings, and—if
     ``strict_depth=True``—stops descending once ``depth`` is reached without raising.
     """
 

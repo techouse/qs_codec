@@ -184,8 +184,11 @@ Use these options with `qs.decode(query, qs.DecodeOptions(...))`:
   list; use `qs.Duplicates.FIRST` or `qs.Duplicates.LAST` to collapse.
 - Bracket lists: enabled by default; set `parse_lists=False` to treat list
   syntax as dictionary keys.
-- Large or sparse list indices: default `list_limit` is `20`; indices above the
-  limit become dictionary keys.
+- List limits: default `list_limit` is `20`; numeric indices at or above the
+  limit become dictionary keys. The limit also applies cumulatively to lists
+  grown by duplicate keys, mixed notation, or comma-separated values. Exact-limit
+  results remain lists; soft overflow becomes a numeric-keyed dictionary, while
+  `raise_on_limit_exceeded=True` raises `ValueError`.
 - Comma-separated values such as `a=b,c`: `comma=True`.
 - Tokens without `=` as `None`: `strict_null_handling=True`.
 - Custom delimiters: `delimiter=";"` or `delimiter=re.compile(r"[;,]")`.
@@ -279,7 +282,9 @@ Warn or adjust before giving code for these cases:
   silently truncating.
 - `list_limit` has nuanced list-construction behavior; negative values disable
   numeric-index list parsing, and `raise_on_limit_exceeded=True` turns list
-  limit violations into `ValueError`.
+  limit violations into `ValueError`. With `comma=True`, a flat comma value is
+  checked before value decoding, while a comma group assigned through `[]=`
+  counts as one outer list element.
 - Built-in charset handling supports only `qs.Charset.UTF8` and
   `qs.Charset.LATIN1`; other encodings require a custom `encoder` or `decoder`.
 - `EncodeOptions.encoder` is ignored when `encode=False`.

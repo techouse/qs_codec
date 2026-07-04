@@ -427,6 +427,25 @@ option:
        qs.DecodeOptions(list_limit=0),
    ) == {'a': {'1': 'b'}}
 
+The same limit is enforced cumulatively when duplicate keys, mixed list
+notation, or comma-separated values grow a list. A result exactly at the limit
+remains a ``list``. Above the limit, decoding uses a numeric-keyed ``dict`` by
+default, or raises ``ValueError`` when
+:py:attr:`raise_on_limit_exceeded <qs_codec.models.decode_options.DecodeOptions.raise_on_limit_exceeded>` is ``True``.
+
+.. code:: python
+
+   import qs_codec as qs
+
+   assert qs.decode(
+       'a=x&a=y',
+       qs.DecodeOptions(list_limit=1),
+   ) == {'a': {'0': 'x', '1': 'y'}}
+
+With ``comma=True``, a flat comma value is subject to the same limit. A value
+assigned through ``[]=`` counts as one outer list element, so its inner
+comma-separated group may contain more values than ``list_limit``.
+
 To disable ``list`` parsing entirely, set :py:attr:`parse_lists <qs_codec.models.decode_options.DecodeOptions.parse_lists>`
 to ``False``.
 
