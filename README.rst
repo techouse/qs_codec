@@ -25,7 +25,7 @@ Highlights
 - Pluggable hooks: custom ``encoder``/``decoder`` callables; options to sort keys, filter output, and control percent-encoding (keys-only, values-only).
 - Nulls & empties: ``strict_null_handling`` and ``skip_nulls``; support for empty lists/arrays when desired.
 - Dates: ``serialize_date`` for ISO 8601 or custom (e.g., UNIX timestamp).
-- Safety limits: configurable decode depth and encode max depth, parameter limit, and list index limit; optional strict-depth errors; duplicate-key strategies (combine/first/last).
+- Safety limits: configurable decode depth and encode max depth, parameter limit, and list element limit; optional strict-depth errors; duplicate-key strategies (combine/first/last).
 - Extras: numeric entity decoding (e.g. ``&#9786;`` → ☺), alternate delimiters/regex, and query-prefix helpers.
 
 Compatibility
@@ -497,12 +497,11 @@ Note that an empty ``str``\ing is also a value, and will be preserved:
 
    assert qs.decode('a[0]=b&a[1]=&a[2]=c') == {'a': ['b', '', 'c']}
 
-`decode <https://techouse.github.io/qs_codec/qs_codec.html#module-qs_codec.decode>`__ will also limit specifying indices
-in a ``list`` to a maximum index of ``20``. Any ``list`` members with an
-index of greater than ``20`` will instead be converted to a ``dict`` with
-the index as the key. This is needed to handle cases when someone sent,
-for example, ``a[999999999]`` and it will take significant time to iterate
-over this huge ``list``.
+`decode <https://techouse.github.io/qs_codec/qs_codec.html#module-qs_codec.decode>`__ also limits each ``list`` to a
+maximum element count of ``20``. Index ``19`` is the last index that can create
+a default ``list``; index ``20`` and higher are converted to a ``dict`` with
+the index as the key. This prevents inputs such as ``a[999999999]`` from
+creating massive sparse lists.
 
 .. code:: python
 
@@ -521,6 +520,24 @@ option:
        'a[1]=b',
        qs.DecodeOptions(list_limit=0),
    ) == {'a': {'1': 'b'}}
+
+The same limit is enforced cumulatively when duplicate keys, mixed list
+notation, or comma-separated values grow a list. A result exactly at the limit
+remains a ``list``. Above the limit, decoding uses a numeric-keyed ``dict`` by
+default, or raises ``ValueError`` when ``raise_on_limit_exceeded=True``.
+
+.. code:: python
+
+   import qs_codec as qs
+
+   assert qs.decode(
+       'a=x&a=y',
+       qs.DecodeOptions(list_limit=1),
+   ) == {'a': {'0': 'x', '1': 'y'}}
+
+With ``comma=True``, a flat comma value is subject to the same limit. A value
+assigned through ``[]=`` counts as one outer list element, so its inner
+comma-separated group may contain more values than ``list_limit``.
 
 To disable ``list`` parsing entirely, set `parse_lists <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.parse_lists>`__
 to ``False``.
