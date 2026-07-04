@@ -1,4 +1,4 @@
-## 1.6.1-dev
+## 1.6.1
 
 * [FIX] match Node `qs` 6.15.3 cumulative list-limit enforcement across duplicate-key combinations and mixed list merges
 * [FIX] reject oversized flat comma values before allocating their split lists or decoding their values when `raise_on_limit_exceeded` is enabled
