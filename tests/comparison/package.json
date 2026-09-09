@@ -6,6 +6,6 @@
   "license": "BSD-3-Clause",
   "packageManager": "pnpm@11.9.0",
   "dependencies": {
-    "qs": "^6.15.3"
+    "qs": "^6.16.0"
   }
 }
