@@ -1,3 +1,9 @@
+## Unreleased
+
+* [FIX] match Node `qs` 6.16.0 for dotted root keys and dates returned by callable encoding filters
+* [FIX] allow `max_depth=0` for root scalar encoding while rejecting nested children
+* [FIX] enforce raising comma-group limits inside bracket assignments and spread overflow duplicate values one level
+
 ## 1.6.1
 
 * [FIX] match Node `qs` 6.15.3 cumulative list-limit enforcement across duplicate-key combinations and mixed list merges
