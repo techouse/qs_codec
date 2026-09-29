@@ -146,8 +146,8 @@ class EncodeOptions:
         if not hasattr(self, "_encoder") or self._encoder is None:
             self._encoder = EncodeUtils.encode
         if self.max_depth is not None:
-            if not isinstance(self.max_depth, int) or isinstance(self.max_depth, bool) or self.max_depth <= 0:
-                raise ValueError("max_depth must be a positive integer or None")
+            if not isinstance(self.max_depth, int) or isinstance(self.max_depth, bool) or self.max_depth < 0:
+                raise ValueError("max_depth must be a non-negative integer or None")
         # Default `encode_dot_in_keys` first, then mirror into `allow_dots` when unspecified.
         if self.encode_dot_in_keys is None:
             self.encode_dot_in_keys = False

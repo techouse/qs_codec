@@ -1258,13 +1258,18 @@ class TestUtils:
         result = Utils.combine(a, b)
         assert result == ["start", "x", "y"]
 
-    def test_combine_overflow_dict_appends_list_as_single_value(self) -> None:
+    def test_combine_overflow_dict_appends_list_elements_without_mutating_source(self) -> None:
         a = OverflowDict({"0": "x"})
-        b = ["y", Undefined(), "z"]
-        result = Utils.combine(a, b)
+        result = Utils.combine(a, ["y", Undefined(), "z"])
         assert isinstance(result, OverflowDict)
-        assert result == {"0": "x", "1": ["y", Undefined(), "z"]}
-        assert result["1"] is not b
+        assert result == {"0": "x", "1": "y", "2": "z"}
+        assert a == {"0": "x"}
+
+    def test_combine_overflow_dict_keeps_nested_group_as_one_value(self) -> None:
+        group = ["y", "z"]
+        result = Utils.combine(OverflowDict({"0": "x"}), [group])
+        assert result == {"0": "x", "1": ["y", "z"]}
+        assert result["1"] is not group
 
     def test_combine_skips_undefined_in_list_flattening(self) -> None:
         a = ["x", Undefined()]

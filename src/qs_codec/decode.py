@@ -227,15 +227,14 @@ def _parse_array_value(
     Behavior
     --------
     - If ``comma=True`` and ``value`` is a string that contains commas, split into a list.
-      When ``enforce_comma_limit`` is ``True``, over-limit comma values raise or degrade to an ``OverflowDict`` here.
-      Raw query-string parsing and mapping key paths ending in ``[]`` pass ``False`` so the caller can account for
-      bracket-array key context first.
+      With ``raise_on_limit_exceeded=True``, an over-limit comma group raises before splitting or decoding,
+      including values assigned to ``[]``. Otherwise ``enforce_comma_limit`` controls conversion of an
+      over-limit group to ``CommaOverflowDict``; bracket assignments defer conversion until after wrapping.
     - Otherwise, enforce the per-list length limit by comparing ``current_list_length`` to ``options.list_limit``.
       When ``raise_on_limit_exceeded=True``, violations raise ``ValueError``.
     - When ``list_limit`` is negative, any non-empty comma split exceeds the limit: raising mode raises,
-      while non-raising mode degrades to an ``OverflowDict``/``CommaOverflowDict``. Raw query-string
-      parsing temporarily returns the split list when ``enforce_comma_limit=False`` so the caller can
-      apply bracket-array wrapping before the final limit check.
+      while non-raising mode degrades to an ``OverflowDict``/``CommaOverflowDict``. Bracket assignments
+      temporarily return the split list so the caller can apply wrapping before the final limit check.
 
     Returns
     -------
@@ -243,7 +242,7 @@ def _parse_array_value(
         Either the original value or a list of values, without decoding (that happens later).
     """
     if isinstance(value, str) and value and options.comma and "," in value:
-        if enforce_comma_limit and options.raise_on_limit_exceeded:
+        if options.raise_on_limit_exceeded:
             comma_count = 0
             comma_index = value.find(",")
             while comma_index >= 0:
@@ -401,7 +400,7 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
             list_limit_exceeded = len(val) > options.list_limit
         if list_limit_exceeded and isinstance(val, (list, tuple)):
             if options.raise_on_limit_exceeded:
-                raise ValueError(_list_limit_exceeded_message(options.list_limit))
+                raise ValueError(_list_limit_exceeded_message(options.list_limit))  # pragma: no cover - pre-split guard
             val = CommaOverflowDict({str(i): item for i, item in enumerate(val)})
 
         existing: bool = key in obj
@@ -502,7 +501,7 @@ def _parse_object(
         leaf = [leaf]
         if len(leaf) > options.list_limit:
             if options.raise_on_limit_exceeded:
-                raise ValueError(_list_limit_exceeded_message(options.list_limit))
+                raise ValueError(_list_limit_exceeded_message(options.list_limit))  # pragma: no cover - pre-split guard
             leaf = CommaOverflowDict({str(i): item for i, item in enumerate(leaf)})
 
     # Walk the chain from the leaf to the root, building nested containers on the way out.

@@ -879,12 +879,6 @@ class TestDecode:
             ),
             pytest.param(
                 "foo[]=1,2,3,4",
-                DecodeOptions(comma=True, list_limit=3, raise_on_limit_exceeded=True),
-                {"foo": [["1", "2", "3", "4"]]},
-                id="bracket-list-comma-value-does-not-raise-when-over-limit",
-            ),
-            pytest.param(
-                "foo[]=1,2,3,4",
                 DecodeOptions(comma=True, list_limit=0),
                 {"foo": {"0": ["1", "2", "3", "4"]}},
                 id="bracket-list-comma-value-over-zero-limit-becomes-dict",
@@ -1607,11 +1601,50 @@ class TestListLimit:
         assert decode("a=1,2,3&a=4", options) == {"a": ["1", "2", "3", "4"]}
         assert decode("a=1,2,3,4,5", options) == {"a": ["1", "2", "3", "4", "5"]}
 
+    @pytest.mark.parametrize(
+        "query",
+        ["a[]=1,2,3,4", {"a[]": "1,2,3,4"}, "a[b][]=1,2,3,4", {"a[b][]": "1,2,3,4"}],
+    )
+    def test_bracket_comma_group_raises_at_inner_limit(self, query: t.Union[str, t.Mapping[str, str]]) -> None:
+        with pytest.raises(ValueError, match="List limit exceeded"):
+            decode(query, DecodeOptions(comma=True, list_limit=3, raise_on_limit_exceeded=True))
+
+    @pytest.mark.parametrize("query", ["a[]=1,2,3", {"a[]": "1,2,3"}])
+    def test_bracket_comma_group_at_limit_remains_nested(self, query: t.Union[str, t.Mapping[str, str]]) -> None:
+        assert decode(query, DecodeOptions(comma=True, list_limit=3, raise_on_limit_exceeded=True)) == {
+            "a": [["1", "2", "3"]]
+        }
+
+    def test_non_raising_oversized_bracket_comma_group_remains_nested(self) -> None:
+        assert decode("a[]=1,2,3,4", DecodeOptions(comma=True, list_limit=3)) == {"a": [["1", "2", "3", "4"]]}
+
+    def test_bracket_comma_limit_precedes_value_decoding(self) -> None:
+        decoded_values: t.List[str] = []
+
+        def decoder(value: t.Optional[str], charset: t.Optional[Charset], kind: DecodeKind) -> t.Optional[str]:
+            if kind == DecodeKind.VALUE and value is not None:
+                decoded_values.append(value)
+            return DecodeUtils.decode(value, charset)
+
+        with pytest.raises(ValueError, match="List limit exceeded"):
+            decode(
+                "a[]=1,2,3,4",
+                DecodeOptions(comma=True, list_limit=3, raise_on_limit_exceeded=True, decoder=decoder),
+            )
+        assert decoded_values == []
+
+    def test_repeated_bracket_comma_groups_enforce_outer_limit(self) -> None:
+        options = DecodeOptions(comma=True, list_limit=2, raise_on_limit_exceeded=True)
+        assert decode("a[]=1,2&a[]=3,4", options) == {"a": [["1", "2"], ["3", "4"]]}
+        with pytest.raises(ValueError, match="List limit exceeded"):
+            decode("a[]=1,2&a[]=3,4&a[]=5,6", options)
+
     def test_counts_bracketed_comma_groups_as_outer_elements(self) -> None:
         options = DecodeOptions(comma=True, list_limit=5, raise_on_limit_exceeded=True)
 
         assert decode("a[]=1,2,3&a[]=4,5,6", options) == {"a": [["1", "2", "3"], ["4", "5", "6"]]}
-        assert decode("a[]=1,2,3,4,5,6", options) == {"a": [["1", "2", "3", "4", "5", "6"]]}
+        with pytest.raises(ValueError, match="List limit exceeded"):
+            decode("a[]=1,2,3,4,5,6", options)
 
         with pytest.raises(ValueError, match="List limit exceeded"):
             decode(
@@ -1762,11 +1795,6 @@ class TestListLimit:
                 id="over-inner-list-limit",
             ),
             pytest.param(
-                DecodeOptions(comma=True, list_limit=3, raise_on_limit_exceeded=True),
-                {"foo": [["1", "2", "3", "4"]]},
-                id="over-inner-list-limit-raise-enabled",
-            ),
-            pytest.param(
                 DecodeOptions(comma=True, list_limit=0),
                 {"foo": {"0": ["1", "2", "3", "4"]}},
                 id="over-outer-list-limit",
@@ -1815,7 +1843,7 @@ class TestListLimit:
             pytest.param(
                 "a=1,2,3,4&a=5,6",
                 DecodeOptions(comma=True, list_limit=3),
-                {"a": {"0": "1", "1": "2", "2": "3", "3": "4", "4": ["5", "6"]}},
+                {"a": {"0": "1", "1": "2", "2": "3", "3": "4", "4": "5", "5": "6"}},
                 id="overflow-comma-list-then-in-limit-comma-list",
             ),
             pytest.param(
@@ -1835,12 +1863,18 @@ class TestListLimit:
             pytest.param(
                 "a[]=1&a[]=2&a[]=3,4",
                 DecodeOptions(comma=True, list_limit=1),
-                {"a": {"0": "1", "1": "2", "2": [["3", "4"]]}},
+                {"a": {"0": "1", "1": "2", "2": ["3", "4"]}},
                 id="bracket-overflow-then-comma-list",
+            ),
+            pytest.param(
+                "a[]=1&a[]=2&a[]=3,4&a[]=5,6",
+                DecodeOptions(comma=True, list_limit=1),
+                {"a": {"0": "1", "1": "2", "2": ["3", "4"], "3": ["5", "6"]}},
+                id="bracket-overflow-then-two-comma-groups",
             ),
         ],
     )
-    def test_comma_overflow_duplicates_keep_overflow_values_nested(
+    def test_comma_overflow_duplicates_preserve_group_boundaries(
         self, query: str, options: DecodeOptions, expected: t.Mapping[str, t.Any]
     ) -> None:
         assert decode(query, options) == expected

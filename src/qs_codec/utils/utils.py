@@ -536,12 +536,9 @@ class Utils:
         Concatenate two values, treating non-sequences as singletons.
 
         Normal list/tuple inputs are flattened into the combined result. When
-        ``a`` is already an :class:`OverflowDict`, however, ``b`` is appended as
-        one value at the next numeric key, even if ``b`` is a list, tuple, or
-        another :class:`OverflowDict`. This preserves qs parity for duplicate
-        values after list-limit overflow: a later comma-split or bracket-array
-        payload remains a nested value instead of being flattened into the
-        overflowed container.
+        ``a`` is already an :class:`OverflowDict`, top-level list/tuple elements
+        from ``b`` are appended at successive numeric keys; a nested list remains
+        one group, and an incoming overflow mapping remains one copied value.
 
         If `list_limit` is exceeded, converts the list to an `OverflowDict`
         (a dict with numeric keys) to prevent memory exhaustion.
@@ -560,15 +557,17 @@ class Utils:
                 raise ValueError(
                     f"List limit exceeded: Only {limit} element{'' if limit == 1 else 's'} allowed in a list."
                 )
-            # a is already an OverflowDict. Append b as one value at the next numeric index.
+            # Copy on write; append top-level values after the highest numeric index.
             orig_a: OverflowDict = t.cast(OverflowDict, a)
             a_copy: OverflowDict = orig_a.__class__({k: v for k, v in orig_a.items() if not isinstance(v, Undefined)})
             # Use max key + 1 to handle sparse dicts safely, rather than len(a)
             key_pairs: t.List[t.Tuple[int, str]] = _numeric_key_pairs(a_copy)
             idx: int = (max(key for key, _ in key_pairs) + 1) if key_pairs else 0
 
-            if not isinstance(b, Undefined):
-                a_copy[str(idx)] = _copy_overflow_append_value(b)
+            for value in b if isinstance(b, (list, tuple)) else (b,):
+                if not isinstance(value, Undefined):
+                    a_copy[str(idx)] = _copy_overflow_append_value(value)
+                    idx += 1
             return a_copy
 
         # Normal combination: flatten lists/tuples

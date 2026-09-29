@@ -52,9 +52,10 @@ class DecodeOptions:
     a list. Above the limit, decoding either uses a numeric-keyed mapping or raises ``ValueError``
     when ``raise_on_limit_exceeded=True``.
 
-    For bracket-array assignments such as ``foo[]=1,2,3``, the comma-split payload is wrapped
-    as a single outer list element, so the inner payload may contain more values than
-    ``list_limit`` while still respecting the outer container limit.
+    For bracket-array assignments such as ``foo[]=1,2,3``, each comma-split payload is wrapped as one
+    outer list element. With ``raise_on_limit_exceeded=True``, an oversized inner comma group raises
+    independently of the outer list limit. Otherwise it remains a nested group, while exceeding the
+    outer list limit changes the result to a numeric-keyed mapping.
     """
 
     charset: Charset = Charset.UTF8
