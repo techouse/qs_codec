@@ -143,7 +143,7 @@ def encode(value: t.Any, options: t.Optional[EncodeOptions] = None) -> str:
             value=None if key_is_undefined else obj_value,
             is_undefined=key_is_undefined,
             side_channel=side_channel,
-            prefix=_key,
+            prefix=_key.replace(".", "%2E") if opts.encode_dot_in_keys else _key,
             generate_array_prefix=list_format.generator,
             comma_round_trip=comma_round_trip,
             comma_compact_nulls=list_format == ListFormat.COMMA and opts.comma_compact_nulls,
@@ -809,14 +809,13 @@ def _encode(
 
             if callable(filter_opt):
                 obj = filter_opt(current_path.materialize(), obj)
-            else:
-                if isinstance(obj, datetime):
-                    obj = frame.serialize_date(obj) if callable(frame.serialize_date) else obj.isoformat()
-                elif frame.generate_array_prefix is _COMMA_GENERATOR and isinstance(obj, (list, tuple)):
-                    if callable(frame.serialize_date):
-                        obj = [frame.serialize_date(x) if isinstance(x, datetime) else x for x in obj]
-                    else:
-                        obj = [x.isoformat() if isinstance(x, datetime) else x for x in obj]
+            if isinstance(obj, datetime):
+                obj = frame.serialize_date(obj) if callable(frame.serialize_date) else obj.isoformat()
+            elif frame.generate_array_prefix is _COMMA_GENERATOR and isinstance(obj, (list, tuple)):
+                if callable(frame.serialize_date):
+                    obj = [frame.serialize_date(x) if isinstance(x, datetime) else x for x in obj]
+                else:
+                    obj = [x.isoformat() if isinstance(x, datetime) else x for x in obj]
 
             if not frame.is_undefined and obj is None:
                 if frame.strict_null_handling:

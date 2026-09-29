@@ -104,9 +104,10 @@ class TestEncodeOptions:
     def test_indices_normalizes_to_list_format(self, indices: bool, expected: ListFormat) -> None:
         assert EncodeOptions(indices=indices).list_format is expected
 
-    def test_max_depth_must_be_positive(self) -> None:
-        for value in (0, -1, True, 1.5):
-            with pytest.raises(ValueError, match="max_depth must be a positive integer or None"):
+    def test_max_depth_must_be_non_negative(self) -> None:
+        for value in (-1, True, 1.5):
+            with pytest.raises(ValueError, match="max_depth must be a non-negative integer or None"):
                 EncodeOptions(max_depth=value)  # type: ignore[arg-type]
 
+        assert EncodeOptions(max_depth=0).max_depth == 0
         assert EncodeOptions(max_depth=5).max_depth == 5

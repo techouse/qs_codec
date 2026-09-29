@@ -200,6 +200,47 @@ class TestEncode:
     ) -> None:
         assert encode(data, options) == expected
 
+    @pytest.mark.parametrize(
+        "data, options, expected",
+        [
+            pytest.param({"a.b": "x"}, EncodeOptions(allow_dots=True, encode_dot_in_keys=True), "a%252Eb=x", id="dots"),
+            pytest.param(
+                {"a.b": "x"}, EncodeOptions(allow_dots=False, encode_dot_in_keys=True), "a%252Eb=x", id="brackets"
+            ),
+            pytest.param(
+                {"a.b": "x"},
+                EncodeOptions(encode_dot_in_keys=True, encode_values_only=True),
+                "a%2Eb=x",
+                id="values-only",
+            ),
+            pytest.param(
+                {"a.b": "x"}, EncodeOptions(encode_dot_in_keys=True, encode=False), "a%2Eb=x", id="no-encoding"
+            ),
+            pytest.param(
+                {"a.b": None},
+                EncodeOptions(encode_dot_in_keys=True, strict_null_handling=True),
+                "a%252Eb",
+                id="strict-null",
+            ),
+            pytest.param(
+                {"a.b": "x", "c.d": "y"},
+                EncodeOptions(encode_dot_in_keys=True),
+                "a%252Eb=x&c%252Ed=y",
+                id="multiple-root-keys",
+            ),
+            pytest.param(
+                {"a.b": {"c": "d"}},
+                EncodeOptions(allow_dots=True, encode_dot_in_keys=True),
+                "a%252Eb.c=d",
+                id="structural-dot",
+            ),
+        ],
+    )
+    def test_encodes_literal_dots_in_root_keys(
+        self, data: t.Mapping[str, t.Any], options: EncodeOptions, expected: str
+    ) -> None:
+        assert encode(data, options) == expected
+
     def test_encodes_dot_in_key_of_dict_and_automatically_set_allow_dots_to_true_when_encode_dot_in_keys_is_true_and_allow_dots_in_undefined(
         self,
     ):
@@ -880,6 +921,13 @@ class TestEncode:
         with pytest.raises(ValueError, match="Maximum encoding depth exceeded"):
             encode(data, options=EncodeOptions(max_depth=3))
 
+    @pytest.mark.parametrize("encode_keys", [True, False])
+    def test_encode_zero_depth_allows_root_scalar_but_rejects_children(self, encode_keys: bool) -> None:
+        options = EncodeOptions(max_depth=0, encode=encode_keys)
+        assert encode({"a": "b"}, options) == "a=b"
+        with pytest.raises(ValueError, match="Maximum encoding depth exceeded"):
+            encode({"a": {"b": "c"}}, options)
+
     def test_encode_depth_guard_does_not_cap_to_recursion_limit(self) -> None:
         # `_get_max_encode_depth` now uses `sys.maxsize` for None and explicit values directly,
         # so monkeypatching `sys.getrecursionlimit` is intentionally unnecessary here.
@@ -1199,6 +1247,46 @@ class TestEncode:
     ) -> None:
         result = encode(data) if options is None else encode(data, options)
         assert result == expected
+
+    @pytest.mark.parametrize(
+        "data, options, expected",
+        [
+            pytest.param({"a": datetime(2024, 1, 2)}, {}, "a=2024-01-02", id="root-date"),
+            pytest.param({"a": {"b": datetime(2024, 1, 2)}}, {}, "a%5Bb%5D=2024-01-02", id="nested-date"),
+            pytest.param(
+                {"a": "replace"},
+                {"filter": lambda prefix, value: datetime(2024, 1, 2) if prefix == "a" else value},
+                "a=2024-01-02",
+                id="filter-creates-date",
+            ),
+            pytest.param(
+                {"a": datetime(2024, 1, 2)},
+                {"filter": lambda prefix, value: "replaced" if prefix == "a" else value},
+                "a=replaced",
+                id="filter-replaces-date",
+            ),
+            pytest.param(
+                {"a": [datetime(2024, 1, 2), "x"]},
+                {"list_format": ListFormat.COMMA},
+                "a=2024-01-02%2Cx",
+                id="comma-date",
+            ),
+        ],
+    )
+    def test_callable_filter_serializes_resulting_dates(
+        self, data: t.Mapping[str, t.Any], options: t.Dict[str, t.Any], expected: str
+    ) -> None:
+        assert (
+            encode(
+                data,
+                EncodeOptions(
+                    filter=options.get("filter", lambda prefix, value: value),
+                    serialize_date=lambda dt: dt.strftime("%Y-%m-%d"),
+                    list_format=options.get("list_format", ListFormat.INDICES),
+                ),
+            )
+            == expected
+        )
 
     @pytest.mark.parametrize(
         "data, expected",
