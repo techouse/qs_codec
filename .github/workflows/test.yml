@@ -85,7 +85,11 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -U codecov tox-gh-actions
-          pip install -r requirements_dev.txt
+          if [[ "${{ matrix.py }}" == "3.13t" ]]; then
+            pip install -r requirements_dev.txt 'mypy<2'
+          else
+            pip install -r requirements_dev.txt
+          fi
       - name: Test with tox
         run: tox
       - name: Check Code Coverage
