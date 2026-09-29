@@ -1,4 +1,4 @@
-## Unreleased
+## 1.6.2
 
 * [FIX] match Node `qs` 6.16.0 for dotted root keys and dates returned by callable encoding filters
 * [FIX] allow `max_depth=0` for root scalar encoding while rejecting nested children
