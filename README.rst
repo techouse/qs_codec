@@ -536,8 +536,13 @@ default, or raises ``ValueError`` when ``raise_on_limit_exceeded=True``.
    ) == {'a': {'0': 'x', '1': 'y'}}
 
 With ``comma=True``, a flat comma value is subject to the same limit. A value
-assigned through ``[]=`` counts as one outer list element, so its inner
-comma-separated group may contain more values than ``list_limit``.
+assigned through ``[]=`` counts as one outer list element. Without raising,
+its inner comma-separated group may exceed ``list_limit`` and stays nested;
+with ``raise_on_limit_exceeded=True``, each oversized inner group raises too.
+When duplicate comma values extend an already-overflowed numeric-keyed mapping,
+an incoming list or tuple spreads into successive numeric keys. If a later comma
+group also exceeds ``list_limit``, it becomes an overflow mapping stored under
+one key instead. Bracketed comma groups remain one nested value apiece.
 
 To disable ``list`` parsing entirely, set `parse_lists <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.decode_options.DecodeOptions.parse_lists>`__
 to ``False``.
@@ -641,6 +646,13 @@ option. If unset, traversal is unbounded by this option. When set, the provided 
        qs.encode({'a': {'b': {'c': 'd'}}}, qs.EncodeOptions(max_depth=2))
    except ValueError as e:
        assert str(e) == 'Maximum encoding depth exceeded'
+
+``max_depth=0`` permits root scalar values but rejects any nested child:
+
+.. code:: python
+
+   assert qs.encode({'a': 'b'}, qs.EncodeOptions(max_depth=0)) == 'a=b'
+
 
 This encoding can also be replaced by a custom ``Callable`` in the
 `encoder <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encoder>`__ option:
@@ -814,6 +826,11 @@ You may encode dots in keys of ``dict``\s by setting
        ),
    ) == 'name%252Eobj.first=John&name%252Eobj.last=Doe'
 
+   assert qs.encode(
+       {'a.b': 'x'},
+       qs.EncodeOptions(allow_dots=True, encode_dot_in_keys=True),
+   ) == 'a%252Eb=x'
+
 **Caveat:** When both `encode_values_only <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encode_values_only>`__
 and `encode_dot_in_keys <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.encode_dot_in_keys>`__ are set to
 ``True``, only dots in keys and nothing else will be encoded!
@@ -921,6 +938,10 @@ objects, you can provide a ``Callable`` in the
        )
        == "a=7"
    )
+
+The callable ``filter`` runs before date serialization. A date retained or
+returned by the filter still passes through ``serialize_date``.
+
 
 To affect the order of parameter keys, you can set a ``Callable`` in the
 `sort <https://techouse.github.io/qs_codec/qs_codec.models.html#qs_codec.models.encode_options.EncodeOptions.sort>`__ option:
