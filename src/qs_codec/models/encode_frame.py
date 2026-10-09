@@ -1,5 +1,7 @@
 """Mutable traversal frame for iterative encoding."""
 
+from __future__ import annotations
+
 import typing as t
 from datetime import datetime
 from weakref import WeakKeyDictionary
@@ -55,14 +57,14 @@ class EncodeFrame:
     )
     value: t.Any
     is_undefined: bool
-    side_channel: WeakKeyDictionary
+    side_channel: WeakKeyDictionary[t.Any, t.Any]
     prefix: t.Optional[str]
     comma_round_trip: t.Optional[bool]
     comma_compact_nulls: bool
     encoder: t.Optional[t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str]]
     serialize_date: t.Union[t.Callable[[datetime], t.Optional[str]], str]
     sort: t.Optional[t.Callable[[t.Any, t.Any], int]]
-    filter_: t.Optional[t.Union[t.Callable, t.Sequence[t.Union[str, int]]]]
+    filter_: t.Optional[t.Union[t.Callable[[str, t.Any], t.Any], t.Sequence[t.Union[str, int]]]]
     formatter: t.Optional[t.Callable[[str], str]]
     format: Format
     generate_array_prefix: t.Callable[[str, t.Optional[str]], str]
@@ -95,14 +97,14 @@ class EncodeFrame:
         self,
         value: t.Any,
         is_undefined: bool,
-        side_channel: WeakKeyDictionary,
+        side_channel: WeakKeyDictionary[t.Any, t.Any],
         prefix: t.Optional[str],
         comma_round_trip: t.Optional[bool],
         comma_compact_nulls: bool,
         encoder: t.Optional[t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str]],
         serialize_date: t.Union[t.Callable[[datetime], t.Optional[str]], str],
         sort: t.Optional[t.Callable[[t.Any, t.Any], int]],
-        filter_: t.Optional[t.Union[t.Callable, t.Sequence[t.Union[str, int]]]],
+        filter_: t.Optional[t.Union[t.Callable[[str, t.Any], t.Any], t.Sequence[t.Union[str, int]]]],
         formatter: t.Optional[t.Callable[[str], str]],
         format: Format,
         generate_array_prefix: t.Callable[[str, t.Optional[str]], str],
