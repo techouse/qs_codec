@@ -3,9 +3,16 @@
 from __future__ import annotations
 
 import copy
+import typing as t
+
+# Subscripted at type-check time only; subclassing `t.Dict[...]` would add `Generic` to the MRO on 3.8.
+if t.TYPE_CHECKING:
+    _DictBase = t.Dict[t.Any, t.Any]
+else:
+    _DictBase = dict
 
 
-class OverflowDict(dict):
+class OverflowDict(_DictBase):
     """A mutable marker for list overflows when `list_limit` is exceeded."""
 
     def copy(self) -> "OverflowDict":
@@ -16,7 +23,7 @@ class OverflowDict(dict):
         """Return an OverflowDict copy to preserve the overflow marker."""
         return self.__class__(super().copy())
 
-    def __deepcopy__(self, memo: dict[int, object]) -> "OverflowDict":
+    def __deepcopy__(self, memo: t.Dict[int, t.Any]) -> "OverflowDict":
         """Return an OverflowDict deepcopy to preserve the overflow marker."""
         copied = self.__class__()
         memo[id(self)] = copied
