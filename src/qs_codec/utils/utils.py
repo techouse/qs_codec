@@ -402,12 +402,12 @@ class Utils:
             The same `root` object for chaining.
         """
         # Depth-first traversal without recursion.
-        stack: t.Deque[t.Union[t.Dict, t.List]] = deque([root])
+        stack: t.Deque[t.Union[t.Dict[t.Any, t.Any], t.List[t.Any]]] = deque([root])
         # Track object identities to avoid revisiting in cycles.
         visited: t.Set[int] = {id(root)}
 
         while stack:
-            node: t.Union[t.Dict, t.List] = stack.pop()
+            node: t.Union[t.Dict[t.Any, t.Any], t.List[t.Any]] = stack.pop()
             if isinstance(node, dict):
                 # Copy keys so we can delete from the dict during iteration.
                 for k in list(node.keys()):
@@ -599,7 +599,7 @@ class Utils:
     @staticmethod
     def apply(
         val: t.Union[t.List[t.Any], t.Tuple[t.Any], t.Any],
-        fn: t.Callable,
+        fn: t.Callable[[t.Any], t.Any],
     ) -> t.Union[t.List[t.Any], t.Any]:
         """
         Map a callable over a value or sequence.
