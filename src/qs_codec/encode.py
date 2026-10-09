@@ -14,6 +14,8 @@ Node.js `qs` package where it makes sense for Python. It supports:
 Nothing in this module mutates caller objects: inputs are shallow-normalized and deep-copied only where safe/necessary to honor options.
 """
 
+from __future__ import annotations
+
 import sys
 import typing as t
 from collections.abc import Mapping as ABCMapping
@@ -66,7 +68,7 @@ def encode(value: t.Any, options: t.Optional[EncodeOptions] = None) -> str:
 
     opts: EncodeOptions = options if options is not None else EncodeOptions()
 
-    filter_opt: t.Optional[t.Union[t.Callable, t.Sequence[t.Union[str, int]]]] = opts.filter
+    filter_opt: t.Optional[t.Union[t.Callable[[str, t.Any], t.Any], t.Sequence[t.Union[str, int]]]] = opts.filter
     filter_is_callable: bool = callable(filter_opt)
     filter_is_sequence: bool = (
         filter_opt is not None
@@ -122,7 +124,7 @@ def encode(value: t.Any, options: t.Optional[EncodeOptions] = None) -> str:
         obj_keys = sorted(obj_keys, key=cmp_to_key(sort_opt))
 
     # Side channel seed for legacy `_encode` compatibility (and cycle-state bootstrap when provided).
-    side_channel: WeakKeyDictionary = WeakKeyDictionary()
+    side_channel: WeakKeyDictionary[t.Any, t.Any] = WeakKeyDictionary()
     max_depth: int = _get_max_encode_depth(opts.max_depth)
 
     # Encode each selected root key.
@@ -223,7 +225,9 @@ def _identity_key(value: t.Any) -> int:
     return id(value)
 
 
-def _bootstrap_cycle_state_from_side_channel(side_channel: WeakKeyDictionary) -> t.Tuple[CycleState, int]:
+def _bootstrap_cycle_state_from_side_channel(
+    side_channel: WeakKeyDictionary[t.Any, t.Any],
+) -> t.Tuple[CycleState, int]:
     """
     Build O(1) ancestry lookup state from an existing side-channel chain.
 
@@ -231,7 +235,7 @@ def _bootstrap_cycle_state_from_side_channel(side_channel: WeakKeyDictionary) ->
         Tuple of (state, current_level), where current_level is the chain length
         from the current frame to the top-most side-channel mapping.
     """
-    chain: t.List[WeakKeyDictionary] = []
+    chain: t.List[WeakKeyDictionary[t.Any, t.Any]] = []
     tmp_sc: t.Any = side_channel.get(_sentinel)
     while isinstance(tmp_sc, WeakKeyDictionary):
         chain.append(tmp_sc)
@@ -292,18 +296,18 @@ _REPEAT_GENERATOR: t.Callable[[str, t.Optional[str]], str] = ListFormat.REPEAT.g
 _COMMA_GENERATOR: t.Callable[[str, t.Optional[str]], str] = ListFormat.COMMA.generator
 
 
-def _uses_legacy_cycle_state(side_channel: WeakKeyDictionary) -> bool:
+def _uses_legacy_cycle_state(side_channel: WeakKeyDictionary[t.Any, t.Any]) -> bool:
     return isinstance(side_channel.get(_sentinel), WeakKeyDictionary)
 
 
 def _linear_chain_fast_path_eligible(
     is_undefined: bool,
-    side_channel: WeakKeyDictionary,
+    side_channel: WeakKeyDictionary[t.Any, t.Any],
     comma_round_trip: t.Optional[bool],
     comma_compact_nulls: bool,
     encoder: t.Optional[t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str]],
     sort: t.Optional[t.Callable[[t.Any, t.Any], int]],
-    filter_: t.Optional[t.Union[t.Callable, t.Sequence[t.Union[str, int]]]],
+    filter_: t.Optional[t.Union[t.Callable[[str, t.Any], t.Any], t.Sequence[t.Union[str, int]]]],
     generate_array_prefix: t.Callable[[str, t.Optional[str]], str],
     allow_empty_lists: bool,
     strict_null_handling: bool,
@@ -336,14 +340,14 @@ def _linear_chain_fast_path_eligible(
 def _try_encode_linear_chain_plain_dict(
     value: t.Any,
     is_undefined: bool,
-    side_channel: WeakKeyDictionary,
+    side_channel: WeakKeyDictionary[t.Any, t.Any],
     prefix: t.Optional[str],
     comma_round_trip: t.Optional[bool],
     comma_compact_nulls: bool,
     encoder: t.Optional[t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str]],
     serialize_date: t.Union[t.Callable[[datetime], t.Optional[str]], str],
     sort: t.Optional[t.Callable[[t.Any, t.Any], int]],
-    filter_: t.Optional[t.Union[t.Callable, t.Sequence[t.Union[str, int]]]],
+    filter_: t.Optional[t.Union[t.Callable[[str, t.Any], t.Any], t.Sequence[t.Union[str, int]]]],
     formatter: t.Optional[t.Callable[[str], str]],
     format: Format,
     generate_array_prefix: t.Callable[[str, t.Optional[str]], str],
@@ -447,14 +451,14 @@ def _try_encode_linear_chain_plain_dict(
 def _try_encode_linear_chain(
     value: t.Any,
     is_undefined: bool,
-    side_channel: WeakKeyDictionary,
+    side_channel: WeakKeyDictionary[t.Any, t.Any],
     prefix: t.Optional[str],
     comma_round_trip: t.Optional[bool],
     comma_compact_nulls: bool,
     encoder: t.Optional[t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str]],
     serialize_date: t.Union[t.Callable[[datetime], t.Optional[str]], str],
     sort: t.Optional[t.Callable[[t.Any, t.Any], int]],
-    filter_: t.Optional[t.Union[t.Callable, t.Sequence[t.Union[str, int]]]],
+    filter_: t.Optional[t.Union[t.Callable[[str, t.Any], t.Any], t.Sequence[t.Union[str, int]]]],
     formatter: t.Optional[t.Callable[[str], str]],
     format: Format,
     generate_array_prefix: t.Callable[[str, t.Optional[str]], str],
@@ -591,14 +595,14 @@ def _next_path_for_sequence(
 def _encode(
     value: t.Any,
     is_undefined: bool,
-    side_channel: WeakKeyDictionary,
+    side_channel: WeakKeyDictionary[t.Any, t.Any],
     prefix: t.Optional[str],
     comma_round_trip: t.Optional[bool],
     comma_compact_nulls: bool,
     encoder: t.Optional[t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str]],
     serialize_date: t.Union[t.Callable[[datetime], t.Optional[str]], str],
     sort: t.Optional[t.Callable[[t.Any, t.Any], int]],
-    filter_: t.Optional[t.Union[t.Callable, t.Sequence[t.Union[str, int]]]],
+    filter_: t.Optional[t.Union[t.Callable[[str, t.Any], t.Any], t.Sequence[t.Union[str, int]]]],
     formatter: t.Optional[t.Callable[[str], str]],
     format: Format = Format.RFC3986,
     generate_array_prefix: t.Callable[[str, t.Optional[str]], str] = ListFormat.INDICES.generator,
@@ -800,7 +804,9 @@ def _encode(
                 frame.formatter = frame.format.formatter
 
             obj: t.Any = frame.value
-            filter_opt: t.Optional[t.Union[t.Callable, t.Sequence[t.Union[str, int]]]] = frame.filter_
+            filter_opt: t.Optional[t.Union[t.Callable[[str, t.Any], t.Any], t.Sequence[t.Union[str, int]]]] = (
+                frame.filter_
+            )
             filter_is_sequence: bool = (
                 filter_opt is not None
                 and isinstance(filter_opt, ABCSequence)
