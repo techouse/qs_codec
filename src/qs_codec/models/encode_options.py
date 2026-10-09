@@ -67,7 +67,7 @@ class EncodeOptions:
     """Space handling and percent-encoding style. `RFC3986` encodes spaces as `%20`, while
     `RFC1738` uses `+`."""
 
-    filter: t.Optional[t.Union[t.Callable, t.Sequence[t.Union[str, int]]]] = field(default=None)
+    filter: t.Optional[t.Union[t.Callable[[str, t.Any], t.Any], t.Sequence[t.Union[str, int]]]] = field(default=None)
     """Restrict which keys get included.
     - If a callable is provided, it is invoked for each key and should return the
     replacement value (or `None` to drop when `skip_nulls` applies).
