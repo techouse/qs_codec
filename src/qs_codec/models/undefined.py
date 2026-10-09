@@ -26,7 +26,7 @@ class Undefined:
     _lock: t.ClassVar[threading.Lock] = threading.Lock()
     _instance: t.ClassVar[t.Optional["Undefined"]] = None
 
-    def __new__(cls):
+    def __new__(cls) -> "Undefined":
         """Return the singleton instance.
 
         Repeated construction returns the same object reference so identity
@@ -42,19 +42,19 @@ class Undefined:
         """Return a string representation of the singleton."""
         return "Undefined()"
 
-    def __copy__(self):  # pragma: no cover - trivial
+    def __copy__(self) -> "Undefined":  # pragma: no cover - trivial
         """Preserve singleton identity when shallow-copied."""
         return self
 
-    def __deepcopy__(self, memo):  # pragma: no cover - trivial
+    def __deepcopy__(self, memo: t.Dict[int, t.Any]) -> "Undefined":  # pragma: no cover - trivial
         """Preserve singleton identity when deep-copied."""
         return self
 
-    def __reduce__(self):  # pragma: no cover - trivial
+    def __reduce__(self) -> t.Tuple[t.Type["Undefined"], t.Tuple[()]]:  # pragma: no cover - trivial
         """Reconstruct through the singleton constructor when unpickled."""
         return Undefined, ()
 
-    def __init_subclass__(cls, **kwargs):  # pragma: no cover - defensive
+    def __init_subclass__(cls, **kwargs: t.Any) -> None:  # pragma: no cover - defensive
         """Prevent subclassing to preserve singleton identity."""
         raise TypeError("Undefined cannot be subclassed")
 
