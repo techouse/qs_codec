@@ -171,13 +171,13 @@ class DecodeOptions:
 
         # decoder setup + compatibility wrapper:
         # precedence is: user `decoder` > `legacy_decoder` > library default.
-        raw_dec = self.decoder
+        raw_dec: t.Optional[t.Callable[..., t.Optional[t.Any]]] = self.decoder
         if raw_dec is None and self.legacy_decoder is not None:
             raw_dec = self.legacy_decoder  # legacy two-arg form; no kind
         if raw_dec is None:
             raw_dec = DecodeUtils.decode
 
-        default_decoder = DecodeUtils.decode
+        default_decoder: t.Callable[..., t.Optional[str]] = DecodeUtils.decode
         # Fast path for the library default decoder: skip adapter dispatch completely.
         if raw_dec is default_decoder or getattr(raw_dec, "__func__", None) is getattr(
             default_decoder, "__func__", None
@@ -185,19 +185,19 @@ class DecodeOptions:
             self.decoder = DecodeUtils.decode
             return
 
-        user_dec = raw_dec
+        user_dec: t.Callable[..., t.Optional[t.Any]] = raw_dec
 
         # Precompute dispatch to avoid per-call introspection.
         try:
-            sig = inspect.signature(user_dec)
-            params = sig.parameters
-            param_list = list(params.values())
+            sig: inspect.Signature = inspect.signature(user_dec)
+            params: t.Mapping[str, inspect.Parameter] = sig.parameters
+            param_list: t.List[inspect.Parameter] = list(params.values())
 
-            has_var_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in param_list)
-            has_var_pos = any(p.kind == inspect.Parameter.VAR_POSITIONAL for p in param_list)
+            has_var_kw: bool = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in param_list)
+            has_var_pos: bool = any(p.kind == inspect.Parameter.VAR_POSITIONAL for p in param_list)
 
-            accepts_charset_pos = False
-            accepts_charset_kw = False
+            accepts_charset_pos: bool = False
+            accepts_charset_kw: bool = False
             if "charset" in params:
                 p = params["charset"]
                 if p.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD):
@@ -207,9 +207,9 @@ class DecodeOptions:
             if has_var_pos:
                 accepts_charset_pos = True
 
-            has_kind_param = "kind" in params
-            accepts_kind_kw = False
-            accepts_kind_pos = False
+            has_kind_param: bool = "kind" in params
+            accepts_kind_kw: bool = False
+            accepts_kind_pos: bool = False
             if has_kind_param:
                 k = params["kind"]
                 accepts_kind_kw = k.kind in (
@@ -225,9 +225,9 @@ class DecodeOptions:
                 accepts_kind_pos = False
 
             # Decide how to represent `kind`: prefer string for maximum compatibility
-            pass_kind_as_str = True
+            pass_kind_as_str: bool = True
             if has_kind_param:
-                ann = params["kind"].annotation
+                ann: t.Any = params["kind"].annotation
                 # NOTE: If a user annotates `kind` as a typing.Literal (e.g., Literal["key", "value"]),
                 # `ann` will NOT be a `type`, so we fall back to passing strings (the default path below).
                 # This is intentional: it preserves compatibility with callables that prefer plain strings
@@ -299,7 +299,7 @@ class DecodeOptions:
         values; whether a ``.`` participates in key splitting is decided later by the parser.
         """
         # ``self.decoder`` has been normalized to accept (s, charset, *, kind)
-        d = self.decoder
+        d: t.Optional[t.Callable[..., t.Optional[t.Any]]] = self.decoder
         if d is None:
             # Should not happen because we always set an adapter, but keep a safe fallback.
             return DecodeUtils.decode(value, charset or self.charset)
@@ -310,7 +310,7 @@ class DecodeOptions:
 
         Note: custom decoders returning non-strings for keys are coerced via ``str()``.
         """
-        out = self.decode(value, charset, kind=DecodeKind.KEY)
+        out: t.Optional[t.Any] = self.decode(value, charset, kind=DecodeKind.KEY)
         return None if out is None else str(out)
 
     def decode_value(self, value: t.Optional[str], charset: t.Optional[Charset] = None) -> t.Optional[t.Any]:
