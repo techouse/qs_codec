@@ -708,7 +708,7 @@ def _encode(
         return fast_path_result
 
     last_result: t.Union[t.List[t.Any], t.Tuple[t.Any, ...], t.Any, None] = None
-    use_legacy_cycle_state = _uses_legacy_cycle_state(side_channel)
+    use_legacy_cycle_state: bool = _uses_legacy_cycle_state(side_channel)
     public_cycle_state = CycleState()
     last_bracket_key: t.Optional[str] = None
     last_bracket_segment: t.Optional[str] = None
@@ -730,7 +730,7 @@ def _encode(
         if last_dot_key == encoded_key and last_dot_segment is not None:
             return last_dot_segment
 
-        segment = f".{encoded_key}"
+        segment: str = f".{encoded_key}"
         last_dot_key = encoded_key
         last_dot_segment = segment
         return segment
