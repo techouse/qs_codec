@@ -7,10 +7,11 @@ members carry both the raw token emitted by the page and the fully URL-encoded
 fragment that appears on the wire.
 """
 
+import typing as t
 from dataclasses import dataclass
 from enum import Enum
 
-__all__ = ("Sentinel",)
+__all__: t.Tuple[str, ...] = ("Sentinel",)
 
 
 @dataclass(frozen=True)
