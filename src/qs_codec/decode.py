@@ -168,12 +168,12 @@ def _leading_structured_root(key: str, options: DecodeOptions) -> str:
     if not segments:
         return key
 
-    first = segments[0]
+    first: str = segments[0]
     if not first.startswith("["):
         return first
 
-    last = first.rfind("]")
-    clean_root = first[1:last] if last > 0 else first[1:]
+    last: int = first.rfind("]")
+    clean_root: str = first[1:last] if last > 0 else first[1:]
     return clean_root or "0"
 
 
@@ -243,8 +243,8 @@ def _parse_array_value(
     """
     if isinstance(value, str) and value and options.comma and "," in value:
         if options.raise_on_limit_exceeded:
-            comma_count = 0
-            comma_index = value.find(",")
+            comma_count: int = 0
+            comma_index: int = value.find(",")
             while comma_index >= 0:
                 comma_count += 1
                 if comma_count >= options.list_limit:
@@ -361,7 +361,7 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
         raw_key: str = ""
         list_limit_exceeded: bool = False
         if pos == -1:
-            key_decoded = decoder_fn(part, charset, kind=DecodeKind.KEY)
+            key_decoded: t.Optional[str] = decoder_fn(part, charset, kind=DecodeKind.KEY)
             if key_decoded is None:
                 continue
             key: str = key_decoded
@@ -376,7 +376,7 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
             key = key_decoded
             if not key:
                 continue
-            parsed_value = _parse_array_value(
+            parsed_value: t.Any = _parse_array_value(
                 part[pos + 1 :],
                 options,
                 len(obj[key]) if key in obj and isinstance(obj[key], (list, tuple)) else 0,
@@ -404,7 +404,7 @@ def _parse_query_string_values(value: str, options: DecodeOptions) -> t.Dict[str
             val = CommaOverflowDict({str(i): item for i, item in enumerate(val)})
 
         existing: bool = key in obj
-        part_duplicates = Duplicates.COMBINE if bracket_array_assignment else duplicates
+        part_duplicates: Duplicates = Duplicates.COMBINE if bracket_array_assignment else duplicates
 
         # Combine/overwrite according to the configured duplicates policy.
         if existing and part_duplicates == Duplicates.COMBINE:
