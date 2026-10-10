@@ -147,7 +147,9 @@ class EncodeUtils:
         *code units*, matching JavaScript semantics. We then walk the string with a manual index, skipping the low
         surrogate when we emit a surrogate pair.
         """
-        safe_chars_ascii = cls.RFC1738_SAFE_CHARS_ASCII if format == Format.RFC1738 else cls.SAFE_CHARS_ASCII
+        safe_chars_ascii: t.Tuple[bool, ...] = (
+            cls.RFC1738_SAFE_CHARS_ASCII if format == Format.RFC1738 else cls.SAFE_CHARS_ASCII
+        )
         if string.isascii():
             if cls._all_ascii_safe(string, safe_chars_ascii):
                 return string
@@ -158,10 +160,10 @@ class EncodeUtils:
         hex_table: t.Tuple[str, ...] = cls.HEX_TABLE
         buffer: t.List[str] = []
 
-        i = 0
-        n = len(s)
+        i: int = 0
+        n: int = len(s)
         while i < n:
-            c = ord(s[i])
+            c: int = ord(s[i])
 
             if c < 0x80 and safe_chars_ascii[c]:
                 buffer.append(s[i])
@@ -204,7 +206,9 @@ class EncodeUtils:
     @classmethod
     def _is_safe_char(cls, c: int, format: t.Optional[Format]) -> bool:
         """Return True if code unit `c` is allowed unescaped for the given `format`."""
-        safe_chars_ascii = cls.RFC1738_SAFE_CHARS_ASCII if format == Format.RFC1738 else cls.SAFE_CHARS_ASCII
+        safe_chars_ascii: t.Tuple[bool, ...] = (
+            cls.RFC1738_SAFE_CHARS_ASCII if format == Format.RFC1738 else cls.SAFE_CHARS_ASCII
+        )
         return c < 0x80 and safe_chars_ascii[c]
 
     @classmethod
@@ -233,7 +237,7 @@ class EncodeUtils:
     @classmethod
     def _encode_surrogate_pair(cls, string: str, i: int, c: int) -> t.List[str]:
         """Encode a surrogate pair starting at `i` as a 4-byte UTF-8 sequence."""
-        low = ord(string[i + 1])
+        low: int = ord(string[i + 1])
         c = 0x10000 + (((c & 0x3FF) << 10) | (low & 0x3FF))
         return [
             cls.HEX_TABLE[0xF0 | (c >> 18)],
