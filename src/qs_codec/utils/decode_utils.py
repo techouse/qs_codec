@@ -246,16 +246,16 @@ class DecodeUtils:
         open_idx: int = first
         depth: int = 0
 
-        unterminated = False
+        unterminated: bool = False
         while open_idx >= 0 and depth < max_depth:
-            level = 1
-            i = open_idx + 1
-            close = -1
+            level: int = 1
+            i: int = open_idx + 1
+            close: int = -1
 
             # Balance nested '[' and ']' inside the same group,
             # so "[withbracket[]]" is treated as *one* segment.
             while i < n:
-                ch = key[i]
+                ch: str = key[i]
                 if ch == "[":
                     level += 1
                 elif ch == "]":
@@ -277,7 +277,7 @@ class DecodeUtils:
         if open_idx >= 0:
             # We only want to raise for true depth overflow under strict_depth,
             # not for unterminated bracket groups.
-            depth_overflow = (depth >= max_depth) and not unterminated
+            depth_overflow: bool = (depth >= max_depth) and not unterminated
             if strict_depth and depth_overflow:
                 raise IndexError(f"Input depth exceeded depth option of {max_depth} and strict_depth is True")
             # Stash the remainder as a single segment (qs parity)
