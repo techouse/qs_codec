@@ -31,7 +31,7 @@ Highlights
 Compatibility
 -------------
 
-- CPython 3.8–3.14 (default tox envs).
+- CPython 3.8–3.15 (default tox envs).
 - PyPy 3.8–3.11 (run ``tox -e pypy3.8`` through ``tox -e pypy3.11`` locally; CI mirrors this matrix).
 
 Usage
