@@ -97,9 +97,9 @@ class EncodeOptions:
         The returned callable has signature `(value) -> str` and internally calls the
         underlying `_encoder(value, self.charset, self.format)`.
         """
-        raw_encoder = self._encoder
-        charset = self.charset
-        format_ = self.format
+        raw_encoder: t.Callable[[t.Any, t.Optional[Charset], t.Optional[Format]], str] = self._encoder
+        charset: Charset = self.charset
+        format_: Format = self.format
 
         def bound_encoder(
             value: t.Any,
