@@ -7,6 +7,7 @@ dots; preservation of encoded dots for splitting is applied later by parser
 options (`allow_dots`, `decode_dot_in_keys`).
 """
 
+import typing as t
 from enum import Enum
 
 
@@ -28,4 +29,4 @@ class DecodeKind(str, Enum):
     VALUE = "value"  # Value decode; fully percent-decode
 
 
-__all__ = ["DecodeKind"]
+__all__: t.Tuple[str, ...] = ("DecodeKind",)
