@@ -22,7 +22,7 @@ class Undefined:
     returning public results.
     """
 
-    __slots__ = ()
+    __slots__: t.Tuple[str, ...] = ()
     _lock: t.ClassVar[threading.Lock] = threading.Lock()
     _instance: t.ClassVar[t.Optional["Undefined"]] = None
 
