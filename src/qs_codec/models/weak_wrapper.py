@@ -14,14 +14,14 @@ class _Proxy:
     NOTE: Proxies must be weak-referenceable because the cache holds them in a WeakValueDictionary. That requires "__weakref__" in __slots__.
     """
 
-    __slots__ = ("value", "__weakref__")
+    __slots__: t.Tuple[str, ...] = ("value", "__weakref__")
 
     def __init__(self, value: t.Any) -> None:
         """Strong ref to the value so hash/equality can access it while a wrapper keeps this proxy alive."""
         self.value = value
 
 
-__all__ = ["WeakWrapper", "_proxy_cache"]
+__all__: t.Tuple[str, ...] = ("WeakWrapper", "_proxy_cache")
 
 
 # Exported for tests
@@ -48,7 +48,7 @@ class WeakWrapper:
     - Equality is proxy identity; hash is the proxy identity (stable across mutations).
     """
 
-    __slots__ = ("_proxy", "_wref", "__weakref__")
+    __slots__: t.Tuple[str, ...] = ("_proxy", "_wref", "__weakref__")
     _proxy: _Proxy
     _wref: ReferenceType[_Proxy]
 
