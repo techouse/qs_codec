@@ -42,7 +42,7 @@ class KeyPathNode:
 
     def as_dot_encoded(self) -> "KeyPathNode":
         """Return a cached view where literal dots are encoded as ``%2E``."""
-        cached = self.dot_encoded
+        cached: t.Optional["KeyPathNode"] = self.dot_encoded
         if cached is not None:
             return cached
 
@@ -54,11 +54,11 @@ class KeyPathNode:
 
         for current in reversed(unresolved):
             encoded_segment = current.segment.replace(".", "%2E") if "." in current.segment else current.segment
-            parent = current.parent
+            parent: t.Optional[KeyPathNode] = current.parent
             if parent is None:
                 encoded = current if encoded_segment is current.segment else KeyPathNode(None, encoded_segment)
             else:
-                encoded_parent = parent.dot_encoded
+                encoded_parent: t.Optional[KeyPathNode] = parent.dot_encoded
                 if encoded_parent is None:  # pragma: no cover - internal invariant
                     raise RuntimeError("dot_encoded parent is not initialized")  # noqa: TRY003
                 if encoded_parent is parent and encoded_segment is current.segment:
@@ -71,40 +71,40 @@ class KeyPathNode:
 
     def materialize(self) -> str:
         """Render and cache the full path text."""
-        cached = self.materialized
+        cached: t.Optional[str] = self.materialized
         if cached is not None:
             return cached
 
-        parent = self.parent
+        parent: t.Optional["KeyPathNode"] = self.parent
         if parent is None:
             self.materialized = self.segment
             return self.segment
 
         if self.depth == 2:
-            parent_part = parent.materialized
+            parent_part: t.Optional[str] = parent.materialized
             if parent_part is None:
                 parent_part = parent.segment
                 parent.materialized = parent_part
-            value = parent_part + self.segment
+            value: str = parent_part + self.segment
             self.materialized = value
             return value
 
         suffix_nodes: t.List["KeyPathNode"] = []
         current: t.Optional["KeyPathNode"] = self
-        base = ""
+        base: str = ""
         while current is not None:
-            cached_current = current.materialized
+            cached_current: t.Optional[str] = current.materialized
             if cached_current is not None:
                 base = cached_current
                 break
             suffix_nodes.append(current)
             current = current.parent
 
-        suffix_count = len(suffix_nodes)
+        suffix_count: int = len(suffix_nodes)
         prefix_lengths: t.List[int] = [0] * suffix_count
         parts: t.List[str] = [base] if base else []
-        prefix_length = len(base)
-        forward_index = 0
+        prefix_length: int = len(base)
+        forward_index: int = 0
         for index in range(suffix_count - 1, -1, -1):
             node = suffix_nodes[index]
             parts.append(node.segment)
@@ -116,13 +116,13 @@ class KeyPathNode:
         self.materialized = value
 
         def cache_forward_index(index: int) -> None:
-            node = suffix_nodes[suffix_count - 1 - index]
+            node: KeyPathNode = suffix_nodes[suffix_count - 1 - index]
             if node.materialized is None:
                 node.materialized = value[: prefix_lengths[index]]
 
         # `self.materialized` is already populated above, so count the leaf
         # toward the cache budget without performing a redundant write.
-        cached_nodes = 1
+        cached_nodes: int = 1
 
         if suffix_count > 1 and cached_nodes < self._MATERIALIZE_CACHE_NODE_LIMIT:
             cache_forward_index(0)
