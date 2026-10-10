@@ -6,7 +6,7 @@ import copy
 import typing as t
 
 # Subscripted at type-check time only; subclassing `t.Dict[...]` would add `Generic` to the MRO on 3.8.
-if t.TYPE_CHECKING:
+if t.TYPE_CHECKING:  # pragma: no cover - type-checking only
     _DictBase = t.Dict[t.Any, t.Any]
 else:
     _DictBase = dict
