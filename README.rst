@@ -1239,7 +1239,7 @@ Holowaychuk <https://github.com/visionmedia/node-querystring>`__
 .. |PyPI - Python Version| image:: https://img.shields.io/pypi/pyversions/qs_codec?logo=python&label=Python
    :target: https://pypi.org/project/qs-codec/
    :alt: Python version support
-.. |PyPy Support| image:: https://img.shields.io/badge/PyPy-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-6f42c1?logo=pypy
+.. |PyPy Support| image:: https://img.shields.io/badge/PyPy-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-6f42c1?logo=pypy
    :target: https://www.pypy.org/
    :alt: PyPy support status
 .. |PyPI - Format| image:: https://img.shields.io/pypi/format/qs_codec?logo=python
