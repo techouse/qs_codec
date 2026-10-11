@@ -32,7 +32,7 @@ Compatibility
 -------------
 
 - CPython 3.8–3.15 (default tox envs).
-- PyPy 3.8–3.11 (run ``tox -e pypy3.8`` through ``tox -e pypy3.11`` locally; CI mirrors this matrix).
+- PyPy 3.8–3.12 (run ``tox -e pypy3.8`` through ``tox -e pypy3.12`` locally; CI mirrors this matrix).
 
 Usage
 -----
