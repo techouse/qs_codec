@@ -1,3 +1,8 @@
+## 1.6.3
+
+* [CHORE] refine type annotations across encode/decode, options, utilities, and models, including Python 3.8-compatible `OverflowDict` typing
+* [CHORE] add CPython 3.15 support across classifiers, Black, tox, CI, and compatibility docs, including 3.15t tests
+
 ## 1.6.2
 
 * [FIX] match Node `qs` 6.16.0 for dotted root keys and dates returned by callable encoding filters
