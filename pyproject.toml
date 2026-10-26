@@ -68,7 +68,7 @@ dev = [
     "flake8-typing-imports",
     "isort",
     "mypy<1.11; python_version < \"3.9\"",
-    "mypy<1.19; python_version >= \"3.9\" and platform_python_implementation == \"PyPy\"",
+    "mypy<2.5; python_version >= \"3.9\" and platform_python_implementation == \"PyPy\"",
     "mypy>=1.11; python_version >= \"3.9\" and platform_python_implementation != \"PyPy\"",
     "pep8-naming",
     "pylint",
